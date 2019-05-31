@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>jQuery.getJSON demo</title>
+  <style>
+  img {
+    height: 100px;
+    float: left;
+  }
+  </style>
+  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+</head>
+<body>
+
+<table id="my_table">
+  <tr>
+    <th>Album</th>
+    <th>Title</th>
+  </tr>
+</table>
+
+
+<script>
+(function() {
+  var playerAPI = "https://localhost:8080/find?album=Copper";
+  $.getJSON( playerAPI )
+    .done(function( response ){
+        var trHTML = '';
+        $.each(response.list, function (i, item) {
+            trHTML += '<tr><td>' + item.album + '</td><td>' + item.titel + '</td></tr>';
+        });
+        $('#my_table').append(trHTML);
+
+    })
+})();
+</script>
+ 
+</body>
+</html>
+
