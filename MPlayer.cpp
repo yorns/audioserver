@@ -1,6 +1,7 @@
 #include "MPlayer.h"
 #include <regex>
 #include <boost/regex.hpp>
+#include <iostream>
 
 MPlayer::MPlayer(boost::asio::io_service& service, const std::string& configDB, const std::string &logFilePath) :
         Player(configDB, logFilePath), m_service(service)
@@ -105,10 +106,10 @@ bool MPlayer::startPlay(const std::string &url, const std::string& playerInfo, b
 
     parameter.push_back("-playlist");
 
-    log << "starting player -> " << playerName << " ";
+    std::cerr << "starting player -> " << playerName << " ";
     for (auto &i : parameter)
-        log << i << " ";
-    log << url << "\n" << std::flush;
+        std::cerr << i << " ";
+    std::cerr << url << "\n" << std::flush;
 
     m_in = std::make_unique<boost::process::opstream>();
     m_pipe = std::make_unique<boost::process::async_pipe>(m_service);

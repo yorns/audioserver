@@ -13,6 +13,11 @@
 //
 //------------------------------------------------------------------------------
 // curl -X POST --insecure https://localhost:8080/mypost?data=123\&data2=456
+// curl http://myservice --upload-file file.txt
+// curl https://localhost:8080/ --upload-file 01\ Kryptonite.mp3  --insecure
+// curl https://localhost:8080/find?overall=Kry --insecure
+// curl -X POST --insecure https://localhost:8080/player?play=6407c910-621b-4608-a1fb-f5d9a81fc30a
+
 
 #include "common/server_certificate.hpp"
 
@@ -79,6 +84,7 @@ int main(int argc, char* argv[])
     boost::asio::io_context ioc;
 
     database.loadDatabase(ServerConstant::fileRootPath.to_string());
+    database.loadAllPlaylists("playlist");
 
     player = std::make_unique<MPlayer>(ioc, "config.dat", "$(HOME)/.player");
 

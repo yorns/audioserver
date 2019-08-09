@@ -72,12 +72,21 @@ public:
         titel,
         album,
         interpret,
+        uid,
         overall
     };
 
     std::vector<Id3Info> findInDatabase(const std::string &what, DatabaseSearchType type) {
 
         std::vector<Id3Info> findData;
+
+        if (type == DatabaseSearchType::uid) {
+            std::for_each(std::begin(simpleDatabase), std::end(simpleDatabase),
+                          [&what, &findData](const Id3Info &info) {
+                              if (info.uid == what)
+                                  findData.push_back(info);
+                          });
+        }
 
         std::for_each(std::begin(simpleDatabase), std::end(simpleDatabase),
                       [&what, &findData, type](const Id3Info &info) {
@@ -105,7 +114,7 @@ public:
         /* is this a REST find request? */
         auto urlInfo = utility::Extractor::getUrlInformation(path);
 
-        if (urlInfo && urlInfo->command == "find") {
+        if (urlInfo && urlInfo->command == ServerConstant::AccessPoints::database) {
 
             std::cerr << "find request with <" << urlInfo->parameter << "> of value <" << urlInfo->value << ">\n";
             boost::beast::error_code ec;
@@ -113,17 +122,20 @@ public:
 
             DatabaseSearchType type{DatabaseSearchType::unknown};
 
-            if (urlInfo->parameter == "titel") {
+            if (urlInfo->parameter == ServerConstant::Parameter::Database::titel) {
                 type = DatabaseSearchType::titel;
             }
-            if (urlInfo->parameter == "album") {
+            if (urlInfo->parameter == ServerConstant::Parameter::Database::album) {
                 type = DatabaseSearchType::album;
             }
-            if (urlInfo->parameter == "interpret") {
+            if (urlInfo->parameter == ServerConstant::Parameter::Database::interpret) {
                 type = DatabaseSearchType::interpret;
             }
-            if (urlInfo->parameter == "overall") {
+            if (urlInfo->parameter == ServerConstant::Parameter::Database::overall) {
                 type = DatabaseSearchType::overall;
+            }
+            if (urlInfo->parameter == ServerConstant::Parameter::Database::uid) {
+                type = DatabaseSearchType::uid;
             }
 
             if (type != DatabaseSearchType::unknown) {
@@ -139,7 +151,7 @@ public:
                     jsonListEntry["album"] = info.album_name;
                     jsonListEntry["performer"] = info.performer_name;
                     jsonListEntry["track"] = info.track_no;
-                    jsonListEntry["uuid"] = info.filename;
+                    jsonListEntry["uuid"] = info.uid;
                     jsonArray.push_back(jsonListEntry);
                 });
 
@@ -167,27 +179,38 @@ public:
     bool readPlaylist(std::string &filename) {
         std::vector<std::string> itemList;
         std::string line;
-        std::string playlistName;
+        std::string playlistNameHR;
+        std::string playlistNameCRYPTIC;
         std::ifstream stream(filename);
 
-        playlistName = filename;
+        filesys::path p {filename};
+        playlistNameCRYPTIC = p.stem().string();
+
+        std::cerr << "reading filename <"<<playlistNameCRYPTIC<<">\n";
 
         if (!stream.good())
             return false;
 
         if (stream.good() && std::getline(stream, line)) {
             if (line.length() > 2 && line[0] == '#' && line[1] == ' ') {
-                playlistName = line.substr(2);
-            } else
-                itemList.emplace_back(line);
+                playlistNameHR = line.substr(2);
+            } else {
+                filesys::path fullName(line);
+                itemList.emplace_back(fullName.stem().string());
+                std::cerr << "  reading: " << fullName.stem() << "\n";
+            }
         }
 
+        std::cerr << "playlist name: "<<playlistNameCRYPTIC<<"\n";
+
         while (stream.good() && std::getline(stream, line)) {
-            itemList.emplace_back(line);
+            filesys::path fullName(line);
+            itemList.emplace_back(fullName.stem().string());
+            std::cerr << "  reading: " << fullName.stem() << "\n";
         }
 
         //PlaylistContainer container{};
-        playlist[playlistName] = PlaylistContainer{.internalPlaylistName=playlistName, .Playlist = itemList};
+        playlist[playlistNameCRYPTIC] = PlaylistContainer{.internalPlaylistName=playlistNameHR, .Playlist = itemList};
         return true;
     }
 
@@ -195,21 +218,28 @@ public:
 
         bool success{true};
         for (const auto &elem : playlist) {
+            std::cerr << "writeChangedPlaylist <"<<elem.first<< "> realname " << elem.second.internalPlaylistName;
             if (elem.second.changed) {
+                std::cerr << " - try write ... ";
                 std::string filename = playlistDirectory + "/" + elem.first + ".m3u";
 
                 std::ofstream ofs{filename};
 
                 if (ofs.good()) {
+                    std::cerr << " done \n";
 
                     ofs << "# " << elem.second.internalPlaylistName << "\n";
 
                     for (const auto &entry : elem.second.Playlist) {
-                        ofs << ServerConstant::fileRootPath << "/" << entry << "\n";
+                        ofs << "../" << ServerConstant::fileRootPath << "/" << entry << ".mp3\n";
                     }
                 } else {
+                    std::cerr << " failed \n";
                     success = false;
                 }
+            }
+            else {
+                std::cerr << "not changed\n";
             }
         }
 
@@ -241,6 +271,18 @@ public:
         return playlistName;
     }
 
+    std::string getNameFromHumanReadable(const std::string& humanReadablePlaylist) {
+
+        auto item = std::find_if(std::begin(playlist), std::end(playlist), [&humanReadablePlaylist](const auto &elem) {
+            return elem.second.internalPlaylistName == humanReadablePlaylist;
+        });
+
+        if (item != playlist.end())
+            return item->first;
+
+        return "";
+    }
+
     bool isPlaylist(const std::string &playlistName) {
 
         auto item = std::find_if(std::begin(playlist), std::end(playlist), [&playlistName](const auto &elem) {
@@ -256,16 +298,27 @@ public:
         });
         if (item != playlist.end()) {
             item->second.Playlist.push_back(name);
+            item->second.changed = true;
             return true;
         }
         return false;
     }
 
-    bool addToPlaylistID(const std::string &ID, std::string &name) {
+    bool isPlaylistID(const std::string &playlistID) {
+
+        auto item = std::find_if(std::begin(playlist), std::end(playlist), [&playlistID](const auto &elem) {
+            return elem.first == playlistID;
+        });
+
+        return item != playlist.end();
+    }
+
+    bool addToPlaylistID(const std::string &ID, const std::string &name) {
         auto item = std::find_if(std::begin(playlist), std::end(playlist),
                                  [&ID](const auto &elem) { return elem.first == ID; });
         if (item != playlist.end()) {
             item->second.Playlist.emplace_back(name);
+            item->second.changed = true;
             return true;
         }
         return false;

@@ -38,7 +38,7 @@ std::string session::generate_unique_name() {
     boost::uuids::random_generator generator;
     boost::uuids::uuid _name = generator();
     std::stringstream file_name_str;
-    file_name_str << ServerConstant::fileRootPath << _name << ".mp3";
+    file_name_str << ServerConstant::fileRootPath <<"/" << _name << ".mp3";
     return file_name_str.str();
 
 }
@@ -69,7 +69,7 @@ void session::on_read_header(boost::system::error_code ec, std::size_t bytes_tra
         reqFile_->get().body().open(file_name.c_str(), boost::beast::file_mode::write, error_code);
 
         if (error_code) {
-            std::cerr << "with error: " << error_code << " - returning an error message\n";
+            std::cerr << "with error: " << error_code << " - returning an error message to sender\n";
             http::response<http::string_body> res{http::status::internal_server_error, reqFile_->get().version()};
             res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
             res.set(http::field::content_type, "text/html");

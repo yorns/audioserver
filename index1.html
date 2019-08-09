@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>jQuery.getJSON demo</title>
+  <title>find album</title>
   <style>
   img {
     height: 100px;
@@ -13,27 +13,57 @@
 </head>
 <body>
 
+   Search for Album with: 
+    <input type="text"
+           id="myText"
+           value="Better"> 
+  
+    <button type="button" id="requesttable" >Search 
+  </button> 
+
+
+
 <table id="my_table">
   <tr>
+    <th>ID</th>
     <th>Album</th>
     <th>Title</th>
+    <th>Performer</th>
+    <th>Select</th>
   </tr>
 </table>
 
 
-<script>
-(function() {
-  var playerAPI = "https://localhost:8080/find?album=Copper";
-  $.getJSON( playerAPI )
-    .done(function( response ){
-        var trHTML = '';
-        $.each(response.list, function (i, item) {
-            trHTML += '<tr><td>' + item.album + '</td><td>' + item.titel + '</td></tr>';
-        });
-        $('#my_table').append(trHTML);
+<script type="text/javascript">
 
-    })
-})();
+ $("#requesttable").click(function(){
+      searchstring = $('#myText').val(); 
+      url = "/database?album="+searchstring; 
+      //alert("button "+ url );
+                $.getJSON(url).done(function(response) {
+		  $('#my_table tbody').empty();
+                  var trHTML = '';
+                  $.each(response.list, function (i, item) {
+                    trHTML += '<tr><td>' + item.uuid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                  });
+                  $('#my_table').append(trHTML);
+                });
+
+    });  
+/*$("#requesttable").submit(function() {
+
+		var url = $("#myText").value;
+
+                $.getJSON(url).done(function(response) {
+                  var trHTML = '';
+                  $.each(response.list, function (i, item) {
+                    trHTML += '<tr><td>' + item.uuid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                  });
+                  $('#my_table').append(trHTML);
+                });
+ 
+}
+*/
 </script>
  
 </body>

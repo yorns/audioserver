@@ -5,7 +5,7 @@
 #include <cstdint>
 
 struct Id3Info {
-    std::string filename;
+    std::string uid;
     std::string album_name;
     std::string titel_name;
     std::string performer_name;

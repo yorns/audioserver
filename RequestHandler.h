@@ -5,6 +5,7 @@
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <nlohmann/json.hpp>
 #include "Player.h"
 #include "SimpleDatabase.h"
 #include "common/Constants.h"
@@ -65,6 +66,143 @@ public:
         return res;
     }
 
+    std::string playerAccess(const utility::Extractor::UrlInformation& urlInfo) {
+        if ( urlInfo->parameter == ServerConstant::Command::play ) {
+            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + urlInfo->value + ".m3u", "");
+            return "ok";
+        }
+
+        if (urlInfo->parameter == ServerConstant::Parameter::Play::next &&
+                urlInfo->value == ServerConstant::Value::_true) {
+            player->next_file();
+            return "ok";
+        }
+
+        if (urlInfo->parameter == ServerConstant::Parameter::Play::previous &&
+                urlInfo->value == ServerConstant::Value::_true) {
+            player->prev_file();
+            return "ok";
+        }
+
+        if (urlInfo->parameter == ServerConstant::Parameter::Play::stop &&
+                urlInfo->value == ServerConstant::Value::_true) {
+            player->stop();
+            return "ok";
+        }
+        return "player command unknown";
+    }
+
+    std::string DatabaseAccess(const utility::Extractor::UrlInformation& urlInfo) {
+
+        std::cout << "show playlist <" << urlInfo->value << ">\n";
+        if (!urlInfo->value.empty() && database.isPlaylist(urlInfo->value)) {
+            std::cout << "playlist is set\n";
+            auto list = database.showPlaylist(urlInfo->value);
+            if (list.empty())
+                std::cout << "playlist is empty\n";
+            nlohmann::json json;
+            for(auto item : list) {
+                std::cerr << item <<"\n";
+                auto entry = database.findInDatabase(item,SimpleDatabase::DatabaseSearchType::uid);
+                if (entry.size() != 1) {
+                    std::cerr << "ERROR: could not find playlist file information for <" << item << ">\n";
+                    continue;
+                }
+                nlohmann::json jentry;
+                jentry[ServerConstant::Parameter::Database::uid.to_string()] = entry.front().uid;
+                jentry[ServerConstant::Parameter::Database::interpret.to_string()] = entry.front().performer_name;
+                jentry[ServerConstant::Parameter::Database::album.to_string()] = entry.front().album_name;
+                jentry[ServerConstant::Parameter::Database::titel.to_string()] = entry.front().titel_name;
+                jentry["trackNo"] = entry.front().track_no;
+                json.push_back(jentry);
+            }
+            return json.dump(2);
+        } else {
+            return "no playlist found for <" + urlInfo->value + ">";
+        }
+
+    }
+
+    std::string playlistAccess(const utility::Extractor::UrlInformation& urlInfo) {
+
+        if (urlInfo->parameter == ServerConstant::Command::create) {
+            std::cout << "create playlist with name <" << urlInfo->value << ">";
+            if (!database.createPlaylist(urlInfo->value).empty()) {
+                currentPlaylist = urlInfo->value;
+                database.writeChangedPlaylists(ServerConstant::playlistRootPath.to_string());
+                return "{\"result\": \"ok\"}";
+            } else {
+                return "{\"result\": \"playlist not new\"}";
+            }
+        }
+
+        if (urlInfo->parameter == ServerConstant::Command::change) {
+
+            if (database.isPlaylist(urlInfo->value)) {
+                std::cout << "changed to playlist with name <" << urlInfo->value << ">\n";
+                currentPlaylist = database.getNameFromHumanReadable(urlInfo->value);
+                std::cout << "current playlist is <" << currentPlaylist << ">\n";
+                return "ok";
+            } else {
+                std::cout << "playlist with name <" << urlInfo->value << "> not found\n";
+                return "no playlist with name <" + urlInfo->value + ">";
+            }
+        }
+
+        if (urlInfo->parameter == ServerConstant::Command::add) {
+            if (!currentPlaylist.empty() && database.isPlaylistID(currentPlaylist)) {
+                std::cout << "add title with name <" << urlInfo->value << "> to playlist <"<<currentPlaylist<<">\n";
+                database.addToPlaylistID(currentPlaylist, urlInfo->value);
+                database.writeChangedPlaylists(ServerConstant::playlistRootPath.to_string());
+                return "ok";
+            } else {
+                return "cannot add <" + urlInfo->value + "> to playlist <" + currentPlaylist + ">";
+            }
+        }
+
+        if (urlInfo->parameter == ServerConstant::Command::show) {
+            std::cout << "show playlist <" << urlInfo->value << ">\n";
+            if (!urlInfo->value.empty() && database.isPlaylist(urlInfo->value)) {
+                std::cout << "playlist is set\n";
+                auto list = database.showPlaylist(urlInfo->value);
+                if (list.empty())
+                    std::cout << "playlist is empty\n";
+                nlohmann::json json;
+                for(auto item : list) {
+                    std::cerr << item <<"\n";
+                    auto entry = database.findInDatabase(item,SimpleDatabase::DatabaseSearchType::uid);
+                    if (entry.size() != 1) {
+                        std::cerr << "ERROR: could not find playlist file information for <" << item << ">\n";
+                        continue;
+                    }
+                    nlohmann::json jentry;
+                    jentry[ServerConstant::Parameter::Database::uid.to_string()] = entry.front().uid;
+                    jentry[ServerConstant::Parameter::Database::interpret.to_string()] = entry.front().performer_name;
+                    jentry[ServerConstant::Parameter::Database::album.to_string()] = entry.front().album_name;
+                    jentry[ServerConstant::Parameter::Database::titel.to_string()] = entry.front().titel_name;
+                    jentry["trackNo"] = entry.front().track_no;
+                    json.push_back(jentry);
+                }
+                return json.dump(2);
+            } else {
+                return "no playlist found for <" + urlInfo->value + ">";
+            }
+        }
+
+        if (urlInfo->parameter == ServerConstant::Command::showLists) {
+            std::cout << "show all playlists\n";
+            std::vector<std::pair<std::string, std::string>> lists = database.showAllPlaylists();
+            if (!lists.empty()) {
+                std::cout << "playlists are \n";
+                for(auto item : lists) { std::cerr << item.first <<" - " << item.second <<"\n"; }
+                return "ok"; //listToJson(list);
+            } else {
+                return "no playlist available";
+            }
+        }
+
+        return "playlist command not found";
+    }
 
 // This function produces an HTTP response for the given
 // req.get().est. The type of the response object depends on the
@@ -98,54 +236,12 @@ public:
 
             std::string result {"done"};
             if (urlInfo) {
-                std::cerr << "url extracted to: "<<urlInfo->command<< " - "<<urlInfo->parameter<<"="<<urlInfo->value<<"\n";
+                std::cerr << "url extracted to: "<<urlInfo->command<< " - <"<<urlInfo->parameter<<"> = <"<<urlInfo->value<<">\n";
 
-                if (player && urlInfo->command == "player" && urlInfo->parameter == "file") {
-                    player->startPlay(ServerConstant::fileRootPath.to_string()+urlInfo->value,"");
+                if (player && urlInfo->command == "player") {
+                    playerAccess(urlInfo);
                 }
 
-                if (player && urlInfo->command == "player" && urlInfo->parameter == "next" && urlInfo->value == "true") {
-                    player->next_file();
-                }
-
-                if (player && urlInfo->command == "player" && urlInfo->parameter == "prev" && urlInfo->value == "true") {
-                    player->prev_file();
-                }
-
-                if (player && urlInfo->command == "player" && urlInfo->parameter == "stop" && urlInfo->value == "true") {
-                    player->stop();
-                }
-
-                if (urlInfo->command == "playlist" && urlInfo->parameter == "create") {
-                    std::cout << "create playlist with name <"<<urlInfo->value<<">";
-                    if (!database.createPlaylist(urlInfo->value).empty()) {
-                        currentPlaylist = urlInfo->value;
-                    }
-                    else {
-                        result = "playlist not new";
-                    }
-                }
-
-                if (urlInfo->command == "playlist" && urlInfo->parameter == "change") {
-                    std::cout << "change to playlist with name <"<<urlInfo->value<<">";
-
-                    if (database.isPlaylist(urlInfo->value)) {
-                        currentPlaylist = urlInfo->value;
-                    }
-                    else {
-                        result = "no playlist with name <"+urlInfo->value+">";
-                    }
-                }
-
-                if (urlInfo->command == "playlist" && urlInfo->parameter == "add") {
-                    if (!currentPlaylist.empty() && database.isPlaylist(currentPlaylist)) {
-                        std::cout << "add title with name <" << urlInfo->value << "> to playlist";
-                        database.addToPlaylist(currentPlaylist, urlInfo->value);
-                    }
-                    else {
-                        result = "cannot add <"+ urlInfo->value +"> to playlist <"+currentPlaylist+">";
-                    }
-                }
             }
             else {
                 result = "request failed";
@@ -159,20 +255,27 @@ public:
 
         if(req.get().method() == http::verb::get) {
             std::string path = path_cat(doc_root, req.get().target());
+            std::cerr << "get: "+path+"\n";
+            auto urlInfo = utility::Extractor::getUrlInformation(path);
 
-            boost::optional<std::tuple<std::string, SimpleDatabase::DatabaseSearchType>> jsonList = database.findInDatabaseToJson(path);
+            if (urlInfo && urlInfo->command == ServerConstant::AccessPoints::playlist) {
 
-            if (jsonList) {
-                std::cerr << "Database find requested at " + path + "\n";
+               std::string result = playlistAccess(urlInfo);
 
-                if (std::get<SimpleDatabase::DatabaseSearchType>(jsonList.get()) !=
-                    SimpleDatabase::DatabaseSearchType::unknown) {
+                return send(generate_result_packet(http::status::ok, result, req, "application/json"));
+            }
 
-                    return send(generate_result_packet(http::status::ok, std::get<std::string>(jsonList.get()),
-                                                       req, "application/json"));
-                } else {
-                    return send(generate_result_packet(http::status::ok, " unknown find string ", req));
-                }
+            if (urlInfo && urlInfo->command == ServerConstant::AccessPoints::database) {
+
+                auto result = database.findInDatabaseToJson(path);
+
+                std::cout << "database find request result: "<<(result?std::get<std::string>(*result):"nothing")<<"\n";
+
+                if (result)
+                    return send(generate_result_packet(http::status::ok, std::get<std::string>(*result), req, "application/json"));
+                else
+                    return send(generate_result_packet(http::status::ok, "[]", req, "application/json"));
+
             }
         }
 
