@@ -28,9 +28,11 @@ namespace ServerConstant {
         namespace Database {
             static boost::beast::string_view titel{"titel"};
             static boost::beast::string_view album{"album"};
-            static boost::beast::string_view interpret{"interpret"};
+            static boost::beast::string_view interpret{"performer"};
+            static boost::beast::string_view trackNo{"trackNo"};
             static boost::beast::string_view uid{"uid"};
             static boost::beast::string_view overall{"overall"};
+            static boost::beast::string_view playlist{"playlist"};
         }
         namespace Play {
             static boost::beast::string_view next{"next"};

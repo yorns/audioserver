@@ -85,6 +85,10 @@ int main(int argc, char* argv[])
 
     database.loadDatabase(ServerConstant::fileRootPath.to_string());
     database.loadAllPlaylists("playlist");
+    if (!database.showAllPlaylists().empty())
+        currentPlaylist = database.showAllPlaylists().back().second;
+
+    std::cout << "current playlist on startup is: "<< currentPlaylist<<"\n";
 
     player = std::make_unique<MPlayer>(ioc, "config.dat", "$(HOME)/.player");
 

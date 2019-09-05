@@ -147,11 +147,11 @@ public:
 
                 std::for_each(std::begin(list), std::end(list), [&jsonArray](const Id3Info &info) {
                     nlohmann::json jsonListEntry;
-                    jsonListEntry["titel"] = info.titel_name;
-                    jsonListEntry["album"] = info.album_name;
-                    jsonListEntry["performer"] = info.performer_name;
-                    jsonListEntry["track"] = info.track_no;
-                    jsonListEntry["uuid"] = info.uid;
+                    jsonListEntry[ServerConstant::Parameter::Database::titel.to_string()] = info.titel_name;
+                    jsonListEntry[ServerConstant::Parameter::Database::album.to_string()] = info.album_name;
+                    jsonListEntry[ServerConstant::Parameter::Database::interpret.to_string()] = info.performer_name;
+                    jsonListEntry[ServerConstant::Parameter::Database::trackNo.to_string()] = info.track_no;
+                    jsonListEntry[ServerConstant::Parameter::Database::uid.to_string()] = info.uid;
                     jsonArray.push_back(jsonListEntry);
                 });
 
@@ -338,11 +338,20 @@ public:
         std::vector<std::string> list;
 
         auto item = std::find_if(std::begin(playlist), std::end(playlist),
-                                 [&playlistName](const auto &elem) { return elem.second.internalPlaylistName == playlistName; });
+                                 [&playlistName](const auto &elem) {
+                                     return elem.first == playlistName; });
 
+        std::cout << "Playlist: " << playlistName <<"\n";
         if (item != playlist.end()) {
             list = item->second.Playlist;
+            for (auto i : list)
+                std::cout << " -> "<<i<<"\n";
         }
+        else {
+            std::cout << "empty\n";
+        }
+
+
 
         return list;
     }

@@ -67,8 +67,10 @@ public:
     }
 
     std::string playerAccess(const utility::Extractor::UrlInformation& urlInfo) {
-        if ( urlInfo->parameter == ServerConstant::Command::play ) {
-            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + urlInfo->value + ".m3u", "");
+        if ( urlInfo->parameter == ServerConstant::Command::play &&
+             urlInfo->value == ServerConstant::Value::_true) {
+            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + database.getNameFromHumanReadable(currentPlaylist) + ".m3u", "");
+//            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + urlInfo->value + ".m3u", "");
             return "ok";
         }
 
@@ -90,37 +92,6 @@ public:
             return "ok";
         }
         return "player command unknown";
-    }
-
-    std::string DatabaseAccess(const utility::Extractor::UrlInformation& urlInfo) {
-
-        std::cout << "show playlist <" << urlInfo->value << ">\n";
-        if (!urlInfo->value.empty() && database.isPlaylist(urlInfo->value)) {
-            std::cout << "playlist is set\n";
-            auto list = database.showPlaylist(urlInfo->value);
-            if (list.empty())
-                std::cout << "playlist is empty\n";
-            nlohmann::json json;
-            for(auto item : list) {
-                std::cerr << item <<"\n";
-                auto entry = database.findInDatabase(item,SimpleDatabase::DatabaseSearchType::uid);
-                if (entry.size() != 1) {
-                    std::cerr << "ERROR: could not find playlist file information for <" << item << ">\n";
-                    continue;
-                }
-                nlohmann::json jentry;
-                jentry[ServerConstant::Parameter::Database::uid.to_string()] = entry.front().uid;
-                jentry[ServerConstant::Parameter::Database::interpret.to_string()] = entry.front().performer_name;
-                jentry[ServerConstant::Parameter::Database::album.to_string()] = entry.front().album_name;
-                jentry[ServerConstant::Parameter::Database::titel.to_string()] = entry.front().titel_name;
-                jentry["trackNo"] = entry.front().track_no;
-                json.push_back(jentry);
-            }
-            return json.dump(2);
-        } else {
-            return "no playlist found for <" + urlInfo->value + ">";
-        }
-
     }
 
     std::string playlistAccess(const utility::Extractor::UrlInformation& urlInfo) {
@@ -162,9 +133,13 @@ public:
 
         if (urlInfo->parameter == ServerConstant::Command::show) {
             std::cout << "show playlist <" << urlInfo->value << ">\n";
-            if (!urlInfo->value.empty() && database.isPlaylist(urlInfo->value)) {
+            if ((urlInfo->value.empty() && !currentPlaylist.empty()) || database.isPlaylist(urlInfo->value)) {
                 std::cout << "playlist is set\n";
-                auto list = database.showPlaylist(urlInfo->value);
+                std::string playlistName(database.getNameFromHumanReadable(currentPlaylist));
+                std::cout << "playlist is <"<<playlistName<<">\n";
+                if (!urlInfo->value.empty())
+                    playlistName = database.getNameFromHumanReadable(urlInfo->value);
+                auto list = database.showPlaylist(playlistName);
                 if (list.empty())
                     std::cout << "playlist is empty\n";
                 nlohmann::json json;
@@ -183,6 +158,7 @@ public:
                     jentry["trackNo"] = entry.front().track_no;
                     json.push_back(jentry);
                 }
+                std::cout << json.dump(2);
                 return json.dump(2);
             } else {
                 return "no playlist found for <" + urlInfo->value + ">";
@@ -194,8 +170,23 @@ public:
             std::vector<std::pair<std::string, std::string>> lists = database.showAllPlaylists();
             if (!lists.empty()) {
                 std::cout << "playlists are \n";
-                for(auto item : lists) { std::cerr << item.first <<" - " << item.second <<"\n"; }
-                return "ok"; //listToJson(list);
+                nlohmann::json json;
+                nlohmann::json json1;
+                try {
+                    for (auto item : lists) {
+                        std::cerr << item.first << " - " << item.second << "\n";
+                        nlohmann::json jentry;
+                        jentry[ServerConstant::Parameter::Database::uid.to_string()] = item.first;
+                        jentry[ServerConstant::Parameter::Database::playlist.to_string()] = item.second;
+                        json1.push_back(jentry);
+                    }
+                    std::cout << "finished loop\n";
+                    json["playlists"] = json1;
+                    json["actualPlaylist"] = currentPlaylist;
+                } catch (std::exception e) {
+                    std::cerr << "error: " << e.what() << "\n";
+                }
+                return json.dump(2);
             } else {
                 return "no playlist available";
             }

@@ -4,7 +4,7 @@ project(server)
 
 message("server build")
 
-set(BOOST_INCLUDEDIR /opt/boost/include)
+set(BOOST_ROOT /opt/boost/)
 
 find_package( Threads REQUIRED)
 find_package( OpenSSL REQUIRED)
@@ -28,7 +28,7 @@ target_link_libraries(${PROJECT_NAME}
         Threads::Threads
         OpenSSL::SSL
         OpenSSL::Crypto
-	    ${Boost_LIBRARIES}
+		${Boost_INCLUDE_DIRS}
 		id3
 )
 
@@ -53,7 +53,7 @@ target_include_directories(
 		databaseTest
 		PUBLIC
 		${CMAKE_SOURCE_DIR}
-		${BOOST_INCLUDEDIR}
+		${Boost_INCLUDE_DIRS}
 )
 
 set_target_properties(databaseTest PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

@@ -11,60 +11,122 @@
   </style>
   <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
 </head>
-<body>
 
-   Search for Album with: 
-    <input type="text"
-           id="myText"
-           value="Better"> 
-  
-    <button type="button" id="requesttable" >Search 
-  </button> 
+   <button type="button" id="do_play" >Play</button>
+   <button type="button" id="do_stop" >Stop</button>
+   <button type="button" id="do_next" >Next</button>
+   <button type="button" id="do_prev" >Previous</button>
+<br>
 
 
+   <br>Playlists:<br>
+   <table id="my_playlist">
+       <tr>
+           <th>ID</th>
+           <th>Name</th>
+       </tr>
+   </table>
 
-<table id="my_table">
-  <tr>
-    <th>ID</th>
-    <th>Album</th>
-    <th>Title</th>
-    <th>Performer</th>
-    <th>Select</th>
-  </tr>
-</table>
+   <br>
+   <br>
+
+   Actual Playlist: <p id="actPlaylistName">nothing<\p>
+   <br>
+   <table id="act_playlist">
+       <tr>
+           <th>ID</th>
+           <th>Album</th>
+           <th>Title</th>
+           <th>Performer</th>
+           <th>Select</th>
+       </tr>
+   </table>
+    <br><br>
+
+   Search for Album with:
+   <input type="text"
+          id="myText"
+          value="Better">
+   <button type="button" id="requesttable" >Search</button>
+
+   <br>
+   <table id="my_table">
+       <tr>
+           <th>ID</th>
+           <th>Album</th>
+           <th>Title</th>
+           <th>Performer</th>
+           <th>Select</th>
+       </tr>
+   </table>
 
 
-<script type="text/javascript">
+   <script type="text/javascript">
+
+       function getActualPlaylist() {
+           url = "/playlist?show=";
+           $.getJSON(url).done(function(response) {
+               $('#act_playlist tbody').empty();
+               var trHTML = '<tr><th>ID</th> <th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
+               $.each(response, function (i, item) {
+                   trHTML += '<tr><td>' + item.uid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+               });
+               $('#act_playlist').append(trHTML);
+           });
+
+       }
 
  $("#requesttable").click(function(){
       searchstring = $('#myText').val(); 
-      url = "/database?album="+searchstring; 
+      url = "/database?overall="+searchstring;
       //alert("button "+ url );
                 $.getJSON(url).done(function(response) {
 		  $('#my_table tbody').empty();
-                  var trHTML = '';
+                  var trHTML = '<tr><th>ID</th> <th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
                   $.each(response.list, function (i, item) {
-                    trHTML += '<tr><td>' + item.uuid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                    trHTML += '<tr><td>' + item.uid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
                   });
                   $('#my_table').append(trHTML);
                 });
 
-    });  
-/*$("#requesttable").submit(function() {
+    });
 
-		var url = $("#myText").value;
+ $("#do_play").click(function() {
+     url = "/player?play=true";
+     $.post(url, "", function(data, textStatus){ alert("Playing started"); },"json");
+ });
 
-                $.getJSON(url).done(function(response) {
-                  var trHTML = '';
-                  $.each(response.list, function (i, item) {
-                    trHTML += '<tr><td>' + item.uuid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
-                  });
-                  $('#my_table').append(trHTML);
-                });
- 
-}
-*/
-</script>
+ $("#do_next").click(function() {
+     url = "/player?next=true";
+     $.post(url, "", function(data, textStatus){ },"json");
+ });
+
+ $("#do_prev").click(function() {
+     url = "/player?prev=true";
+     $.post(url, "", function(data, textStatus){ },"json");
+ });
+
+ $("#do_stop").click(function() {
+     url = "/player?stop=true";
+     $.post(url, "", function(data, textStatus){ },"json");
+ });
+
+ $(function() {
+     searchstring = $('#myText').val();
+     url = "/playlist?showLists=true";
+     $.getJSON(url).done(function(response) {
+         $('#my_playlist tbody').empty();
+         var trHTML = '<tr><th>ID</th> <th>Name</th></tr>';
+         $.each(response.playlists, function (i, item) {
+             trHTML += '<tr><td>' + item.uid + '</td><td>' + item.playlist + '</td></tr>';
+         });
+         $('#my_playlist').append(trHTML);
+         $('#actPlaylistName').html(response.actualPlaylist);
+     });
+     getActualPlaylist();
+ });
+
+   </script>
  
 </body>
 </html>
