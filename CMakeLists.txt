@@ -28,8 +28,8 @@ target_link_libraries(${PROJECT_NAME}
         Threads::Threads
         OpenSSL::SSL
         OpenSSL::Crypto
-		${Boost_INCLUDE_DIRS}
-		id3
+	${Boost_LIBRARIES}
+	id3
 )
 
 target_include_directories(
