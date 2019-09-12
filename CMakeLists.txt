@@ -4,7 +4,7 @@ project(server)
 
 message("server build")
 
-set(BOOST_ROOT /opt/boost/)
+set(BOOST_ROOT /opt/boost_1_71/)
 
 find_package( Threads REQUIRED)
 find_package( OpenSSL REQUIRED)
@@ -36,7 +36,8 @@ target_include_directories(
 	${PROJECT_NAME}
 	PUBLIC
 	${OPENSSL_INCLUDE_DIR}
-	${BOOST_INCLUDEDIR} )
+	${Boost_INCLUDE_DIRS}
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
