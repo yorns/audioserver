@@ -94,7 +94,7 @@
             $('#fileName').html('Dateiname: ' + file.name);
             $('#fileSize').html('Dateigröße: ' + file.size + ' B');
             $('#fileType').text('Dateitype: ' + file.type);
-            $('#progressbar').css("width", "0%") ;
+            $('.progress-bar').css("width", "0%") ;
             //document.getElementById("prozent").innerHTML = "0%";
         }
 
@@ -108,27 +108,20 @@
             //XMLHttpRequest Objekt erzeugen
             client = new XMLHttpRequest();
 
-            var prog = document.getElementById("progress");
-
             if(!file)
                 return;
-
-            prog.value = 0;
-            prog.max = 100;
 
             client.onerror = function(e) {
                 alert("onError");
             };
 
             client.onload = function(e) {
-                document.getElementById("prozent").innerHTML = "100%";
-                prog.value = prog.max;
+                $('.progress-bar').css("width", "100%") ;
             };
 
             client.upload.onprogress = function(e) {
                 var p = Math.round(100 / e.total * e.loaded);
-                $('#progress').attr('aria-valuenow', p) ;
-                //document.getElementById("prozent").innerHTML = p + "%";
+                $('.progress-bar').css("width", p+"%") ;
             };
 
             client.onabort = function(e) {
@@ -141,8 +134,8 @@
 
         function uploadAbort() {
             if(client instanceof XMLHttpRequest)
-            //Briecht die aktuelle Übertragung ab
-                client.abort();
+            //Bricht die aktuelle Übertragung ab
+            client.abort();
         }
 
     </script>
@@ -218,9 +211,9 @@
     <div id="fileType"></div>
 
     <div class="progress">
-        <div class="progress-bar" role="progressbar" aria-valuenow="70"
-             aria-valuemin="0" aria-valuemax="100" style="width:70%">
-            70%
+        <div class="progress-bar" role="progressbar" aria-valuenow="0"
+             aria-valuemin="0" aria-valuemax="100" style="width:0%">
+            upload
         </div>
     </div>
     <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
