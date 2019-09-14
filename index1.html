@@ -3,19 +3,166 @@
 <head>
   <meta charset="utf-8">
   <title>find album</title>
-  <style>
-  img {
-    height: 100px;
-    float: left;
-  }
-  </style>
-  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            function getActualPlaylist() {
+                url = "/playlist?show=";
+                $.getJSON(url).done(function (response) {
+                    $('#act_playlist tbody').empty();
+                    var trHTML = '<tr><th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
+                    $.each(response, function (i, item) {
+                        trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                    });
+                    $('#act_playlist').append(trHTML);
+                });
+
+            }
+
+            $("#requesttable").click(function () {
+                searchstring = $('#myText').val();
+                url = "/database?overall=" + searchstring;
+                //alert("button "+ url );
+                $.getJSON(url).done(function (response) {
+                    $('#my_table tbody').empty();
+                    var trHTML = '<tr><th>ID</th> <th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
+                    $.each(response.list, function (i, item) {
+                        trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                    });
+                    $('#my_table').append(trHTML);
+                });
+
+            });
+
+            $("#btnPlay").click(function () {
+                url = "/player?play=true";
+                alert("Playing start");
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            });
+
+            $("#btnNext").click(function () {
+                url = "/player?next=true";
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            });
+
+            $("#btnPrevious").click(function () {
+                url = "/player?prev=true";
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            });
+
+            $("#btnStop").click(function () {
+                url = "/player?stop=true";
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            });
+
+            $(function () {
+                searchstring = $('#myText').val();
+                url = "/playlist?showLists=true";
+                $.getJSON(url).done(function (response) {
+                    $('#my_playlist tbody').empty();
+                    var trHTML = '<tr><th>Name</th></tr>';
+                    $.each(response.playlists, function (i, item) {
+                        trHTML += '<tr id="' + item.uid + '"><td>' + item.playlist + '</td></tr>';
+                    });
+                    $('#my_playlist').append(trHTML);
+                    $('#actPlaylistName').html(response.actualPlaylist);
+                });
+                getActualPlaylist();
+            });
+        });
+
+        function fileChange()
+        {
+            //FileList Objekt aus dem Input Element mit der ID "fileA"
+            var fileList = document.getElementById("fileA").files;
+
+            //File Objekt (erstes Element der FileList)
+            var file = fileList[0];
+
+            //File Objekt nicht vorhanden = keine Datei ausgewählt oder vom Browser nicht unterstützt
+            if(!file)
+                return;
+
+            $('#fileName').html('Dateiname: ' + file.name);
+            $('#fileSize').html('Dateigröße: ' + file.size + ' B');
+            $('#fileType').text('Dateitype: ' + file.type);
+            $('#progressbar').css("width", "0%") ;
+            //document.getElementById("prozent").innerHTML = "0%";
+        }
+
+        var client = null;
+
+        function uploadFile()
+        {
+            //Wieder unser File Objekt
+            var file = document.getElementById("fileA").files[0];
+
+            //XMLHttpRequest Objekt erzeugen
+            client = new XMLHttpRequest();
+
+            var prog = document.getElementById("progress");
+
+            if(!file)
+                return;
+
+            prog.value = 0;
+            prog.max = 100;
+
+            client.onerror = function(e) {
+                alert("onError");
+            };
+
+            client.onload = function(e) {
+                document.getElementById("prozent").innerHTML = "100%";
+                prog.value = prog.max;
+            };
+
+            client.upload.onprogress = function(e) {
+                var p = Math.round(100 / e.total * e.loaded);
+                $('#progress').attr('aria-valuenow', p) ;
+                //document.getElementById("prozent").innerHTML = p + "%";
+            };
+
+            client.onabort = function(e) {
+                alert("Upload abgebrochen");
+            };
+
+            client.open("POST", "/upload");
+            client.send(file);
+        }
+
+        function uploadAbort() {
+            if(client instanceof XMLHttpRequest)
+            //Briecht die aktuelle Übertragung ab
+                client.abort();
+        }
+
+    </script>
+
 </head>
 
+<div class="btn-group" role="group" aria-label="Player" id="Player">
+    <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
+    <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
+    <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
+    <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+</div>
+
+<!--
    <button type="button" id="do_play" >Play</button>
    <button type="button" id="do_stop" >Stop</button>
    <button type="button" id="do_next" >Next</button>
    <button type="button" id="do_prev" >Previous</button>
+-->
+
 <br>
 
 
@@ -60,74 +207,26 @@
        </tr>
    </table>
 
+<form action="" method="post" enctype="multipart/form-data">
+    <input name="file" type="file" id="fileA" onchange="fileChange();"/>
+    <input name="upload" value="Upload" type="button" onclick="uploadFile();" />
+    <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();" />
+</form>
+<div>
+    <div id="fileName"></div>
+    <div id="fileSize"></div>
+    <div id="fileType"></div>
 
-   <script type="text/javascript">
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="70"
+             aria-valuemin="0" aria-valuemax="100" style="width:70%">
+            70%
+        </div>
+    </div>
+    <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
+</div>
 
-       function getActualPlaylist() {
-           url = "/playlist?show=";
-           $.getJSON(url).done(function(response) {
-               $('#act_playlist tbody').empty();
-               var trHTML = '<tr><th>ID</th> <th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
-               $.each(response, function (i, item) {
-                   trHTML += '<tr><td>' + item.uid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
-               });
-               $('#act_playlist').append(trHTML);
-           });
 
-       }
-
- $("#requesttable").click(function(){
-      searchstring = $('#myText').val(); 
-      url = "/database?overall="+searchstring;
-      //alert("button "+ url );
-                $.getJSON(url).done(function(response) {
-		  $('#my_table tbody').empty();
-                  var trHTML = '<tr><th>ID</th> <th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
-                  $.each(response.list, function (i, item) {
-                    trHTML += '<tr><td>' + item.uid + '</td><td>' + item.album + '</td><td>' + item.titel + '</td><td>'+ item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
-                  });
-                  $('#my_table').append(trHTML);
-                });
-
-    });
-
- $("#do_play").click(function() {
-     url = "/player?play=true";
-     $.post(url, "", function(data, textStatus){ alert("Playing started"); },"json");
- });
-
- $("#do_next").click(function() {
-     url = "/player?next=true";
-     $.post(url, "", function(data, textStatus){ },"json");
- });
-
- $("#do_prev").click(function() {
-     url = "/player?prev=true";
-     $.post(url, "", function(data, textStatus){ },"json");
- });
-
- $("#do_stop").click(function() {
-     url = "/player?stop=true";
-     $.post(url, "", function(data, textStatus){ },"json");
- });
-
- $(function() {
-     searchstring = $('#myText').val();
-     url = "/playlist?showLists=true";
-     $.getJSON(url).done(function(response) {
-         $('#my_playlist tbody').empty();
-         var trHTML = '<tr><th>ID</th> <th>Name</th></tr>';
-         $.each(response.playlists, function (i, item) {
-             trHTML += '<tr><td>' + item.uid + '</td><td>' + item.playlist + '</td></tr>';
-         });
-         $('#my_playlist').append(trHTML);
-         $('#actPlaylistName').html(response.actualPlaylist);
-     });
-     getActualPlaylist();
- });
-
-   </script>
- 
 </body>
 </html>
 

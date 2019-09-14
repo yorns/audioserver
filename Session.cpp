@@ -57,7 +57,7 @@ void session::on_read_header(boost::system::error_code ec, std::size_t bytes_tra
 
     auto self { shared_from_this() };
 
-    if (reqHeader_.get().method() == http::verb::put) {
+    if (reqHeader_.get().method() == http::verb::post && reqHeader_.get().target() == "/upload") {
 
         std::cerr << "transfering data (via PUT) with length: " << reqHeader_.content_length() << "\n";
         std::string file_name  = generate_unique_name();

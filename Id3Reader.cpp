@@ -51,7 +51,7 @@ Id3Info Id3Reader::getInfo(const std::string &mp3File) {
     id3Info.track_no = 1;
     id3Info.all_tracks_no = 1;
 
-//    std::cout << "reading file <"<<mp3File<<"> -> <"<< id3Info.uid <<">\n";
+    std::cout << "reading file <"<<mp3File<<">\n";//> -> <"<< id3Info.uid <<">\n";
 
     ID3_Tag myTag(mp3File.c_str());
 
@@ -61,11 +61,11 @@ Id3Info Id3Reader::getInfo(const std::string &mp3File) {
     // run through all frames of this file
     while (NULL != (myFrame = iter->GetNext()))
     {
-        /*
+
         std::cerr << "\nreading Frame ID: " <<(int) myFrame->GetID() << " [" << myFrame->GetTextID() <<" : "
                   << myFrame->GetDescription() <<"] size: "
                   << myFrame->GetDataSize() << " number of fields: "<< myFrame->NumFields() << "\n";
-        */
+
         std::array<unicode_t, 1024> buffer_uc;
         std::array<char, 1024> buffer_char;
         std::string text;
@@ -85,26 +85,26 @@ Id3Info Id3Reader::getInfo(const std::string &mp3File) {
 
         if (myFrame->Contains(ID3_FieldID::ID3FN_TEXT)) {
             text = readTextChaos(myFrame->Field(ID3_FieldID::ID3FN_TEXT));
- //           std::cerr << "extract textfield: "<<text<<"\n";
+            std::cerr << "extract textfield: "<<text<<"\n";
         }
 
         if (myFrame->GetID() == ID3_FrameID::ID3FID_TITLE) {
             id3Info.titel_name = text;
-//            std::cout << "Titel: "<<text<<"\n";
+            std::cout << "Titel: "<<text<<"\n";
         }
 
         if (myFrame->GetID() == ID3_FrameID::ID3FID_ALBUM) {
             id3Info.album_name = text;
-//            std::cout << "Album: "<<text<<"\n";
+            std::cout << "Album: "<<text<<"\n";
         }
 
         if (myFrame->GetID() == ID3_FrameID::ID3FID_LEADARTIST) {
             id3Info.performer_name = text;
-//            std::cout << "Performer: "<<text<<"\n";
+            std::cout << "Performer: "<<text<<"\n";
         }
 
         if (myFrame->GetID() == ID3_FrameID::ID3FID_TRACKNUM) {
-//            std::cerr << "TrackInfo: "<<text<<"\n";
+            std::cerr << "TrackInfo: "<<text<<"\n";
             std::smatch match{};
             const std::regex pattern1{"(\\d*)/(\\d*)"};
             if (std::regex_search(text, match, pattern1)) {
