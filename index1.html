@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>find album</title>
+  <title>Nano Player</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
@@ -14,11 +14,11 @@
                 url = "/playlist?show=";
                 $.getJSON(url).done(function (response) {
                     $('#act_playlist tbody').empty();
-                    var trHTML = '<tr><th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
+                    var trHTML;
                     $.each(response, function (i, item) {
                         trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
                     });
-                    $('#act_playlist').append(trHTML);
+                    $('#act_playlist tbody').append(trHTML);
                 });
 
             }
@@ -26,14 +26,14 @@
             $("#requesttable").click(function () {
                 searchstring = $('#myText').val();
                 url = "/database?overall=" + searchstring;
-                //alert("button "+ url );
+                alert("button "+ url );
                 $.getJSON(url).done(function (response) {
                     $('#my_table tbody').empty();
-                    var trHTML = '<tr><th>ID</th> <th>Album</th> <th>Title</th> <th>Performer</th> <th>Select</th></tr>';
+                    var trHTML;
                     $.each(response.list, function (i, item) {
-                        trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                        trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td></tr>';
                     });
-                    $('#my_table').append(trHTML);
+                    $('#my_table tbody').append(trHTML);
                 });
 
             });
@@ -142,6 +142,8 @@
 
 </head>
 
+<body>
+<div class="container">
 <div class="btn-group" role="group" aria-label="Player" id="Player">
     <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
     <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
@@ -162,25 +164,54 @@
    <br>Playlists:<br>
    <table id="my_playlist">
        <tr>
-           <th>ID</th>
            <th>Name</th>
        </tr>
    </table>
 
    <br>
+<div class="container">
+    <h4>New Playlist</h4>
+    <!-- Trigger the modal with a button -->
+    <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">create</button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Create Playlist</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Some text in the modal.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Create</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
    <br>
 
-   Actual Playlist: <p id="actPlaylistName">nothing<\p>
+   Actual Playlist: <p id="actPlaylistName">nothing</p>
    <br>
-   <table id="act_playlist">
+    <table class="table table-hover" id="act_playlist">
+        <thead>
        <tr>
-           <th>ID</th>
            <th>Album</th>
            <th>Title</th>
            <th>Performer</th>
-           <th>Select</th>
        </tr>
-   </table>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
     <br><br>
 
    Search for Album with:
@@ -190,15 +221,18 @@
    <button type="button" id="requesttable" >Search</button>
 
    <br>
-   <table id="my_table">
-       <tr>
-           <th>ID</th>
-           <th>Album</th>
-           <th>Title</th>
-           <th>Performer</th>
-           <th>Select</th>
-       </tr>
-   </table>
+    <table class="table table-hover" id="my_table">
+        <thead>
+        <tr>
+            <th>Album</th>
+            <th>Title</th>
+            <th>Performer</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <br><br>
 
 <form action="" method="post" enctype="multipart/form-data">
     <input name="file" type="file" id="fileA" onchange="fileChange();"/>
@@ -219,7 +253,7 @@
     <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
 </div>
 
-
+</div>
 </body>
 </html>
 
