@@ -283,6 +283,18 @@ public:
         return "";
     }
 
+    std::string getHumanReadableName(const std::string& crypticID) {
+
+        auto item = std::find_if(std::begin(playlist), std::end(playlist), [&crypticID](const auto &elem) {
+            return elem.first == crypticID;
+        });
+
+        if (item != playlist.end())
+            return item->second.internalPlaylistName;
+
+        return "";
+    }
+
     bool isPlaylist(const std::string &playlistName) {
 
         auto item = std::find_if(std::begin(playlist), std::end(playlist), [&playlistName](const auto &elem) {

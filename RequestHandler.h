@@ -69,7 +69,7 @@ public:
     std::string playerAccess(const utility::Extractor::UrlInformation& urlInfo) {
         if ( urlInfo->parameter == ServerConstant::Command::play &&
              urlInfo->value == ServerConstant::Value::_true) {
-            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + database.getNameFromHumanReadable(currentPlaylist) + ".m3u", "");
+            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + currentPlaylist + ".m3u", "");
 //            player->startPlay(ServerConstant::playlistRootPath.to_string() + "/" + urlInfo->value + ".m3u", "");
             return "ok";
         }
@@ -98,7 +98,8 @@ public:
 
         if (urlInfo->parameter == ServerConstant::Command::create) {
             std::cout << "create playlist with name <" << urlInfo->value << ">";
-            if (!database.createPlaylist(urlInfo->value).empty()) {
+            std::string ID = database.createPlaylist(urlInfo->value);
+            if (!ID.empty()) {
                 currentPlaylist = urlInfo->value;
                 database.writeChangedPlaylists(ServerConstant::playlistRootPath.to_string());
                 return "{\"result\": \"ok\"}";
@@ -113,10 +114,10 @@ public:
                 std::cout << "changed to playlist with name <" << urlInfo->value << ">\n";
                 currentPlaylist = database.getNameFromHumanReadable(urlInfo->value);
                 std::cout << "current playlist is <" << currentPlaylist << ">\n";
-                return "ok";
+                return "{\"result\": \"ok\"}";
             } else {
                 std::cout << "playlist with name <" << urlInfo->value << "> not found\n";
-                return "no playlist with name <" + urlInfo->value + ">";
+                return "{\"result\": \"playlist not found\"}";
             }
         }
 
@@ -125,9 +126,9 @@ public:
                 std::cout << "add title with name <" << urlInfo->value << "> to playlist <"<<currentPlaylist<<">\n";
                 database.addToPlaylistID(currentPlaylist, urlInfo->value);
                 database.writeChangedPlaylists(ServerConstant::playlistRootPath.to_string());
-                return "ok";
+                return "{\"result\": \"ok\"}";
             } else {
-                return "cannot add <" + urlInfo->value + "> to playlist <" + currentPlaylist + ">";
+                return "{\"result\": \"cannot add <\" + urlInfo->value + \"> to playlist <\" + currentPlaylist + \">}";
             }
         }
 
@@ -135,7 +136,7 @@ public:
             std::cout << "show playlist <" << urlInfo->value << ">\n";
             if ((urlInfo->value.empty() && !currentPlaylist.empty()) || database.isPlaylist(urlInfo->value)) {
                 std::cout << "playlist is set\n";
-                std::string playlistName(database.getNameFromHumanReadable(currentPlaylist));
+                std::string playlistName(currentPlaylist);
                 std::cout << "playlist is <"<<playlistName<<">\n";
                 if (!urlInfo->value.empty())
                     playlistName = database.getNameFromHumanReadable(urlInfo->value);
@@ -182,7 +183,7 @@ public:
                     }
                     std::cout << "finished loop\n";
                     json["playlists"] = json1;
-                    json["actualPlaylist"] = currentPlaylist;
+                    json["actualPlaylist"] = database.getHumanReadableName(currentPlaylist);
                 } catch (std::exception e) {
                     std::cerr << "error: " << e.what() << "\n";
                 }

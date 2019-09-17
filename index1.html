@@ -1,32 +1,37 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <title>Nano Player</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta charset="utf-8">
+    <title>Nano Player</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
 
     <script type="text/javascript">
-        $(document).ready(function() {
-            function getActualPlaylist() {
-                url = "/playlist?show=";
-                $.getJSON(url).done(function (response) {
-                    $('#act_playlist tbody').empty();
-                    var trHTML;
-                    $.each(response, function (i, item) {
-                        trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
-                    });
-                    $('#act_playlist tbody').append(trHTML);
-                });
+        $(document).ready(function () {
 
-            }
+            $("#createPlaylist").click(function () {
+                var newPlaylistName = $("#newPlaylistName").val();
+                if (newPlaylistName === "") {
+                    alert("no playlist set");
+                }
+                $.get("/playlist?create=" + newPlaylistName, function () {
+                })
+                    .always(function () {
+                        alert("Playlist <" + newPlaylistName + "> created");
+                    });
+            });
 
             $("#requesttable").click(function () {
                 searchstring = $('#myText').val();
                 url = "/database?overall=" + searchstring;
-                alert("button "+ url );
+                //alert("button "+ url );
                 $.getJSON(url).done(function (response) {
                     $('#my_table tbody').empty();
                     var trHTML;
@@ -37,6 +42,11 @@
                 });
 
             });
+
+            //$("#playlistsDropdown").on("click", function () {
+            //        alert("selected " + $("#playlistsDropdown :selected").text());
+            //    }
+            //);
 
             $("#btnPlay").click(function () {
                 url = "/player?play=true";
@@ -63,24 +73,48 @@
                 }, "json");
             });
 
-            $(function () {
-                searchstring = $('#myText').val();
-                url = "/playlist?showLists=true";
-                $.getJSON(url).done(function (response) {
-                    $('#my_playlist tbody').empty();
-                    var trHTML = '<tr><th>Name</th></tr>';
-                    $.each(response.playlists, function (i, item) {
-                        trHTML += '<tr id="' + item.uid + '"><td>' + item.playlist + '</td></tr>';
-                    });
-                    $('#my_playlist').append(trHTML);
-                    $('#actPlaylistName').html(response.actualPlaylist);
-                });
-                getActualPlaylist();
-            });
+            readPlaylist();
+
         });
 
-        function fileChange()
-        {
+        function readPlaylist() {
+            var url = "/playlist?showLists=true";
+            $.getJSON(url).done(function (response) {
+                var items = '';
+                $.each(response.playlists, function (i, item) {
+                    items += '<a class="dropdown-item" href="#">' + item.playlist + '</a>';
+                });
+                $("#demolist").html(items);
+                $('#actPlaylistName').html(response.actualPlaylist);
+
+                //alert(response.actualPlaylist);
+
+                $('#demolist a').on('click', function () {
+                    var txt = ($(this).text());
+                    var url = "/playlist?change="+txt;
+                    $.getJSON(url).done(function (response) {
+                        getActualPlaylist();
+                        //alert(txt);
+                        $('#actPlaylistName').html(txt);
+                    });
+                });
+            });
+        }
+
+        function getActualPlaylist() {
+            url = "/playlist?show=";
+            $.getJSON(url).done(function (response) {
+                $('#act_playlist tbody').empty();
+                var trHTML;
+                $.each(response, function (i, item) {
+                    trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                });
+                $('#act_playlist tbody').append(trHTML);
+            });
+
+        }
+
+        function fileChange() {
             //FileList Objekt aus dem Input Element mit der ID "fileA"
             var fileList = document.getElementById("fileA").files;
 
@@ -88,43 +122,41 @@
             var file = fileList[0];
 
             //File Objekt nicht vorhanden = keine Datei ausgewählt oder vom Browser nicht unterstützt
-            if(!file)
+            if (!file)
                 return;
 
             $('#fileName').html('Dateiname: ' + file.name);
             $('#fileSize').html('Dateigröße: ' + file.size + ' B');
             $('#fileType').text('Dateitype: ' + file.type);
-            $('.progress-bar').css("width", "0%") ;
-            //document.getElementById("prozent").innerHTML = "0%";
+            $('.progress-bar').css("width", "0%");
         }
 
         var client = null;
 
-        function uploadFile()
-        {
+        function uploadFile() {
             //Wieder unser File Objekt
             var file = document.getElementById("fileA").files[0];
 
             //XMLHttpRequest Objekt erzeugen
             client = new XMLHttpRequest();
 
-            if(!file)
+            if (!file)
                 return;
 
-            client.onerror = function(e) {
+            client.onerror = function (e) {
                 alert("onError");
             };
 
-            client.onload = function(e) {
-                $('.progress-bar').css("width", "100%") ;
+            client.onload = function (e) {
+                $('.progress-bar').css("width", "100%");
             };
 
-            client.upload.onprogress = function(e) {
+            client.upload.onprogress = function (e) {
                 var p = Math.round(100 / e.total * e.loaded);
-                $('.progress-bar').css("width", p+"%") ;
+                $('.progress-bar').css("width", p + "%");
             };
 
-            client.onabort = function(e) {
+            client.onabort = function (e) {
                 alert("Upload abgebrochen");
             };
 
@@ -133,9 +165,9 @@
         }
 
         function uploadAbort() {
-            if(client instanceof XMLHttpRequest)
+            if (client instanceof XMLHttpRequest)
             //Bricht die aktuelle Übertragung ab
-            client.abort();
+                client.abort();
         }
 
     </script>
@@ -143,84 +175,112 @@
 </head>
 
 <body>
-<div class="container">
-<div class="btn-group" role="group" aria-label="Player" id="Player">
-    <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
-    <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
-    <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
-    <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
-</div>
+<main role="main" class="container">
 
-<!--
-   <button type="button" id="do_play" >Play</button>
-   <button type="button" id="do_stop" >Stop</button>
-   <button type="button" id="do_next" >Next</button>
-   <button type="button" id="do_prev" >Previous</button>
--->
+    <h2 class="text-center">Nano Audio Player</h2>
 
-<br>
+    <br>
 
+    <!--<h1>Playlist <span id="actPlaylistName" class="badge badge-secondary">nothing</span></h1>-->
 
-   <br>Playlists:<br>
-   <table id="my_playlist">
-       <tr>
-           <th>Name</th>
-       </tr>
-   </table>
-
-   <br>
-<div class="container">
-    <h4>New Playlist</h4>
-    <!-- Trigger the modal with a button -->
-    <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">create</button>
-
-    <!-- Modal -->
-    <div class="modal fade" id="myModal" role="dialog">
-        <div class="modal-dialog">
-
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Create Playlist</h4>
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>Some text in the modal.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Create</button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm">
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="actPlaylistName">
+                        nothing
+                    </button>
+                    <div class="dropdown-menu" id="demolist" aria-labelledby="actPlaylistName" >
+                        <a class="dropdown-item" href="#">Cricket</a>
+                        <a class="dropdown-item" href="#">UFC</a>
+                        <a class="dropdown-item" href="#">Football</a>
+                        <a class="dropdown-item" href="#">Basketball</a>
+                    </div>
                 </div>
             </div>
 
+            <div class="col-sm">
+                <!-- Trigger the modal with a button -->
+                <button playlistsDropdowntype="button" class="btn btn-info btn-lg" data-toggle="modal"
+                        data-target="#myModal">create Playlist</button>
+
+                <!-- Modal -->
+                <div class="modal fade" id="myModal" role="dialog">
+                    <div class="modal-dialog">
+
+                        <!-- Modal content-->
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h4 class="modal-title">Create Playlist</h4>
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Name of new playlist</p>
+                                <input id="newPlaylistName">
+                            </div>
+                            <div class="modal-footer">
+                                <button id="createPlaylist" type="button" class="btn btn-default" data-dismiss="modal">
+                                    Create
+                                </button>
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    <br>
 
-</div>
-   <br>
+    <div id='toolbar'>
+        <!--<div class='wrapper text-center'> -->
+            <div class="btn-group btn-group-lg" role="group" aria-label="Player" id="Player">
+                <h2>Player Control</h2>
+                <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
+                <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
+                <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
+                <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+            </div>
+        <!--</div>-->
+    </div>
 
-   Actual Playlist: <p id="actPlaylistName">nothing</p>
-   <br>
+
+    <br>
+
+    <br>
+    <br>
+
     <table class="table table-hover" id="act_playlist">
         <thead>
-       <tr>
-           <th>Album</th>
-           <th>Title</th>
-           <th>Performer</th>
-       </tr>
+        <tr>
+            <th>Album</th>
+            <th>Title</th>
+            <th>Performer</th>
+        </tr>
         </thead>
         <tbody>
         </tbody>
     </table>
     <br><br>
 
-   Search for Album with:
-   <input type="text"
-          id="myText"
-          value="Better">
-   <button type="button" id="requesttable" >Search</button>
 
-   <br>
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <span class="input-group-text" id="basic-addon1">Search for Album with:</span>
+        </div>
+        <input type="text" id="myText" class="form-control" placeholder="" aria-label="Username"
+               aria-describedby="basic-addon1">
+        <button type="button" class="btn btn-secondary" id="requesttable">Search</button>
+    </div>
+    <!--
+       Search for Album with:
+       <input type="text"
+              id="myText"
+              value="Better">
+    -->
+    <br>
     <table class="table table-hover" id="my_table">
         <thead>
         <tr>
@@ -234,26 +294,27 @@
     </table>
     <br><br>
 
-<form action="" method="post" enctype="multipart/form-data">
-    <input name="file" type="file" id="fileA" onchange="fileChange();"/>
-    <input name="upload" value="Upload" type="button" onclick="uploadFile();" />
-    <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();" />
-</form>
-<div>
-    <div id="fileName"></div>
-    <div id="fileSize"></div>
-    <div id="fileType"></div>
 
-    <div class="progress">
-        <div class="progress-bar" role="progressbar" aria-valuenow="0"
-             aria-valuemin="0" aria-valuemax="100" style="width:0%">
-            upload
+    <form action="" method="post" enctype="multipart/form-data">
+        <input name="file" type="file" id="fileA" onchange="fileChange();"/>
+        <input name="upload" value="Upload" type="button" onclick="uploadFile();"/>
+        <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();"/>
+    </form>
+    <div>
+        <div id="fileName"></div>
+        <div id="fileSize"></div>
+        <div id="fileType"></div>
+
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" aria-valuenow="0"
+                 aria-valuemin="0" aria-valuemax="100" style="width:0%">
+                upload
+            </div>
         </div>
+        <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
     </div>
-    <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
-</div>
 
-</div>
+</main>
 </body>
 </html>
 
