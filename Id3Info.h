@@ -11,6 +11,7 @@ struct Id3Info {
     std::string performer_name;
     uint32_t track_no;
     uint32_t all_tracks_no;
+    std::string imageFile;
 };
 
 

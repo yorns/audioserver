@@ -10,7 +10,8 @@ find_package( Threads REQUIRED)
 find_package( OpenSSL REQUIRED)
 find_package( Boost 1.65.0 REQUIRED COMPONENTS filesystem system regex locale)
 
-#add_definitions("-std=c++17")
+include(FindPkgConfig)
+pkg_search_module(TagLib REQUIRED taglib)
 
 add_executable(${PROJECT_NAME}
 		http_server_async_ssl.cpp
@@ -28,8 +29,9 @@ target_link_libraries(${PROJECT_NAME}
         Threads::Threads
         OpenSSL::SSL
         OpenSSL::Crypto
-	${Boost_LIBRARIES}
-	id3
+        ${Boost_LIBRARIES}
+        id3
+        ${TagLib_LIBRARIES}
 )
 
 target_include_directories(
@@ -37,7 +39,11 @@ target_include_directories(
 	PUBLIC
 	${OPENSSL_INCLUDE_DIR}
 	${Boost_INCLUDE_DIRS}
+    ${TagLib_INCLUDE_DIRS}
 )
+
+message(STATUS "Taglib include: 		${TagLib_INCLUDE_DIRS}")
+message(STATUS "Taglib libraries: 		${TagLib_LIBRARIES}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
@@ -48,6 +54,7 @@ target_link_libraries(databaseTest
 		Threads::Threads
 		${Boost_LIBRARIES}
 		id3
+		${TagLib_LIBRARIES}
 		)
 
 target_include_directories(
@@ -55,6 +62,7 @@ target_include_directories(
 		PUBLIC
 		${CMAKE_SOURCE_DIR}
 		${Boost_INCLUDE_DIRS}
+		${TagLib_INCLUDE_DIRS}
 )
 
 set_target_properties(databaseTest PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

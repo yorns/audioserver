@@ -47,7 +47,6 @@
 #include "Session.h"
 #include "Player.h"
 #include "MPlayer.h"
-#include "Id3Reader.h"
 #include "SimpleDatabase.h"
 
 std::unique_ptr<Player> player;
@@ -83,7 +82,7 @@ int main(int argc, char* argv[])
     // The io_context is required for all I/O
     boost::asio::io_context ioc;
 
-    database.loadDatabase(ServerConstant::fileRootPath.to_string());
+    database.loadDatabase(ServerConstant::fileRootPath.to_string(), ServerConstant::coverRootPath.to_string());
     database.loadAllPlaylists("playlist");
     if (!database.showAllPlaylists().empty())
         currentPlaylist = database.showAllPlaylists().back().second;

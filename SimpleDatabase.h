@@ -5,13 +5,12 @@
 #include <string>
 #include <unordered_map>
 #include <boost/beast.hpp>
-#include "Id3Info.h"
-#include "common/Extractor.h"
 #include <boost/filesystem.hpp>
-#include <nlohmann/json.hpp>
-#include "Id3Reader.h"
+#include "common/Extractor.h"
 #include "common/Constants.h"
 #include "common/NameGenerator.h"
+#include "Id3Info.h"
+#include "id3TagReader.h"
 
 namespace filesys =  boost::filesystem;
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
@@ -27,10 +26,14 @@ class SimpleDatabase {
     std::vector<Id3Info> simpleDatabase;
     std::unordered_map<std::string, PlaylistContainer> playlist;
 
-    std::vector<std::string> getAllFilesInDir(const std::string &dirPath) {
+    struct FileNameType {
+        std::string name;
+        std::string extension;
+    };
+    std::vector<FileNameType> getAllFilesInDir(const std::string &dirPath) {
 
         // Create a vector of string
-        std::vector<std::string> listOfFiles;
+        std::vector<FileNameType> listOfFiles;
         try {
             // Check if given path exists and points to a directory
             if (filesys::exists(dirPath) && filesys::is_directory(dirPath)) {
@@ -45,7 +48,7 @@ class SimpleDatabase {
                     // Check if current entry is a directory and if exists in skip list
                     if (!filesys::is_directory(iter->path())) {
                         // Add the name in vector
-                        listOfFiles.push_back(iter->path().string());
+                        listOfFiles.push_back({iter->path().stem().string(), iter->path().extension().string()});
                     }
 
                     boost::system::error_code ec;
@@ -65,7 +68,7 @@ class SimpleDatabase {
     }
 
 public:
-    SimpleDatabase() {}
+    SimpleDatabase() = default;
 
     enum class DatabaseSearchType {
         unknown,
@@ -103,101 +106,89 @@ public:
 
     }
 
+    std::vector<Id3Info> findAlbum(const std::string& what) {
+        // this only carries album name and picture ID
+
+        std::vector<Id3Info> findData;
+
+        auto isnew = [&findData](const std::string &albumName) -> bool {
+            return std::find_if(std::begin(findData), std::end(findData),
+                             [&albumName](const Id3Info &info) {
+                                 return info.album_name == albumName;
+                             })
+                   == findData.end();
+        };
+
+        std::for_each(std::begin(simpleDatabase), std::end(simpleDatabase),
+                      [&what, &findData, &isnew](const Id3Info &info) {
+                          if (info.album_name.find(what) != std::string::npos)
+                              if (isnew(info.album_name)) {
+                                  Id3Info _info {info};
+                                  _info.titel_name = "";
+                                  _info.all_tracks_no = 0;
+                                  _info.track_no = 0;
+                                  findData.emplace_back(_info);
+                              }
+                      });
+
+        return findData;
+    }
+
     void emplace_back(Id3Info &&info) {
         simpleDatabase.emplace_back(info);
     }
 
-    boost::optional<std::tuple<std::string, DatabaseSearchType>> findInDatabaseToJson(const std::string &path) {
-
-        boost::optional<std::tuple<std::string, DatabaseSearchType>> jsonList;
-
-        /* is this a REST find request? */
-        auto urlInfo = utility::Extractor::getUrlInformation(path);
-
-        if (urlInfo && urlInfo->command == ServerConstant::AccessPoints::database) {
-
-            std::cerr << "find request with <" << urlInfo->parameter << "> of value <" << urlInfo->value << ">\n";
-            boost::beast::error_code ec;
-            http::string_body::value_type body;
-
-            DatabaseSearchType type{DatabaseSearchType::unknown};
-
-            if (urlInfo->parameter == ServerConstant::Parameter::Database::titel) {
-                type = DatabaseSearchType::titel;
-            }
-            if (urlInfo->parameter == ServerConstant::Parameter::Database::album) {
-                type = DatabaseSearchType::album;
-            }
-            if (urlInfo->parameter == ServerConstant::Parameter::Database::interpret) {
-                type = DatabaseSearchType::interpret;
-            }
-            if (urlInfo->parameter == ServerConstant::Parameter::Database::overall) {
-                type = DatabaseSearchType::overall;
-            }
-            if (urlInfo->parameter == ServerConstant::Parameter::Database::uid) {
-                type = DatabaseSearchType::uid;
-            }
-
-            if (type != DatabaseSearchType::unknown) {
-                auto list = findInDatabase(urlInfo->value, type);
-
-                // convert to json
-                nlohmann::json json;
-                nlohmann::json jsonArray;
-
-                std::for_each(std::begin(list), std::end(list), [&jsonArray](const Id3Info &info) {
-                    nlohmann::json jsonListEntry;
-                    jsonListEntry[ServerConstant::Parameter::Database::titel.to_string()] = info.titel_name;
-                    jsonListEntry[ServerConstant::Parameter::Database::album.to_string()] = info.album_name;
-                    jsonListEntry[ServerConstant::Parameter::Database::interpret.to_string()] = info.performer_name;
-                    jsonListEntry[ServerConstant::Parameter::Database::trackNo.to_string()] = info.track_no;
-                    jsonListEntry[ServerConstant::Parameter::Database::uid.to_string()] = info.uid;
-                    jsonArray.push_back(jsonListEntry);
-                });
-
-                json["list"] = jsonArray;
-                jsonList = std::make_tuple(json.dump(2), type);
-            } else {
-                jsonList = std::make_tuple(std::string(), type);
-            }
-        }
-        return jsonList;
+    void addToDatabase(const std::string& uniqueId, const std::string& cover) {
+        id3TagReader id3Reader;
+        simpleDatabase.emplace_back(id3Reader.getInfo(uniqueId, cover));
     }
 
+    void loadDatabase(const std::string &mp3Directory, const std::string imgDirectory) {
 
-    void loadDatabase(const std::string &mp3Directory) {
+        std::vector<FileNameType> filelist = getAllFilesInDir(mp3Directory);
+        std::vector<FileNameType> imglist = getAllFilesInDir(imgDirectory);
 
-        std::vector<std::string> filelist = getAllFilesInDir(mp3Directory);
-        Id3Reader id3Reader;
+        auto getImageFileOf = [&imglist](const std::string& name) -> FileNameType {
+            auto it = std::find_if(std::begin(imglist), std::end(imglist),
+                                   [&name](const FileNameType& fileName){ return fileName.name == name; });
+            if (it != imglist.end())
+                return *it;
+            return {ServerConstant::unknownCoverFile.to_string(),ServerConstant::unknownCoverExtension.to_string()};
+        };
 
-        for (auto it{filelist.begin()}; it != filelist.end(); ++it) {
-            std::cerr << " read <" << *it << ">\n";
-            simpleDatabase.emplace_back(id3Reader.getInfo(*it));
+        for (auto& file : filelist) {
+            auto imgFile = getImageFileOf(file.name);
+            addToDatabase(file.name, imgDirectory + "/" + imgFile.name + imgFile.extension);
         }
     }
 
-    bool readPlaylist(std::string &filename) {
+    bool readPlaylist(const FileNameType& filename) {
         std::vector<std::string> itemList;
         std::string line;
         std::string playlistNameHR;
         std::string playlistNameCRYPTIC;
-        std::ifstream stream(filename);
 
-        filesys::path p {filename};
-        playlistNameCRYPTIC = p.stem().string();
+        std::string fullFilename =
+                ServerConstant::playlistRootPath.to_string() + "/" + filename.name + filename.extension;
+        std::ifstream stream(fullFilename);
 
-        std::cerr << "reading filename <"<<playlistNameCRYPTIC<<">\n";
+        playlistNameCRYPTIC = filename.name;
+
+        std::cerr << "reading filename <"<<fullFilename<<">\n";
 
         if (!stream.good())
             return false;
 
+        // read human readable playlist name
         if (stream.good() && std::getline(stream, line)) {
             if (line.length() > 2 && line[0] == '#' && line[1] == ' ') {
                 playlistNameHR = line.substr(2);
             } else {
                 filesys::path fullName(line);
-                itemList.emplace_back(fullName.stem().string());
-                std::cerr << "  reading: " << fullName.stem() << "\n";
+                if (!fullName.stem().empty()) {
+                    itemList.emplace_back(fullName.stem().string());
+                    std::cerr << "  reading: <" << fullName.stem() << ">\n";
+                }
             }
         }
 
@@ -205,11 +196,12 @@ public:
 
         while (stream.good() && std::getline(stream, line)) {
             filesys::path fullName(line);
-            itemList.emplace_back(fullName.stem().string());
-            std::cerr << "  reading: " << fullName.stem() << "\n";
+            if (!fullName.stem().empty()) {
+                itemList.emplace_back(fullName.stem().string());
+                std::cerr << "  reading: <" << fullName.stem() << ">\n";
+            }
         }
 
-        //PlaylistContainer container{};
         playlist[playlistNameCRYPTIC] = PlaylistContainer{.internalPlaylistName=playlistNameHR, .Playlist = itemList};
         return true;
     }
@@ -248,11 +240,10 @@ public:
 
     void loadAllPlaylists(const std::string &playlistDirectory) {
 
-        std::vector<std::string> filelist = getAllFilesInDir(playlistDirectory);
+        std::vector<FileNameType> filelist = getAllFilesInDir(playlistDirectory);
 
-        for (auto it{filelist.begin()}; it != filelist.end(); ++it) {
-            readPlaylist(*it);
-        }
+        for (auto& it : filelist)
+            readPlaylist(it);
 
     }
 

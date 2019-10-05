@@ -29,6 +29,8 @@ using tcp = boost::asio::ip::tcp;
 namespace ssl = boost::asio::ssl;
 namespace http = boost::beast::http;
 
+extern SimpleDatabase database;
+
 // Handles an HTTP server connection
 class session : public std::enable_shared_from_this<session>
 {
@@ -40,7 +42,7 @@ class session : public std::enable_shared_from_this<session>
     // The function object is used to send an HTTP message.
     struct send_lambda
     {
-        session& self_;
+        session& m_self;
 
         explicit send_lambda(session& self);
 
@@ -56,33 +58,36 @@ class session : public std::enable_shared_from_this<session>
 
             // Store a type-erased version of the shared
             // pointer in the class to keep it alive.
-            self_.res_ = sp;
+            m_self.m_result = sp;
 
-            auto selfself { self_.shared_from_this() };
+            auto selfself { m_self.shared_from_this() };
             // Write the response
             http::async_write(
-                    self_.stream_,
+                    m_self.m_stream,
                     *sp, [this, selfself](boost::system::error_code ,
                                           std::size_t ){
-                        self_.do_close();
+                        m_self.do_close();
                     });
         }
     };
 
-    tcp::socket socket_;
-    ssl::stream<tcp::socket&> stream_;
-    boost::beast::flat_buffer buffer_;
-    std::shared_ptr<std::string const> doc_root_;
-    std::unique_ptr<http::request_parser<http::string_body>> req_;
-    std::unique_ptr<http::request_parser<http::file_body>> reqFile_;
-    // Start with an empty_body parser
-    http::request_parser<http::empty_body> reqHeader_;
-    std::shared_ptr<void> res_;
-    send_lambda lambda_;
+    tcp::socket m_socket;
+    ssl::stream<tcp::socket&> m_stream;
+    boost::beast::flat_buffer m_buffer;
+    std::shared_ptr<std::string const> m_doc_root;
+    std::unique_ptr<http::request_parser<http::string_body>> m_req;
+    std::unique_ptr<http::request_parser<http::file_body>> m_reqFile;
+    http::request_parser<http::empty_body> m_reqHeader;
+    std::shared_ptr<void> m_result;
+    send_lambda m_lambda;
 
     RequestHandler m_requestHandler;
 
-    std::string generate_unique_name();
+    std::string generate_unique_id();
+    std::string generate_filename(const std::string& uniqueId);
+    void handle_upload_request();
+    void handle_normal_request();
+
 
 public:
 
@@ -97,7 +102,9 @@ public:
     void on_write( boost::system::error_code ec, std::size_t bytes_transferred, bool close);
     void do_close();
     void on_shutdown(boost::system::error_code ec);
+
 };
+
 
 
 #endif //SERVER_SESSION_H

@@ -33,21 +33,13 @@ public:
     {
         if(base.empty())
             return path.to_string();
+
         std::string result = base.to_string();
-#if BOOST_MSVC
-        char constexpr path_separator = '\\';
-    if(result.back() == path_separator)
-        result.resize(result.size() - 1);
-    result.append(path.data(), path.size());
-    for(auto& c : result)
-        if(c == '/')
-            c = path_separator;
-#else
         char constexpr path_separator = '/';
         if(result.back() == path_separator)
             result.resize(result.size() - 1);
         result.append(path.data(), path.size());
-#endif
+
         return result;
     }
 
@@ -94,6 +86,44 @@ public:
         return "player command unknown";
     }
 
+    std::string databaseAccess(const utility::Extractor::UrlInformation& urlInfo) {
+
+        std::cout << "database access - parameter:"<<urlInfo->parameter<<" value:"<<urlInfo->value<<"\n";
+        if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
+            auto infoList = database.findAlbum(urlInfo->value);
+            return convertToJson(infoList);
+        }
+
+        if ( urlInfo->parameter == ServerConstant::Parameter::Database::overall )
+            return convertToJson(database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::overall));
+
+        if ( urlInfo->parameter == ServerConstant::Parameter::Database::interpret )
+            return convertToJson(database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::interpret));
+
+        if ( urlInfo->parameter == ServerConstant::Parameter::Database::titel )
+            return convertToJson(database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::titel));
+
+        if ( urlInfo->parameter == ServerConstant::Parameter::Database::album )
+            return convertToJson(database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::album));
+
+        return "[]";
+    }
+
+    std::string convertToJson(const std::vector<Id3Info> list) {
+        nlohmann::json json;
+        for(auto item : list) {
+            nlohmann::json jentry;
+            jentry[ServerConstant::Parameter::Database::uid.to_string()] = item.uid;
+            jentry[ServerConstant::Parameter::Database::interpret.to_string()] = item.performer_name;
+            jentry[ServerConstant::Parameter::Database::album.to_string()] = item.album_name;
+            jentry[ServerConstant::Parameter::Database::titel.to_string()] = item.titel_name;
+            jentry[ServerConstant::Parameter::Database::imageFile.to_string()] = item.imageFile;
+            jentry[ServerConstant::Parameter::Database::trackNo.to_string()] = item.track_no;
+            json.push_back(jentry);
+        }
+        return json.dump(2);
+    }
+
     std::string playlistAccess(const utility::Extractor::UrlInformation& urlInfo) {
 
         if (urlInfo->parameter == ServerConstant::Command::create) {
@@ -126,44 +156,30 @@ public:
                 std::cout << "add title with name <" << urlInfo->value << "> to playlist <"<<currentPlaylist<<">\n";
                 database.addToPlaylistID(currentPlaylist, urlInfo->value);
                 database.writeChangedPlaylists(ServerConstant::playlistRootPath.to_string());
-                return "{\"result\": \"ok\"}";
+                return R"({"result": "ok"})";
             } else {
                 return "{\"result\": \"cannot add <\" + urlInfo->value + \"> to playlist <\" + currentPlaylist + \">}";
             }
         }
 
         if (urlInfo->parameter == ServerConstant::Command::show) {
-            std::cout << "show playlist <" << urlInfo->value << ">\n";
-            if ((urlInfo->value.empty() && !currentPlaylist.empty()) || database.isPlaylist(urlInfo->value)) {
-                std::cout << "playlist is set\n";
-                std::string playlistName(currentPlaylist);
-                std::cout << "playlist is <"<<playlistName<<">\n";
-                if (!urlInfo->value.empty())
-                    playlistName = database.getNameFromHumanReadable(urlInfo->value);
-                auto list = database.showPlaylist(playlistName);
-                if (list.empty())
-                    std::cout << "playlist is empty\n";
-                nlohmann::json json;
-                for(auto item : list) {
-                    std::cerr << item <<"\n";
-                    auto entry = database.findInDatabase(item,SimpleDatabase::DatabaseSearchType::uid);
-                    if (entry.size() != 1) {
-                        std::cerr << "ERROR: could not find playlist file information for <" << item << ">\n";
-                        continue;
+            try {
+                if ((urlInfo->value.empty() && !currentPlaylist.empty()) || database.isPlaylist(urlInfo->value)) {
+                    std::string playlistName(currentPlaylist);
+                    if (!urlInfo->value.empty())
+                        playlistName = database.getNameFromHumanReadable(urlInfo->value);
+                    std::cout << "show playlist <" << playlistName << ">\n";
+                    auto list = database.showPlaylist(playlistName);
+                    std::vector<Id3Info> infoList;
+                    for (auto item : list) {
+                        if (item.empty()) continue;
+                        infoList.push_back(
+                                database.findInDatabase(item, SimpleDatabase::DatabaseSearchType::uid).front());
                     }
-                    nlohmann::json jentry;
-                    jentry[ServerConstant::Parameter::Database::uid.to_string()] = entry.front().uid;
-                    jentry[ServerConstant::Parameter::Database::interpret.to_string()] = entry.front().performer_name;
-                    jentry[ServerConstant::Parameter::Database::album.to_string()] = entry.front().album_name;
-                    jentry[ServerConstant::Parameter::Database::titel.to_string()] = entry.front().titel_name;
-                    jentry["trackNo"] = entry.front().track_no;
-                    json.push_back(jentry);
+                    return convertToJson(infoList);
                 }
-                std::cout << json.dump(2);
-                return json.dump(2);
-            } else {
-                return "no playlist found for <" + urlInfo->value + ">";
-            }
+            } catch (...) {}
+            return "[]";
         }
 
         if (urlInfo->parameter == ServerConstant::Command::showLists) {
@@ -196,81 +212,12 @@ public:
         return "playlist command not found";
     }
 
-// This function produces an HTTP response for the given
-// req.get().est. The type of the response object depends on the
-// contents of the request, so the interface requires the
-// caller to pass a generic lambda for receiving the response.
     template<class Send>
-    void handle_request (
+    void handle_file_request(
             boost::beast::string_view doc_root,
             http::request_parser<http::string_body>& req,
             Send&& send)
     {
-
-        // Make sure we can handle the method
-        if( req.get().method() != http::verb::get &&
-            req.get().method() != http::verb::head &&
-            req.get().method() != http::verb::post)
-            return send(generate_result_packet(http::status::bad_request, "Unknown HTTP-method", req));
-
-        // Request path must be absolute and not contain "..".
-        if( req.get().target().empty() ||
-            req.get().target()[0] != '/' ||
-            req.get().target().find("..") != boost::beast::string_view::npos)
-            return send(generate_result_packet(http::status::bad_request, "Illegal request-target", req));
-
-        // has this been a post message
-        if(req.get().method() == http::verb::post) {
-            std::string path = path_cat(doc_root, req.get().target());
-            std::cerr << "posted: "+path+"\n";
-
-            auto urlInfo = utility::Extractor::getUrlInformation(path);
-
-            std::string result {"done"};
-            if (urlInfo) {
-                std::cerr << "url extracted to: "<<urlInfo->command<< " - <"<<urlInfo->parameter<<"> = <"<<urlInfo->value<<">\n";
-
-                if (player && urlInfo->command == "player") {
-                    playerAccess(urlInfo);
-                }
-
-            }
-            else {
-                result = "request failed";
-            }
-
-            nlohmann::json json;
-            json["result"] = result;
-
-            return send(generate_result_packet(http::status::ok, json.dump(2), req, "application/json"));
-        }
-
-        if(req.get().method() == http::verb::get) {
-            std::string path = path_cat(doc_root, req.get().target());
-            std::cerr << "get: "+path+"\n";
-            auto urlInfo = utility::Extractor::getUrlInformation(path);
-
-            if (urlInfo && urlInfo->command == ServerConstant::AccessPoints::playlist) {
-
-               std::string result = playlistAccess(urlInfo);
-
-                return send(generate_result_packet(http::status::ok, result, req, "application/json"));
-            }
-
-            if (urlInfo && urlInfo->command == ServerConstant::AccessPoints::database) {
-
-                auto result = database.findInDatabaseToJson(path);
-
-                std::cout << "database find request result: "<<(result?std::get<std::string>(*result):"nothing")<<"\n";
-
-                if (result)
-                    return send(generate_result_packet(http::status::ok, std::get<std::string>(*result), req, "application/json"));
-                else
-                    return send(generate_result_packet(http::status::ok, "[]", req, "application/json"));
-
-            }
-        }
-
         // Build the path to the requested file
         std::string path = path_cat(doc_root, req.get().target());
         if(req.get().target().back() == '/')
@@ -314,6 +261,94 @@ public:
         res.content_length(size);
         res.keep_alive(req.get().keep_alive());
         return send(std::move(res));
+
+    }
+
+    nlohmann::json handle_post_request(
+            boost::beast::string_view doc_root,
+            http::request_parser<http::string_body>& req ) {
+        std::string path = path_cat(doc_root, req.get().target());
+        std::cerr << "posted: "+path+"\n";
+
+        auto urlInfo = utility::Extractor::getUrlInformation(path);
+
+        std::string result {"done"};
+        if (urlInfo) {
+            std::cerr << "url extracted to: "<<urlInfo->command<< " - <"<<urlInfo->parameter<<"> = <"<<urlInfo->value<<">\n";
+
+            if (player && urlInfo->command == "player") {
+                playerAccess(urlInfo);
+            }
+
+        }
+        else {
+            result = "request failed";
+        }
+
+        nlohmann::json json;
+        json["result"] = result;
+
+        return json;
+    }
+
+    bool is_unknown_http_method(http::request_parser<http::string_body>& req) {
+        return req.get().method() != http::verb::get &&
+               req.get().method() != http::verb::head &&
+               req.get().method() != http::verb::post;
+    }
+
+    bool is_illegal_request_target(http::request_parser<http::string_body>& req) {
+        return req.get().target().empty() ||
+               req.get().target()[0] != '/' ||
+               req.get().target().find("..") != boost::beast::string_view::npos;
+    }
+
+    bool is_request(boost::beast::string_view doc_root,
+                    boost::beast::string_view command,
+                    http::request_parser<http::string_body>& req) {
+        auto urlInfo = utility::Extractor::getUrlInformation(path_cat(doc_root, req.get().target()));
+        return req.get().method() == http::verb::get && urlInfo && urlInfo->command == command;
+    }
+
+    template<class Send>
+    void handle_request (
+            boost::beast::string_view doc_root,
+            http::request_parser<http::string_body>& req,
+            Send&& send) {
+
+        // Make sure we can handle the method
+        if (is_unknown_http_method(req))
+            return send(generate_result_packet(http::status::bad_request, "Unknown HTTP-method", req));
+
+        // Request path must be absolute and not contain "..".
+        if (is_illegal_request_target(req))
+            return send(generate_result_packet(http::status::bad_request, "Illegal request-target", req));
+
+        // has this been a post message
+        if (req.get().method() == http::verb::post) {
+            auto json = handle_post_request(doc_root, req);
+            return send(generate_result_packet(http::status::ok, json.dump(2), req, "application/json"));
+        }
+
+        if (is_request(doc_root, ServerConstant::AccessPoints::playlist, req)) {
+
+            std::string result = playlistAccess(
+                    utility::Extractor::getUrlInformation(path_cat(doc_root, req.get().target())));
+
+            return send(generate_result_packet(http::status::ok, result, req, "application/json"));
+        }
+
+        if (is_request(doc_root, ServerConstant::AccessPoints::database, req)) {
+
+            std::string result = databaseAccess(
+                    utility::Extractor::getUrlInformation(path_cat(doc_root, req.get().target())));
+
+            return send(generate_result_packet(http::status::ok, result, req, "application/json"));
+
+        }
+
+        return handle_file_request(doc_root, req, send);
+
     }
 
 

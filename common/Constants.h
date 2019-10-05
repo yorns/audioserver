@@ -6,6 +6,10 @@
 namespace ServerConstant {
     static boost::beast::string_view fileRootPath{"mp3"};
     static boost::beast::string_view playlistRootPath{"playlist"};
+    static boost::beast::string_view coverRootPath{"img"};
+
+    static boost::beast::string_view unknownCoverFile{"unknown"};
+    static boost::beast::string_view unknownCoverExtension{".png"};
 
     namespace AccessPoints {
         static boost::beast::string_view playlist{"playlist"};
@@ -22,6 +26,7 @@ namespace ServerConstant {
         static boost::beast::string_view change{"change"};
         static boost::beast::string_view show{"show"};
         static boost::beast::string_view showLists{"showLists"};
+        static boost::beast::string_view getAlbumList{"albumList"};
     }
 
     namespace Parameter {
@@ -33,6 +38,7 @@ namespace ServerConstant {
             static boost::beast::string_view uid{"uid"};
             static boost::beast::string_view overall{"overall"};
             static boost::beast::string_view playlist{"playlist"};
+            static boost::beast::string_view imageFile{"cover"};
         }
         namespace Play {
             static boost::beast::string_view next{"next"};

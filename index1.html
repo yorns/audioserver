@@ -35,18 +35,20 @@
                 $.getJSON(url).done(function (response) {
                     $('#my_table tbody').empty();
                     var trHTML;
-                    $.each(response.list, function (i, item) {
-                        trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td></tr>';
+                    $.each(response, function (i, item) {
+                        trHTML += '<tr class="clickable-row" id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
                     });
                     $('#my_table tbody').append(trHTML);
+                    $('#my_table ').on('click', '.clickable-row', function (event) {
+                        if ($(this).hasClass('bg-success')) {
+                            $(this).removeClass('bg-success');
+                        } else {
+                            $(this).addClass('bg-success');
+                        }
+                    });
                 });
 
             });
-
-            //$("#playlistsDropdown").on("click", function () {
-            //        alert("selected " + $("#playlistsDropdown :selected").text());
-            //    }
-            //);
 
             $("#btnPlay").click(function () {
                 url = "/player?play=true";
@@ -74,23 +76,39 @@
             });
 
             readPlaylist();
-
+            getActualPlaylist();
+            getAlbumList();
         });
+
+        function getAlbumList() {
+            var url = "/database?albumList=";
+            $.getJSON(url).done(function (response) {
+                $('#cover').empty();
+                var trHTML;
+                $.each(response, function (i, item) {
+                    trHTML += ' <img src="'+item.cover+'" class="img-rounded" alt="'+item.album+'"> ';
+                });
+                $('#cover').append(trHTML);
+
+            })
+        }
 
         function readPlaylist() {
             var url = "/playlist?showLists=true";
             $.getJSON(url).done(function (response) {
                 var items = '';
                 $.each(response.playlists, function (i, item) {
-                    items += '<a class="dropdown-item" href="#">' + item.playlist + '</a>';
+                    var text = item.playlist;
+                    items += '<a class="dropdown-item" href="#">' + unescape(text) + '</a>';
                 });
+
                 $("#demolist").html(items);
-                $('#actPlaylistName').html(response.actualPlaylist);
+                $('#actPlaylistName').text(unescape(response.actualPlaylist));
 
                 //alert(response.actualPlaylist);
 
                 $('#demolist a').on('click', function () {
-                    var txt = ($(this).text());
+                    var txt = unescape($(this).text());
                     var url = "/playlist?change="+txt;
                     $.getJSON(url).done(function (response) {
                         getActualPlaylist();
@@ -107,7 +125,7 @@
                 $('#act_playlist tbody').empty();
                 var trHTML;
                 $.each(response, function (i, item) {
-                    trHTML += '<tr id="' + item.uid + '"><td>' + item.album + '</td><td>' + item.titel + '</td><td>' + item.performer + '</td><td><input type="checkbox" />    &nbsp;   </td></tr>';
+                    trHTML += '<tr id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
                 });
                 $('#act_playlist tbody').append(trHTML);
             });
@@ -175,36 +193,30 @@
 </head>
 
 <body>
-<main role="main" class="container">
-
-    <h2 class="text-center">Nano Audio Player</h2>
-
-    <br>
+<div class="jumbotron text-center">
+    <h1>Nano Audio Player</h1>
+    <p>small, efficient, independent</p>
+</div>
 
     <!--<h1>Playlist <span id="actPlaylistName" class="badge badge-secondary">nothing</span></h1>-->
 
     <div class="container">
         <div class="row">
-            <div class="col-sm">
+            <div class="col-">
+                Playlists
                 <div class="dropdown">
-                    <button class="btn btn-secondary dropdown-toggle" type="button"
+                    <button class="btn-lg btn-secondary dropdown-toggle" type="button"
                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="actPlaylistName">
                         nothing
                     </button>
                     <div class="dropdown-menu" id="demolist" aria-labelledby="actPlaylistName" >
-                        <a class="dropdown-item" href="#">Cricket</a>
-                        <a class="dropdown-item" href="#">UFC</a>
-                        <a class="dropdown-item" href="#">Football</a>
-                        <a class="dropdown-item" href="#">Basketball</a>
                     </div>
                 </div>
             </div>
-
-            <div class="col-sm">
+            <div class="col-">
                 <!-- Trigger the modal with a button -->
                 <button playlistsDropdowntype="button" class="btn btn-info btn-lg" data-toggle="modal"
                         data-target="#myModal">create Playlist</button>
-
                 <!-- Modal -->
                 <div class="modal fade" id="myModal" role="dialog">
                     <div class="modal-dialog">
@@ -234,10 +246,10 @@
     </div>
     <br>
 
-    <div id='toolbar'>
+    <div id='toolbar' class="col-">
         <!--<div class='wrapper text-center'> -->
             <div class="btn-group btn-group-lg" role="group" aria-label="Player" id="Player">
-                <h2>Player Control</h2>
+                <h2>Player Control  </h2>
                 <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
                 <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
                 <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
@@ -247,17 +259,18 @@
     </div>
 
 
-    <br>
 
-    <br>
-    <br>
+<div class="container" id="cover">
+<a></a>
+</div>
 
-    <table class="table table-hover" id="act_playlist">
+
+    <table class="table table-hover col-" id="act_playlist">
         <thead>
         <tr>
-            <th>Album</th>
             <th>Title</th>
-            <th>Performer</th>
+            <th>Artist</th>
+            <th>Album</th>
         </tr>
         </thead>
         <tbody>
@@ -266,27 +279,21 @@
     <br><br>
 
 
-    <div class="input-group mb-3">
+    <div class="input-group mb-3 col-">
         <div class="input-group-prepend">
-            <span class="input-group-text" id="basic-addon1">Search for Album with:</span>
+            <span class="input-group-text" id="basic-addon1">Search for:</span>
         </div>
         <input type="text" id="myText" class="form-control" placeholder="" aria-label="Username"
                aria-describedby="basic-addon1">
         <button type="button" class="btn btn-secondary" id="requesttable">Search</button>
     </div>
-    <!--
-       Search for Album with:
-       <input type="text"
-              id="myText"
-              value="Better">
-    -->
     <br>
-    <table class="table table-hover" id="my_table">
+    <table class="table col-" id="my_table">
         <thead>
         <tr>
-            <th>Album</th>
             <th>Title</th>
-            <th>Performer</th>
+            <th>Artist</th>
+            <th>Album</th>
         </tr>
         </thead>
         <tbody>
@@ -314,7 +321,6 @@
         <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
     </div>
 
-</main>
 </body>
 </html>
 
