@@ -28,6 +28,8 @@ public:
     Player(const std::string& configDB, const std::string &logFilePath)
     : m_configDbFileName(configDB), m_logFilePath(logFilePath){
         log = std::ofstream(m_logFilePath+"/player.log");
+        if (!log.good())
+            abort();
     }
 
     virtual bool startPlay(const std::string &url, const std::string& playerInfo, bool fromLastStop = false) = 0;

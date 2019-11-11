@@ -36,7 +36,7 @@ void session::do_read() {
 std::string session::generate_filename(const std::string& uniqueId)
 {
     std::stringstream file_name_str;
-    file_name_str << ServerConstant::fileRootPath <<"/" << uniqueId << ".mp3";
+    file_name_str << ServerConstant::base_path << "/" << ServerConstant::fileRootPath <<"/" << uniqueId << ".mp3";
     return file_name_str.str();
 
 }
@@ -62,6 +62,7 @@ void session::handle_upload_request()
     m_reqFile = std::make_unique < http::request_parser < http::file_body >> (std::move(m_reqHeader));
 
     std::cerr << "writing file with name <"<<file_name<<"> ... ";
+
     boost::beast::error_code error_code;
     m_reqFile->get().body().open(file_name.c_str(), boost::beast::file_mode::write, error_code);
 
@@ -94,7 +95,7 @@ void session::handle_upload_request()
                          return m_lambda(std::move(res));
                      }
     );
-    std::cerr << "async read started\n";
+    //std::cerr << "async read started\n";
 }
 
 void session::handle_normal_request()
@@ -119,7 +120,7 @@ void session::on_read_header(boost::system::error_code ec, std::size_t bytes_tra
     if (ec)
         return fail(ec, "read");
 
-    std::cerr << "handle read (async header read)\n";
+    //std::cerr << "handle read (async header read)\n";
 
 
     if (m_reqHeader.get().method() == http::verb::post && m_reqHeader.get().target() == "/upload") {
@@ -139,7 +140,7 @@ void session::on_read(boost::system::error_code ec, std::size_t bytes_transferre
     if(ec)
         return fail(ec, "read");
 
-    std::cerr << "handle read (async read)\n";
+    //std::cerr << "handle read (async read)\n";
 
     // Send the response
     m_requestHandler.handle_request(*m_doc_root, *m_req.get(), m_lambda);

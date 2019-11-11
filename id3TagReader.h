@@ -19,7 +19,7 @@ class id3TagReader {
 public:
     Id3Info getInfo(const std::string& uniqueId, const std::string& cover) {
 
-        std::string mp3File = ServerConstant::fileRootPath.to_string() + "/" + uniqueId + ".mp3";
+        std::string mp3File = ServerConstant::base_path.to_string() + "/" + ServerConstant::fileRootPath.to_string() + "/" + uniqueId + ".mp3";
 
         std::cout << "Read mp3 info from <"<<mp3File<<">\n";
 
@@ -31,10 +31,10 @@ public:
             boost::filesystem::path path{mp3File};
             info.uid = path.stem().string();
 
-            info.titel_name = f.tag()->title().to8Bit(false);
+            info.titel_name = f.tag()->title().to8Bit(true);
             info.track_no = f.tag()->track();
-            info.album_name = f.tag()->album().to8Bit(false);
-            info.performer_name = f.tag()->artist().to8Bit(false);
+            info.album_name = f.tag()->album().to8Bit(true);
+            info.performer_name = f.tag()->artist().to8Bit(true);
             info.all_tracks_no = 0;
             info.imageFile = cover;
 
@@ -57,9 +57,9 @@ public:
         TagLib::ID3v2::AttachedPictureFrame *PicFrame;
 
         std::stringstream mp3File;
-        mp3File << ServerConstant::fileRootPath << "/" << uid << ".mp3";
+        mp3File << ServerConstant::base_path << "/" << ServerConstant::fileRootPath << "/" << uid << ".mp3";
 
-        std::cout << "try to open file <"<<mp3File.str()<<">\n";
+//        std::cout << "try to open file <"<<mp3File.str()<<">\n";
 
         TagLib::MPEG::File mpegFile(mp3File.str().c_str());
         id3v2tag = mpegFile.ID3v2Tag();
@@ -73,7 +73,7 @@ public:
 
         for (auto &it : Frame) {
             PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
-            std::cout << "Type = " << PicFrame->type() << ", mimetype: " << PicFrame->mimeType() << "\n";
+            //std::cout << "Type = " << PicFrame->type() << ", mimetype: " << PicFrame->mimeType() << "\n";
 
             if (PicFrame->picture().size() > 0) {
 
@@ -82,17 +82,20 @@ public:
                     std::string tmp{PicFrame->mimeType().to8Bit()};
                     filetype = "." + tmp.substr(tmp.find_last_of('/')+1);
                 }
+                std::stringstream coverImageName;
                 std::stringstream coverName;
-                coverName << ServerConstant::coverRootPath;
-                coverName << "/" << uid;
-                coverName << filetype;
+
+                coverImageName << uid << filetype;
+                coverName << ServerConstant::base_path << "/" << ServerConstant::coverRootPath;
+                coverName << "/" << coverImageName.str();
+
                 std::ofstream of(coverName.str(), std::ios_base::out | std::ios_base::binary);
                 if (of.good()) {
                     of.write(PicFrame->picture().data(), PicFrame->picture().size());
                 }
 
                 of.close();
-                return coverName.str();
+                return coverImageName.str();
             }
         }
 

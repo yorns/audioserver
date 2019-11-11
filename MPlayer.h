@@ -14,6 +14,9 @@ class MPlayer : public Player {
     std::string m_stopTime_tmp;
     std::string m_stopTime;
 
+    bool m_stopPending {false};
+    bool m_startPending {false};
+
     bool m_playing{false};
     const char *playerName{"/usr/bin/mplayer"};
 
@@ -28,6 +31,14 @@ class MPlayer : public Player {
     void handleEnd();
 
     uint32_t position {0};
+
+    struct PlayerStartInfo {
+        std::string url;
+        std::string playerInfo;
+        bool fromLastStop;
+    };
+
+    PlayerStartInfo playerStartInfo;
 
 public:
 

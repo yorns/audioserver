@@ -4,9 +4,12 @@
 #include <boost/beast.hpp>
 
 namespace ServerConstant {
+    static boost::beast::string_view base_path{"/usr/share/audioServer"};
+
     static boost::beast::string_view fileRootPath{"mp3"};
     static boost::beast::string_view playlistRootPath{"playlist"};
-    static boost::beast::string_view coverRootPath{"img"};
+    static boost::beast::string_view coverRootPath{"html/img"};
+    static boost::beast::string_view albumPlaylistDirectory{"tmp"};
 
     static boost::beast::string_view unknownCoverFile{"unknown"};
     static boost::beast::string_view unknownCoverExtension{".png"};
@@ -22,6 +25,7 @@ namespace ServerConstant {
         static boost::beast::string_view play{"play"};
         static boost::beast::string_view find{"find"};
         static boost::beast::string_view create{"create"};
+        static boost::beast::string_view createAlbumList{"createAlbumList"};
         static boost::beast::string_view add{"add"};
         static boost::beast::string_view change{"change"};
         static boost::beast::string_view show{"show"};
@@ -45,6 +49,7 @@ namespace ServerConstant {
             static boost::beast::string_view previous{"prev"};
             static boost::beast::string_view play{"play"};
             static boost::beast::string_view stop{"stop"};
+            static boost::beast::string_view pause{"pause"};
         }
     }
 

@@ -13,6 +13,46 @@
             integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
             crossorigin="anonymous"></script>
 
+    <style>
+        .bild {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+        .overlay {
+            position: absolute;
+            transition: all .9s ease;
+            opacity: 0;
+            background: rgb(0, 0, 0, 0.4);
+        }
+        .bild:hover .overlay {
+            opacity: 1;
+        }
+        .text {
+            color: white;
+            font-family: sans-serif;
+            position: absolute;
+            top: 10%;
+            left: 12%;
+            transform: translate(-10%, -10%);
+            font-size: 15px;
+        }
+        .overlayFade {
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+        }
+        .overlayBottom {
+            width: 100%;
+            height: 0;
+            bottom: 0;
+            left: 0;
+        }
+        .bild:hover .overlayBottom {
+            height: 20%;
+        }
+    </style>
     <script type="text/javascript">
         $(document).ready(function () {
 
@@ -51,10 +91,7 @@
             });
 
             $("#btnPlay").click(function () {
-                url = "/player?play=true";
-                alert("Playing start");
-                $.post(url, "", function (data, textStatus) {
-                }, "json");
+                startPlay();
             });
 
             $("#btnNext").click(function () {
@@ -70,9 +107,11 @@
             });
 
             $("#btnStop").click(function () {
-                url = "/player?stop=true";
-                $.post(url, "", function (data, textStatus) {
-                }, "json");
+                stopPlayer();
+            });
+
+            $("#btnPause").click(function () {
+                pausePlayer();
             });
 
             readPlaylist();
@@ -80,16 +119,70 @@
             getAlbumList();
         });
 
+        function stopPlayer() {
+            url = "/player?stop=true";
+            $.post(url, "", function (data, textStatus) {
+            }, "json");
+        }
+
+        function startPlay() {
+            url = "/player?play=true";
+            $.post(url, "", function (data, textStatus) {
+            }, "json");
+        }
+
+        function pausePlayer() {
+            url = "/player?pause=true";
+            $.post(url, "", function (data, textStatus) {
+            }, "json");
+        }
+
+
+        function albumSelect(album) {
+            if (console && console.log)
+                console.log("albumSelect:"+album);
+            // open overlay / new page
+            // create playlist with all album titles
+            var url = "/playlist?createAlbumList="+ encodeURIComponent(album);
+            if (console && console.log)
+                console.log("request: "+url);
+            $.getJSON(url).done(function (response) {
+                if (response.result != "ok") {
+                    alert(response.result);
+                }
+                else {
+                    stopPlayer();
+                    readPlaylist();
+                    getActualPlaylist();
+                    getAlbumList();
+                    startPlay();
+                }
+
+            });
+
+            // show playlist with image
+            // show player
+
+        }
+
         function getAlbumList() {
             var url = "/database?albumList=";
             $.getJSON(url).done(function (response) {
                 $('#cover').empty();
-                var trHTML;
+                var trHTML = '<div class="container"> <div class="row mt-5 justify-content-center" id="myimg">';
                 $.each(response, function (i, item) {
-                    trHTML += ' <img src="'+item.cover+'" class="img-rounded" alt="'+item.album+'"> ';
+                    trHTML += `
+                    <div class="card card-custom mx-2 mb-3"> 
+                    <img class="card-img-top" style="width: 240px" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                    <div class="card-body">
+                      <h5 class="card-title" style="width: 200px">${item.album}</h5>
+                      <p class="card-text">${item.performer}</p>
+                    </div>
+                    </div>`
                 });
+                trHTML += '</div>'; 
                 $('#cover').append(trHTML);
-
+                $("#myimg div img").on("click", function(){albumSelect($(this).attr("alt"));}); //??
             })
         }
 
@@ -99,16 +192,16 @@
                 var items = '';
                 $.each(response.playlists, function (i, item) {
                     var text = item.playlist;
-                    items += '<a class="dropdown-item" href="#">' + unescape(text) + '</a>';
+                    items += '<a class="dropdown-item" href="#">' + decodeURIComponent(text) + '</a>';
                 });
 
                 $("#demolist").html(items);
-                $('#actPlaylistName').text(unescape(response.actualPlaylist));
+                $('#actPlaylistName').text(decodeURIComponent(response.actualPlaylist));
 
                 //alert(response.actualPlaylist);
 
                 $('#demolist a').on('click', function () {
-                    var txt = unescape($(this).text());
+                    var txt = encodeURIComponent($(this).text());
                     var url = "/playlist?change="+txt;
                     $.getJSON(url).done(function (response) {
                         getActualPlaylist();
@@ -143,9 +236,15 @@
             if (!file)
                 return;
 
-            $('#fileName').html('Dateiname: ' + file.name);
-            $('#fileSize').html('Dateigröße: ' + file.size + ' B');
-            $('#fileType').text('Dateitype: ' + file.type);
+            var fileListHTML = '<ul class="list-group">';
+
+            $.each(fileList, function (i, item) {
+                    fileListHTML += `<li class="list-group-item">${item}</li>`;
+            });
+            fileListHTML += '</ul>';
+
+            $('#filelist').append(fileListHTML);
+
             $('.progress-bar').css("width", "0%");
         }
 
@@ -162,11 +261,13 @@
                 return;
 
             client.onerror = function (e) {
-                alert("onError");
+                alert("upload error");
             };
 
             client.onload = function (e) {
                 $('.progress-bar').css("width", "100%");
+                getAlbumList();
+                $("#fileA").clear();
             };
 
             client.upload.onprogress = function (e) {
@@ -175,16 +276,16 @@
             };
 
             client.onabort = function (e) {
-                alert("Upload abgebrochen");
+                alert("Upload aborted");
             };
 
             client.open("POST", "/upload");
             client.send(file);
+
         }
 
         function uploadAbort() {
             if (client instanceof XMLHttpRequest)
-            //Bricht die aktuelle Übertragung ab
                 client.abort();
         }
 
@@ -200,7 +301,7 @@
 
     <!--<h1>Playlist <span id="actPlaylistName" class="badge badge-secondary">nothing</span></h1>-->
 
-    <div class="container">
+    <div class="container-fluid">
         <div class="row">
             <div class="col-">
                 Playlists
@@ -251,6 +352,7 @@
             <div class="btn-group btn-group-lg" role="group" aria-label="Player" id="Player">
                 <h2>Player Control  </h2>
                 <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
+                <button id="btnPause" type="button" class="btn btn-secondary">Pause</button>
                 <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
                 <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
                 <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
@@ -260,7 +362,7 @@
 
 
 
-<div class="container" id="cover">
+<div class="container-fluid center" id="cover">
 <a></a>
 </div>
 
@@ -303,22 +405,19 @@
 
 
     <form action="" method="post" enctype="multipart/form-data">
-        <input name="file" type="file" id="fileA" onchange="fileChange();"/>
+        <input name="file" type="file" id="fileA" multiple onchange="fileChange();"/>
         <input name="upload" value="Upload" type="button" onclick="uploadFile();"/>
         <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();"/>
     </form>
-    <div>
-        <div id="fileName"></div>
-        <div id="fileSize"></div>
-        <div id="fileType"></div>
 
-        <div class="progress">
-            <div class="progress-bar" role="progressbar" aria-valuenow="0"
-                 aria-valuemin="0" aria-valuemax="100" style="width:0%">
-                upload
-            </div>
+    <div class="container" id="filelist">
+    </div>
+
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="0"
+             aria-valuemin="0" aria-valuemax="100" style="width:0%">
+            upload
         </div>
-        <!--<progress id="progress" style="margin-top:10px"></progress> <span id="prozent"></span>-->
     </div>
 
 </body>

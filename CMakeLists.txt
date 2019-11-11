@@ -4,21 +4,25 @@ project(server)
 
 message("server build")
 
-set(BOOST_ROOT /opt/boost_1_71/)
+if (BOOST_DIR)
+  set(BOOST_ROOT ${BOOST_DIR})
+endif (BOOST_DIR)
 
 find_package( Threads REQUIRED)
 find_package( OpenSSL REQUIRED)
 find_package( Boost 1.65.0 REQUIRED COMPONENTS filesystem system regex locale)
 
+include(GNUInstallDirs)
 include(FindPkgConfig)
+
 pkg_search_module(TagLib REQUIRED taglib)
 
 add_executable(${PROJECT_NAME}
-		http_server_async_ssl.cpp
+		http_server.cpp
 		common/Extractor.h
+		common/urlDecode.c
 		Player.cpp
 		MPlayer.cpp
-		Id3Reader.cpp
 		SimpleDatabase.cpp
 		Listener.cpp
 		Session.cpp
@@ -30,7 +34,6 @@ target_link_libraries(${PROJECT_NAME}
         OpenSSL::SSL
         OpenSSL::Crypto
         ${Boost_LIBRARIES}
-        id3
         ${TagLib_LIBRARIES}
 )
 
@@ -42,30 +45,35 @@ target_include_directories(
     ${TagLib_INCLUDE_DIRS}
 )
 
-message(STATUS "Taglib include: 		${TagLib_INCLUDE_DIRS}")
-message(STATUS "Taglib libraries: 		${TagLib_LIBRARIES}")
-
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
+#target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
 
-add_executable(databaseTest test/databaseTest.cpp SimpleDatabase.cpp)
-
-target_link_libraries(databaseTest
-		Threads::Threads
-		${Boost_LIBRARIES}
-		id3
-		${TagLib_LIBRARIES}
-		)
-
-target_include_directories(
-		databaseTest
-		PUBLIC
-		${CMAKE_SOURCE_DIR}
-		${Boost_INCLUDE_DIRS}
-		${TagLib_INCLUDE_DIRS}
+install(
+    TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-set_target_properties(databaseTest PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+#add_executable(databaseTest test/databaseTest.cpp SimpleDatabase.cpp common/urlDecode.c)
+
+#target_link_libraries(databaseTest
+#		Threads::Threads
+#		${Boost_LIBRARIES}
+#		id3
+#		${TagLib_LIBRARIES}
+#		)
+
+#target_include_directories(
+#		databaseTest
+#		PUBLIC
+#		${CMAKE_SOURCE_DIR}
+#		${Boost_INCLUDE_DIRS}
+#		${TagLib_INCLUDE_DIRS}
+#)
+
+#set_target_properties(databaseTest PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 
 
 # 	$ENV{HOME}/raspberrypi/rootfs/usr/include/arm-linux-gnueabihf

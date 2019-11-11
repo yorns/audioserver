@@ -35,7 +35,7 @@
 #include <boost/asio.hpp>
 #include <boost/config.hpp>
 #include <boost/filesystem.hpp>
-#include <nlohmann/json.hpp>
+#include "nlohmann/json.hpp"
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
@@ -45,23 +45,24 @@
 
 #include "Listener.h"
 #include "Session.h"
-#include "Player.h"
 #include "MPlayer.h"
 #include "SimpleDatabase.h"
 
 std::unique_ptr<Player> player;
 SimpleDatabase database;
 std::string currentPlaylist;
+bool albumPlaylist {false};
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
+std::string getHomeDirectory()
+{
+    char *homedir = getenv("HOME");
 
-
-//------------------------------------------------------------------------------
-
-
+    return std::string(homedir);
+}
 
 int main(int argc, char* argv[])
 {
@@ -82,14 +83,20 @@ int main(int argc, char* argv[])
     // The io_context is required for all I/O
     boost::asio::io_context ioc;
 
-    database.loadDatabase(ServerConstant::fileRootPath.to_string(), ServerConstant::coverRootPath.to_string());
-    database.loadAllPlaylists("playlist");
+    std::stringstream mp3Dir;
+    std::stringstream coverDir;
+
+    mp3Dir << ServerConstant::base_path << "/" << ServerConstant::fileRootPath;
+    coverDir << ServerConstant::base_path << "/" << ServerConstant::coverRootPath;
+
+    database.loadDatabase(mp3Dir.str(), coverDir.str());
+    database.loadAllPlaylists(ServerConstant::playlistRootPath.to_string());
     if (!database.showAllPlaylists().empty())
         currentPlaylist = database.showAllPlaylists().back().second;
 
     std::cout << "current playlist on startup is: "<< currentPlaylist<<"\n";
 
-    player = std::make_unique<MPlayer>(ioc, "config.dat", "$(HOME)/.player");
+    player = std::make_unique<MPlayer>(ioc, "config.dat", getHomeDirectory()+"/.player");
 
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::sslv23};

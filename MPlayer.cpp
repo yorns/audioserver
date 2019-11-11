@@ -75,13 +75,28 @@ void MPlayer::readPlayerOutput(const boost::system::error_code &ec, std::size_t 
         m_pipe.reset();
 
         m_playing = false;
+        if (m_startPending) {
+            m_service.post([this]() { startPlay(playerStartInfo.url, playerStartInfo.playerInfo,
+                                                playerStartInfo.fromLastStop); });
+            m_startPending = false;
+        }
+        if (m_stopPending) {
+            m_stopPending = false;
+        }
 
     }
 }
 
 bool MPlayer::startPlay(const std::string &url, const std::string& playerInfo, bool fromLastStop) {
-    if (m_playing)
+    if (m_playing) {
+        if (m_stopPending) {
+            playerStartInfo.url = url;
+            playerStartInfo.playerInfo = playerInfo;
+            playerStartInfo.fromLastStop = fromLastStop;
+            m_startPending = true;
+        }
         return false;
+    }
 
     std::vector<std::string> parameter;
 
@@ -168,6 +183,7 @@ bool MPlayer::stop() {
         return false;
     *m_in.get() << "quit\n" << std::flush;
     log << "waiting for player to stop\n"<<std::flush;
+    m_stopPending = true;
     return true;
 }
 

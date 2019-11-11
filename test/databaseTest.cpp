@@ -25,13 +25,13 @@ int main()
     assert (database.showAllPlaylists().size() == 1);
     assert (database.showPlaylist("hoppelpoppel").size() == 0);
 
-    database.writeChangedPlaylists("playlist");
+    database.writeChangedPlaylists();
 
     database.addToPlaylist("hoppelpoppel", "firstSong.mp3");
 
     assert (database.showPlaylist("hoppelpoppel").size() == 1);
 
-    database.writeChangedPlaylists("playlist");
+    database.writeChangedPlaylists();
 
     return 0;
 }
