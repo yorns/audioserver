@@ -4,7 +4,7 @@ Description=Audio Server Service
 After=wpa_supplicant.service
 
 [Service]
-ExecStart=/bin/audioServer 0.0.0.0 8080 /usr/shared/audioServer
+ExecStart=/bin/audioServer 0.0.0.0 8080 /usr/share/audioserver
 
 Restart=no
 

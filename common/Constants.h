@@ -4,7 +4,7 @@
 #include <boost/beast.hpp>
 
 namespace ServerConstant {
-    static boost::beast::string_view base_path{"/usr/share/audioServer"};
+    static boost::beast::string_view base_path{"/usr/share/audioserver"};
 
     static boost::beast::string_view fileRootPath{"mp3"};
     static boost::beast::string_view playlistRootPath{"playlist"};

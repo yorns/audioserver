@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <iostream>
 
 struct StopInfoEntry {
     std::string fileName;
@@ -28,9 +29,13 @@ public:
     Player(const std::string& configDB, const std::string &logFilePath)
     : m_configDbFileName(configDB), m_logFilePath(logFilePath){
         log = std::ofstream(m_logFilePath+"/player.log");
-        if (!log.good())
-            abort();
+        if (!log.good()) {
+            std::cerr << "cannot open log file <"<<m_logFilePath <<"/player.log>\n";
+	    abort();
+	}
     }
+
+    virtual ~Player() = default;
 
     virtual bool startPlay(const std::string &url, const std::string& playerInfo, bool fromLastStop = false) = 0;
     virtual bool stop() = 0;

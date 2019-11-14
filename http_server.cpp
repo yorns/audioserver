@@ -95,8 +95,10 @@ int main(int argc, char* argv[])
         currentPlaylist = database.showAllPlaylists().back().second;
 
     std::cout << "current playlist on startup is: "<< currentPlaylist<<"\n";
+    std::string playerLogPath = ServerConstant::base_path.to_string() + "/" + "player_log";
+    std::cout << "player logs go to: " << playerLogPath <<"\n";
 
-    player = std::make_unique<MPlayer>(ioc, "config.dat", getHomeDirectory()+"/.player");
+    player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogPath);
 
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::sslv23};
