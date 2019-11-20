@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include "common/Extractor.h"
 #include "common/Constants.h"
-#include "common/NameGenerator.h"
+//#include "common/NameGenerator.h"
 #include "Id3Info.h"
 #include "id3TagReader.h"
 
@@ -21,6 +21,16 @@ class SimpleDatabase {
         std::string internalPlaylistName;
         std::vector<std::string> Playlist;
         bool changed{false};
+
+        PlaylistContainer()
+        {}
+        PlaylistContainer(const std::string& _internalPlaylistName, bool _changed = false)
+            : internalPlaylistName(_internalPlaylistName), changed(_changed)
+        {}
+        PlaylistContainer(const std::string& _internalPlaylistName, std::vector<std::string>&& _playlist, bool _changed = false)
+            : internalPlaylistName(_internalPlaylistName), Playlist(std::move(_playlist)),changed(_changed)
+        {}
+
     };
 
     std::vector<Id3Info> m_simpleDatabase;

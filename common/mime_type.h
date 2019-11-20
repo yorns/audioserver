@@ -4,7 +4,7 @@
 #include <boost/beast.hpp>
 
 // Return a reasonable mime type based on the extension of a file.
-static boost::beast::string_view
+static inline boost::beast::string_view
 mime_type(boost::beast::string_view path)
 {
     using boost::beast::iequals;

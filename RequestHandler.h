@@ -34,13 +34,19 @@ public:
             boost::beast::string_view base,
             boost::beast::string_view path)
     {
+        char constexpr path_separator = '/';
+
+        if ( path.starts_with(path_separator) )
+            path = path.substr(1);
+
         if(base.empty())
-            return path.to_string();
+            return std::string(1, path_separator) + path.to_string();
 
         std::string result = base.to_string();
-        char constexpr path_separator = '/';
         if(result.back() == path_separator)
             result.resize(result.size() - 1);
+
+        result.append(1, path_separator);
         result.append(path.data(), path.size());
 
         return result;
@@ -68,7 +74,7 @@ public:
             std::stringstream albumPlaylist;
             std::stringstream genericPlaylist;
             albumPlaylist << ServerConstant::base_path << "/" << ServerConstant::albumPlaylistDirectory << "/" << currentPlaylist << ".m3u";
-            genericPlaylist << ServerConstant::base_path << "/" << ServerConstant::playlistRootPath << "/" << currentPlaylist << ".m3u";
+            genericPlaylist << ServerConstant::base_path << "/" << ServerConstant::playlistPath << "/" << currentPlaylist << ".m3u";
             player->startPlay(albumPlaylist?albumPlaylist.str():genericPlaylist.str(), "");
             return "ok";
         }
@@ -247,15 +253,20 @@ public:
 
     template<class Send>
     void handle_file_request(
-            boost::beast::string_view doc_root,
             http::request_parser<http::string_body>& req,
             Send&& send)
     {
         // Build the path to the requested file
-        std::string path = path_cat(doc_root, req.get().target());
+        std::string file_root (path_cat(ServerConstant::base_path, ServerConstant::htmlPath));
+
+        std::cerr << " ------ " << file_root << "\n";
+
+        std::string path = path_cat(file_root, req.get().target());
         if(req.get().target().back() == '/')
             path.append("index.html");
 
+
+        std::cout << "file request: <\n"<< path << ">\n";
 
         // Attempt to open the file
         boost::beast::error_code ec;
@@ -345,9 +356,12 @@ public:
 
     template<class Send>
     void handle_request (
-            boost::beast::string_view doc_root,
             http::request_parser<http::string_body>& req,
             Send&& send) {
+
+        boost::beast::string_view doc_root { ServerConstant::base_path };
+
+        std::cout << "main request: <"<< req.get().target() << ">\n";
 
         // Make sure we can handle the method
         if (is_unknown_http_method(req))
@@ -386,9 +400,7 @@ public:
 
         }
 
-        std::cout << "file request: <"<< req.get().target() << ">\n";
-
-        return handle_file_request(doc_root, req, send);
+        return handle_file_request(req, send);
 
     }
 

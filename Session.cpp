@@ -1,4 +1,5 @@
 #include "Session.h"
+#include "common/NameGenerator.h"
 
 void session::fail(boost::system::error_code ec, char const *what) {
     std::cerr << what << ": " << ec.message() << "\n";
@@ -33,38 +34,21 @@ void session::do_read() {
                             });
 }
 
-std::string session::generate_filename(const std::string& uniqueId)
-{
-    std::stringstream file_name_str;
-    file_name_str << ServerConstant::base_path << "/" << ServerConstant::fileRootPath <<"/" << uniqueId << ".mp3";
-    return file_name_str.str();
-
-}
-
-std::string session::generate_unique_id() {
-
-    boost::uuids::random_generator generator;
-    boost::uuids::uuid _name = generator();
-
-    std::stringstream tmp;
-    tmp << _name;
-    return tmp.str();
-}
-
 void session::handle_upload_request()
 {
     auto self { shared_from_this() };
 
     std::cerr << "transfering data (via POST) with data of length: " << m_reqHeader.content_length() << "\n";
-    std::string unique_id = generate_unique_id();
-    std::string file_name = generate_filename(unique_id);
+    std::stringstream audioPath;
+    audioPath << ServerConstant::base_path << "/" << ServerConstant::audioPath;
+    auto namegen = NameGenerator::create(audioPath.str(), ".mp3");
 
     m_reqFile = std::make_unique < http::request_parser < http::file_body >> (std::move(m_reqHeader));
 
-    std::cerr << "writing file with name <"<<file_name<<"> ... ";
+    std::cerr << "writing file with name <"<<namegen.filename<<"> ... ";
 
     boost::beast::error_code error_code;
-    m_reqFile->get().body().open(file_name.c_str(), boost::beast::file_mode::write, error_code);
+    m_reqFile->get().body().open(namegen.filename.c_str(), boost::beast::file_mode::write, error_code);
 
     if (error_code) {
         std::cerr << "with error: " << error_code << " - returning an error message to sender\n";
@@ -80,9 +64,11 @@ void session::handle_upload_request()
     std::cerr << "started\n";
     // Read a request
     http::async_read(m_stream, m_buffer, *m_reqFile.get(),
-                     [this, self, unique_id](boost::system::error_code ec,
+                     [this, self, namegen](boost::system::error_code ec,
                                              std::size_t bytes_transferred) {
-                         std::cerr << "finished read <" << unique_id << ">\n";
+                         std::cerr << "finished read <" << namegen.unique_id << ">\n";
+
+                         boost::ignore_unused(ec, bytes_transferred);
 
                          http::response <http::empty_body> res{http::status::ok,
                                                                m_reqFile.get()->get().version()};
@@ -90,8 +76,8 @@ void session::handle_upload_request()
                          res.set(http::field::content_type, "audio/mp3");
                          res.content_length(0);
                          res.keep_alive(m_reqFile.get()->get().keep_alive());
-                         std::string cover = id3TagReader::extractCover(unique_id);
-                         database.addToDatabase(unique_id, cover);
+                         std::string cover = id3TagReader::extractCover(namegen.unique_id);
+                         database.addToDatabase(namegen.unique_id, cover);
                          return m_lambda(std::move(res));
                      }
     );
@@ -143,7 +129,7 @@ void session::on_read(boost::system::error_code ec, std::size_t bytes_transferre
     //std::cerr << "handle read (async read)\n";
 
     // Send the response
-    m_requestHandler.handle_request(*m_doc_root, *m_req.get(), m_lambda);
+    m_requestHandler.handle_request(*m_req.get(), m_lambda);
 }
 
 void session::on_write(boost::system::error_code ec, std::size_t bytes_transferred, bool close) {
@@ -166,10 +152,9 @@ void session::on_write(boost::system::error_code ec, std::size_t bytes_transferr
     do_read();
 }
 
-session::session(tcp::socket socket, ssl::context &ctx, std::shared_ptr<std::string const> const &doc_root)
+session::session(tcp::socket socket, ssl::context &ctx)
         : m_socket(std::move(socket))
         , m_stream(m_socket, ctx)
-        , m_doc_root(doc_root)
         , m_lambda(*this)
 {
 }

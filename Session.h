@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/config.hpp>
+#include <boost/filesystem.hpp>
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
@@ -16,11 +17,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <boost/filesystem.hpp>
 #include "nlohmann/json.hpp"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include "common/Constants.h"
 
 #include "RequestHandler.h"
@@ -83,15 +80,13 @@ class session : public std::enable_shared_from_this<session>
 
     RequestHandler m_requestHandler;
 
-    std::string generate_unique_id();
-    std::string generate_filename(const std::string& uniqueId);
     void handle_upload_request();
     void handle_normal_request();
 
 
 public:
 
-    explicit session( tcp::socket socket, ssl::context& ctx, std::shared_ptr<std::string const> const& doc_root);
+    explicit session( tcp::socket socket, ssl::context& ctx);
 
     void run();
 

@@ -1,24 +1,3 @@
-//
-// Copyright (c) 2016-2017 Vinnie Falco (vinnie dot falco at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-// Official repository: https://github.com/boostorg/beast
-//
-
-//------------------------------------------------------------------------------
-//
-// Example: HTTP SSL server, asynchronous
-//
-//------------------------------------------------------------------------------
-// curl -X POST --insecure https://localhost:8080/mypost?data=123\&data2=456
-// curl http://myservice --upload-file file.txt
-// curl https://localhost:8080/ --upload-file 01\ Kryptonite.mp3  --insecure
-// curl https://localhost:8080/find?overall=Kry --insecure
-// curl -X POST --insecure https://localhost:8080/player?play=6407c910-621b-4608-a1fb-f5d9a81fc30a
-
-
 #include "common/server_certificate.hpp"
 
 #include <algorithm>
@@ -36,12 +15,9 @@
 #include <boost/config.hpp>
 #include <boost/filesystem.hpp>
 #include "nlohmann/json.hpp"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
-
 #include "common/mime_type.h"
 #include "common/Extractor.h"
+//#include "common/NameGenerator.h"
 
 #include "Listener.h"
 #include "Session.h"
@@ -57,48 +33,45 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
-std::string getHomeDirectory()
-{
-    char *homedir = getenv("HOME");
-
-    return std::string(homedir);
-}
-
 int main(int argc, char* argv[])
 {
     // Check command line arguments.
-    if (argc != 4)
+    if (argc != 4 && argc != 3)
     {
         std::cerr <<
-            "Usage:" << argv[0] << " <address> <port> <doc_root>\n" <<
+            "Usage:" << argv[0] << " <address> <port> [doc_root]\n" <<
             "Example:\n" <<
             "    "<<argv[0]<<" 0.0.0.0 8080 .\n";
         return EXIT_FAILURE;
     }
     auto const address = boost::asio::ip::make_address(argv[1]);
     auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
-    auto const doc_root = std::make_shared<std::string>(argv[3]);
-//    auto const threads = std::max<int>(1, std::atoi(argv[4]));
+    if (argc == 4)  {
+        ServerConstant::base_path = boost::beast::string_view(argv[3]);
+    }
 
     // The io_context is required for all I/O
     boost::asio::io_context ioc;
 
     std::stringstream mp3Dir;
     std::stringstream coverDir;
+    std::stringstream playlistDir;
+    std::stringstream playerLogDir;
 
-    mp3Dir << ServerConstant::base_path << "/" << ServerConstant::fileRootPath;
-    coverDir << ServerConstant::base_path << "/" << ServerConstant::coverRootPath;
+    mp3Dir << ServerConstant::base_path << "/" << ServerConstant::audioPath;
+    coverDir << ServerConstant::base_path << "/" << ServerConstant::coverPath;
+    playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
+    playerLogDir << ServerConstant::base_path << "/" << ServerConstant::playerLogPath;
 
     database.loadDatabase(mp3Dir.str(), coverDir.str());
-    database.loadAllPlaylists(ServerConstant::playlistRootPath.to_string());
+    database.loadAllPlaylists(playlistDir.str());
     if (!database.showAllPlaylists().empty())
         currentPlaylist = database.showAllPlaylists().back().second;
 
-    std::cout << "current playlist on startup is: "<< currentPlaylist<<"\n";
-    std::string playerLogPath = ServerConstant::base_path.to_string() + "/" + "player_log";
-    std::cout << "player logs go to: " << playerLogPath <<"\n";
+    std::cout << "current playlist on startup is: <"<< currentPlaylist<<">\n";
+    std::cout << "player logs go to: " << playerLogDir.str() <<"\n";
 
-    player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogPath);
+    player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
 
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::sslv23};
@@ -108,8 +81,8 @@ int main(int argc, char* argv[])
 
     ctx.set_verify_mode(boost::asio::ssl::verify_none);
 
-    auto sessionCreator = [doc_root](tcp::socket& socket, ssl::context& ctx) {
-        std::make_shared<session>(std::move(socket), ctx, doc_root)->run();
+    auto sessionCreator = [](tcp::socket& socket, ssl::context& ctx) {
+        std::make_shared<session>(std::move(socket), ctx)->run();
     };
 
     // Create and launch a listening port

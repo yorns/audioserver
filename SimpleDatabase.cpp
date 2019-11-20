@@ -1,4 +1,5 @@
 #include "SimpleDatabase.h"
+#include "common/NameGenerator.h"
 
 std::vector<SimpleDatabase::FileNameType> SimpleDatabase::getAllFilesInDir(const std::string &dirPath) {
 
@@ -53,7 +54,7 @@ bool SimpleDatabase::writeChangedPlaylists(const std::string &playlistDirectory,
                 ofs << "# " << elem.second.internalPlaylistName << "\n";
 
                 for (const auto &entry : elem.second.Playlist) {
-                    ofs << "../" << ServerConstant::fileRootPath << "/" << entry << ".mp3\n";
+                    ofs << "../" << ServerConstant::audioPath << "/" << entry << ".mp3\n";
                 }
 
                 std::cerr << " done \n";
@@ -85,7 +86,7 @@ bool SimpleDatabase::isPlaylist(const std::string &playlistName,
 std::string SimpleDatabase::getNameFromHumanReadable(const std::string &humanReadablePlaylist,
                                                      const std::unordered_map<std::string, SimpleDatabase::PlaylistContainer> &playlist) {
 
-    auto item = std::find_if(std::begin(m_playlist), std::end(m_playlist), [&humanReadablePlaylist](const auto &elem) {
+    auto item = std::find_if(std::begin(playlist), std::end(playlist), [&humanReadablePlaylist](const auto &elem) {
         return elem.second.internalPlaylistName == humanReadablePlaylist;
     });
 
@@ -198,7 +199,9 @@ void SimpleDatabase::loadDatabase(const std::string &mp3Directory, const std::st
 
     for (auto& file : filelist) {
         auto imgFile = getImageFileOf(file.name);
-        addToDatabase(file.name, /*imgDirectory + "/"*/ "img/" + imgFile.name + imgFile.extension);
+        std::stringstream cover;
+        cover << "/" << ServerConstant::coverPathWeb << "/" << imgFile.name << imgFile.extension;
+        addToDatabase(file.name, cover.str());
     }
 }
 
@@ -209,7 +212,7 @@ bool SimpleDatabase::readPlaylist(const SimpleDatabase::FileNameType &filename) 
     std::string playlistNameCRYPTIC;
 
     std::string fullFilename =
-            ServerConstant::playlistRootPath.to_string() + "/" + filename.name + filename.extension;
+            ServerConstant::playlistPath.to_string() + "/" + filename.name + filename.extension;
     std::ifstream stream(fullFilename);
 
     playlistNameCRYPTIC = filename.name;
@@ -242,14 +245,14 @@ bool SimpleDatabase::readPlaylist(const SimpleDatabase::FileNameType &filename) 
         }
     }
 
-    m_playlist[playlistNameCRYPTIC] = PlaylistContainer{.internalPlaylistName=playlistNameHR, .Playlist = itemList};
+    m_playlist[playlistNameCRYPTIC] = PlaylistContainer(playlistNameHR, std::move(itemList));
     return true;
 }
 
 bool SimpleDatabase::writeChangedPlaylists() {
     std::stringstream playlistPath;
     std::stringstream albumListPath;
-    playlistPath  << ServerConstant::base_path << "/" << ServerConstant::playlistRootPath;
+    playlistPath  << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
     albumListPath << ServerConstant::base_path << "/" << ServerConstant::albumPlaylistDirectory;
     return (writeChangedPlaylists(playlistPath.str(), m_playlist) &&
             writeChangedPlaylists(albumListPath.str(), m_playlistAlbum));
@@ -274,10 +277,10 @@ std::string SimpleDatabase::createPlaylist(const std::string &name) {
         return "";
     //    return it->first;
 
-    std::string playlistName = NameGenerator::create("", "");
-    m_playlist[playlistName] = PlaylistContainer{.internalPlaylistName=name, .Playlist=std::vector<std::string>{}, .changed=true};
+    auto playlistName = NameGenerator::create("", "");
+    m_playlist[playlistName.unique_id] = PlaylistContainer(name, true);
 
-    return playlistName;
+    return playlistName.unique_id;
 }
 
 boost::optional<Id3Info> SimpleDatabase::getEntryOnId(const std::string& id) {
@@ -298,8 +301,9 @@ std::string SimpleDatabase::createAlbumPlaylistTmp(const std::string &album) {
 
     // if exist, return existing list
     if (it == std::end(m_playlistAlbum)) {
-        playlistName = NameGenerator::create("", "");
-        m_playlistAlbum[playlistName] = PlaylistContainer{.internalPlaylistName=album, .Playlist=std::vector<std::string>{}, .changed=true};
+        auto name = NameGenerator::create("", "");
+        m_playlistAlbum[name.unique_id] = PlaylistContainer(album, true);
+        playlistName = name.unique_id;
     }
     else {
         playlistName = it->first;

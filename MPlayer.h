@@ -30,7 +30,7 @@ class MPlayer : public Player {
 
     void handleEnd();
 
-    uint32_t position {0};
+//    uint32_t position {0};
 
     struct PlayerStartInfo {
         std::string url;

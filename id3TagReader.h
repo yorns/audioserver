@@ -19,7 +19,7 @@ class id3TagReader {
 public:
     Id3Info getInfo(const std::string& uniqueId, const std::string& cover) {
 
-        std::string mp3File = ServerConstant::base_path.to_string() + "/" + ServerConstant::fileRootPath.to_string() + "/" + uniqueId + ".mp3";
+        std::string mp3File = ServerConstant::base_path.to_string() + "/" + ServerConstant::audioPath.to_string() + "/" + uniqueId + ".mp3";
 
         std::cout << "Read mp3 info from <"<<mp3File<<">\n";
 
@@ -57,7 +57,7 @@ public:
         TagLib::ID3v2::AttachedPictureFrame *PicFrame;
 
         std::stringstream mp3File;
-        mp3File << ServerConstant::base_path << "/" << ServerConstant::fileRootPath << "/" << uid << ".mp3";
+        mp3File << ServerConstant::base_path << "/" << ServerConstant::audioPath << "/" << uid << ".mp3";
 
 //        std::cout << "try to open file <"<<mp3File.str()<<">\n";
 
@@ -86,7 +86,7 @@ public:
                 std::stringstream coverName;
 
                 coverImageName << uid << filetype;
-                coverName << ServerConstant::base_path << "/" << ServerConstant::coverRootPath;
+                coverName << ServerConstant::base_path << "/" << ServerConstant::coverPath;
                 coverName << "/" << coverImageName.str();
 
                 std::ofstream of(coverName.str(), std::ios_base::out | std::ios_base::binary);
@@ -95,11 +95,11 @@ public:
                 }
 
                 of.close();
-                return coverImageName.str();
+                return ServerConstant::coverPathWeb.to_string() + "/" + coverImageName.str();
             }
         }
 
-        return ServerConstant::coverRootPath.to_string() + "/" +
+        return  ServerConstant::coverPathWeb.to_string() + "/" +
                 ServerConstant::unknownCoverFile.to_string() +
                 ServerConstant::unknownCoverExtension.to_string();
     }
