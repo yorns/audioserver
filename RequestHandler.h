@@ -236,7 +236,6 @@ public:
                         jentry[ServerConstant::Parameter::Database::playlist.to_string()] = item.second;
                         json1.push_back(jentry);
                     }
-                    std::cout << "finished loop\n";
                     json["playlists"] = json1;
                     json["actualPlaylist"] = database.getHumanReadableName(currentPlaylist);
                 } catch (std::exception e) {
@@ -259,14 +258,11 @@ public:
         // Build the path to the requested file
         std::string file_root (path_cat(ServerConstant::base_path, ServerConstant::htmlPath));
 
-        std::cerr << " ------ " << file_root << "\n";
-
         std::string path = path_cat(file_root, req.get().target());
         if(req.get().target().back() == '/')
             path.append("index.html");
 
-
-        std::cout << "file request: <\n"<< path << ">\n";
+        std::cout << "file request on: <"<< path << ">\n";
 
         // Attempt to open the file
         boost::beast::error_code ec;
@@ -318,7 +314,6 @@ public:
 
         std::string result {"done"};
         if (urlInfo) {
-            //std::cerr << "url extracted to: "<<urlInfo->command<< " - <"<<urlInfo->parameter<<"> = <"<<urlInfo->value<<">\n";
 
             if (player && urlInfo->command == "player") {
                 playerAccess(urlInfo);
@@ -361,7 +356,7 @@ public:
 
         boost::beast::string_view doc_root { ServerConstant::base_path };
 
-        std::cout << "main request: <"<< req.get().target() << ">\n";
+//        std::cout << "main request: <"<< req.get().target() << ">\n";
 
         // Make sure we can handle the method
         if (is_unknown_http_method(req))

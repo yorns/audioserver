@@ -42,6 +42,7 @@ class SimpleDatabase {
         std::string extension;
     };
     std::vector<FileNameType> getAllFilesInDir(const std::string &dirPath);
+    bool removeAllFilesInDir(const std::string& dirPath);
 
     bool writeChangedPlaylists(const std::string &playlistDirectory,
                                const std::unordered_map<std::string, PlaylistContainer>& playlist);
@@ -61,6 +62,7 @@ class SimpleDatabase {
     void emplace_back(Id3Info &&info);
 
     boost::optional<Id3Info> getEntryOnId(const std::string& id);
+
 public:
     SimpleDatabase() = default;
 
@@ -111,6 +113,8 @@ public:
     bool readPlaylist(const FileNameType& filename);
 
     bool writeChangedPlaylists();
+
+    void removeTemporalPlaylists();
 
     void loadAllPlaylists(const std::string &playlistDirectory);
 

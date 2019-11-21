@@ -21,7 +21,7 @@ public:
 
         std::string mp3File = ServerConstant::base_path.to_string() + "/" + ServerConstant::audioPath.to_string() + "/" + uniqueId + ".mp3";
 
-        std::cout << "Read mp3 info from <"<<mp3File<<">\n";
+        std::cout << "Read mp3 info from file <"<<mp3File<<">\n";
 
         TagLib::FileRef f(mp3File.c_str());
 
@@ -59,8 +59,6 @@ public:
         std::stringstream mp3File;
         mp3File << ServerConstant::base_path << "/" << ServerConstant::audioPath << "/" << uid << ".mp3";
 
-//        std::cout << "try to open file <"<<mp3File.str()<<">\n";
-
         TagLib::MPEG::File mpegFile(mp3File.str().c_str());
         id3v2tag = mpegFile.ID3v2Tag();
 
@@ -73,7 +71,6 @@ public:
 
         for (auto &it : Frame) {
             PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
-            //std::cout << "Type = " << PicFrame->type() << ", mimetype: " << PicFrame->mimeType() << "\n";
 
             if (PicFrame->picture().size() > 0) {
 

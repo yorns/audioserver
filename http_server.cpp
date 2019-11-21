@@ -53,6 +53,7 @@ int main(int argc, char* argv[])
     // The io_context is required for all I/O
     boost::asio::io_context ioc;
 
+    // create all strings for the directories used in initialisation
     std::stringstream mp3Dir;
     std::stringstream coverDir;
     std::stringstream playlistDir;
@@ -63,12 +64,20 @@ int main(int argc, char* argv[])
     playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
     playerLogDir << ServerConstant::base_path << "/" << ServerConstant::playerLogPath;
 
+    std::cout << "creating database by reading all mp3 files\n";
     database.loadDatabase(mp3Dir.str(), coverDir.str());
+
+    std::cout << "remove temporal files and load all Playlists available\n";
+    database.removeTemporalPlaylists();
     database.loadAllPlaylists(playlistDir.str());
     if (!database.showAllPlaylists().empty())
         currentPlaylist = database.showAllPlaylists().back().second;
 
-    std::cout << "current playlist on startup is: <"<< currentPlaylist<<">\n";
+    if (currentPlaylist.empty()) std::cout << "no current playlist specified\n";
+    else std::cout << "current playlist on startup is: <"<< currentPlaylist<<">\n";
+
+    std::cout << "\n";
+    std::cout << "create player instance\n";
     std::cout << "player logs go to: " << playerLogDir.str() <<"\n";
 
     player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
@@ -91,6 +100,8 @@ int main(int argc, char* argv[])
         ctx,
         tcp::endpoint{address, port},
         sessionCreator)->run();
+
+    std::cout << "run server\n";
 
     ioc.run();
 

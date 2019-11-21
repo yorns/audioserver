@@ -1,7 +1,9 @@
 #include "Session.h"
 #include "common/NameGenerator.h"
 
-void session::fail(boost::system::error_code ec, char const *what) {
+void session::fail(boost::system::error_code ec, const std::string& what) {
+    // some errors are annoying .. remove some until handshake and shutdown is corrected
+    if (what != "handshake" && what != "shutdown")
     std::cerr << what << ": " << ec.message() << "\n";
 }
 

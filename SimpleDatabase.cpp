@@ -38,12 +38,49 @@ std::vector<SimpleDatabase::FileNameType> SimpleDatabase::getAllFilesInDir(const
     return listOfFiles;
 }
 
+bool SimpleDatabase::removeAllFilesInDir(const std::string &dirPath) {
+
+    try {
+        // Check if given path exists and points to a directory
+        if (filesys::exists(dirPath) && filesys::is_directory(dirPath)) {
+            // Create a Directory Iterator object and points to the starting of directory
+            filesys::directory_iterator iter(dirPath);
+
+            // Create a Directory Iterator object pointing to end.
+            filesys::directory_iterator end;
+
+            // Iterate till end
+            while (iter != end) {
+                // Check if current entry is a directory and if exists in skip list
+                if (!filesys::is_directory(iter->path())) {
+                    // Add the name in vector
+                    filesys::remove(iter->path());
+                }
+
+                boost::system::error_code ec;
+                // Increment the iterator to point to next entry in recursive iteration
+                iter.increment(ec);
+                if (ec) {
+                    std::cerr << "Error While Accessing : " << iter->path().string() << " :: " << ec.message()
+                              << '\n';
+                }
+            }
+        }
+    }
+    catch (std::system_error &e) {
+        std::cerr << "Exception :: " << e.what();
+        return false;
+    }
+    return true;
+}
+
+
 bool SimpleDatabase::writeChangedPlaylists(const std::string &playlistDirectory,
                                            const std::unordered_map<std::string, SimpleDatabase::PlaylistContainer> &playlist) {
 
     bool success{true};
     for (const auto &elem : playlist) {
-        std::cerr << "writeChangedPlaylist <" << elem.first << "> realname " << elem.second.internalPlaylistName;
+        std::cerr << "writeChangedPlaylist <" << elem.first << "> realname <" << elem.second.internalPlaylistName << ">";
         if (elem.second.changed) {
             std::cerr << " - try write ... ";
             std::string filename = playlistDirectory + "/" + elem.first + ".m3u";
@@ -256,6 +293,13 @@ bool SimpleDatabase::writeChangedPlaylists() {
     albumListPath << ServerConstant::base_path << "/" << ServerConstant::albumPlaylistDirectory;
     return (writeChangedPlaylists(playlistPath.str(), m_playlist) &&
             writeChangedPlaylists(albumListPath.str(), m_playlistAlbum));
+}
+
+void SimpleDatabase::removeTemporalPlaylists() {
+    std::stringstream tmpListPath;
+    tmpListPath  << ServerConstant::base_path << "/" << ServerConstant::albumPlaylistDirectory;
+
+    removeAllFilesInDir(tmpListPath.str());
 }
 
 void SimpleDatabase::loadAllPlaylists(const std::string &playlistDirectory) {

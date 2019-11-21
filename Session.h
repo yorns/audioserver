@@ -33,7 +33,7 @@ class session : public std::enable_shared_from_this<session>
 {
 
     // Report a failure
-    void fail(boost::system::error_code ec, char const* what);
+    void fail(boost::system::error_code ec, const std::string& what);
 
     // This is the C++11 equivalent of a generic lambda.
     // The function object is used to send an HTTP message.
