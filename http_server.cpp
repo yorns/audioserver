@@ -33,6 +33,8 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
+boost::beast::string_view ServerConstant::base_path{"/var/audioserver"};
+
 int main(int argc, char* argv[])
 {
     // Check command line arguments.
@@ -48,6 +50,7 @@ int main(int argc, char* argv[])
     auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
     if (argc == 4)  {
         ServerConstant::base_path = boost::beast::string_view(argv[3]);
+        std::cout << "setting base path to <"<<ServerConstant::base_path<<">\n";
     }
 
     // The io_context is required for all I/O
@@ -63,6 +66,10 @@ int main(int argc, char* argv[])
     coverDir << ServerConstant::base_path << "/" << ServerConstant::coverPath;
     playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
     playerLogDir << ServerConstant::base_path << "/" << ServerConstant::playerLogPath;
+
+    std::cout << "path: \naudiopath: "<<mp3Dir.str()<<"\ncoveroath: "<<coverDir.str()
+              << "\nplaylist: " << playlistDir.str() << "\nPlayerlog dir: "<<playerLogDir.str()
+              << "\n";
 
     std::cout << "creating database by reading all mp3 files\n";
     database.loadDatabase(mp3Dir.str(), coverDir.str());
