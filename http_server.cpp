@@ -22,6 +22,7 @@
 #include "Listener.h"
 #include "Session.h"
 #include "MPlayer.h"
+#include "mpvplayer.h"
 #include "SimpleDatabase.h"
 
 std::unique_ptr<Player> player;
@@ -87,7 +88,8 @@ int main(int argc, char* argv[])
     std::cout << "create player instance\n";
     std::cout << "player logs go to: " << playerLogDir.str() <<"\n";
 
-    player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
+    //player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
+    player = std::make_unique<MpvPlayer>(ioc, "config.dat", playerLogDir.str());
 
     // The SSL context is required, and holds certificates
     ssl::context ctx{ssl::context::sslv23};

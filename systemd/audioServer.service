@@ -1,6 +1,7 @@
 [Unit]
 Description=Audio Server Service
 
+[Install]
 After=hostapd.service
 Requires=hostapd.service
 
