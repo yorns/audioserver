@@ -1,0 +1,12 @@
+[Unit]
+Description=mplayer handler
+
+[Install]
+After=audioServer.service
+Requires=audioServer.service
+
+[Service]
+ExecStart=/bin/mpv --no-video --idle=yes --input-ipc-server=/tmp/mpvsocket --audio-device=alsa/default:CARD=0
+
+Restart=no
+

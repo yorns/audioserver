@@ -10,7 +10,7 @@ endif (BOOST_DIR)
 
 find_package( Threads REQUIRED)
 find_package( OpenSSL REQUIRED)
-find_package( Boost 1.65.0 REQUIRED COMPONENTS filesystem system regex locale)
+find_package( Boost 1.69.0 REQUIRED COMPONENTS filesystem system regex locale)
 
 include(GNUInstallDirs)
 include(FindPkgConfig)
@@ -33,12 +33,13 @@ add_executable(${PROJECT_NAME}
 		common/Extractor.h
 		common/urlDecode.c
 		Player.cpp
-		MPlayer.cpp
 		SimpleDatabase.cpp
 		Listener.cpp
 		Session.cpp
 		RequestHandler.cpp
-		)
+                mpvplayer.cpp
+                mpvplayer.h
+                )
 
 target_link_libraries(${PROJECT_NAME}
         Threads::Threads
