@@ -1,12 +1,14 @@
 [Unit]
 Description=mplayer handler
+After=hostapd.service
 
 [Install]
-After=audioServer.service
-Requires=audioServer.service
+WantedBy=audioServer.service
+# WantedBy=multi-user.target
 
 [Service]
 ExecStart=/bin/mpv --no-video --idle=yes --input-ipc-server=/tmp/mpvsocket --audio-device=alsa/default:CARD=0
 
-Restart=no
+Restart=always
+RestartSec=2
 

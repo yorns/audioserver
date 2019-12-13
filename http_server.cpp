@@ -89,19 +89,24 @@ int main(int argc, char* argv[])
     std::cout << "player logs go to: " << playerLogDir.str() <<"\n";
 
     //player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
-    player = std::make_unique<MpvPlayer>(ioc, "config.dat", playerLogDir.str());
+    player.reset(new MpvPlayer(ioc, "config.dat", playerLogDir.str()));
 
     // The SSL context is required, and holds certificates
+    std::cerr << "create ssl context\n";
     ssl::context ctx{ssl::context::sslv23};
 
+    std::cerr << "loading certificats\n";
     // This holds the self-signed certificate used by the server
     load_server_certificate(ctx);
 
     ctx.set_verify_mode(boost::asio::ssl::verify_none);
 
     auto sessionCreator = [](tcp::socket& socket, ssl::context& ctx) {
+        std::cerr << "session creator lambda called\n";
         std::make_shared<session>(std::move(socket), ctx)->run();
     };
+
+    std::cerr << "shared Listener creation\n";
 
     // Create and launch a listening port
     std::make_shared<Listener>(

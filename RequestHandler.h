@@ -238,7 +238,7 @@ public:
                     }
                     json["playlists"] = json1;
                     json["actualPlaylist"] = database.getHumanReadableName(currentPlaylist);
-                } catch (std::exception e) {
+                } catch (std::exception& e) {
                     std::cerr << "error: " << e.what() << "\n";
                 }
                 return json.dump(2);

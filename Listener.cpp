@@ -10,6 +10,7 @@ Listener::Listener(boost::asio::io_context &ioc, ssl::context &ctx, tcp::endpoin
     boost::system::error_code ec;
 
     // Open the acceptor
+    std::cout << __FILE__ << ":" << __LINE__ << "> open acceptor\n";
     m_acceptor.open(endpoint.protocol(), ec);
 
     if(ec) {
@@ -18,6 +19,7 @@ Listener::Listener(boost::asio::io_context &ioc, ssl::context &ctx, tcp::endpoin
     }
 
     // Allow address reuse
+    std::cout << __FILE__ << ":" << __LINE__ << "> set reuse option\n";
     m_acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
     if(ec) {
         fail_print(ec, "set_option");
@@ -25,6 +27,7 @@ Listener::Listener(boost::asio::io_context &ioc, ssl::context &ctx, tcp::endpoin
     }
 
     // Bind to the server address
+    std::cout << __FILE__ << ":" << __LINE__ << "> bind acceptor to endpoint <"<<endpoint.address() << ":"<<endpoint.port() << "\n";
     m_acceptor.bind(endpoint, ec);
     if(ec) {
         fail_print(ec, "bind");
@@ -32,13 +35,14 @@ Listener::Listener(boost::asio::io_context &ioc, ssl::context &ctx, tcp::endpoin
     }
 
     // Start listening for connections
+    std::cout << __FILE__ << ":" << __LINE__ << " listen to connection\n";
     m_acceptor.listen( boost::asio::socket_base::max_listen_connections, ec);
     if(ec) {
         fail_print(ec, "listen");
         return;
     }
 
-    std::cerr << "Listener established\n";
+    std::cout << __FILE__ << ":" << __LINE__ << "> Listener established - waiting for connection requests\n";
 }
 
 void Listener::run() {
@@ -65,7 +69,7 @@ void Listener::on_accept(boost::system::error_code ec) {
         return;
     }
     else {
-        // Create the session and run it if connection was received
+        std::cout << __FILE__ << ":" << __LINE__ << "> Create the session and run it\n";
         m_sessionCaller(m_socket, m_ctx);
     }
 

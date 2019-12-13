@@ -3,13 +3,13 @@
 <head>
     <meta charset="utf-8">
     <title>Nano Player</title>
-    <link rel="stylesheet" href="/css/bootstrap.min.css"
+    <link rel="stylesheet" href="css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <script src="/js/jquery-3.4.1.min.js"></script>
-    <script src="/js/popper.min.js"
+    <script src="js/jquery-3.4.1.min.js"></script>
+    <script src="js/popper.min.js"
             integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
             crossorigin="anonymous"></script>
-    <script src="/js/bootstrap.min.js"
+    <script src="js/bootstrap.min.js"
             integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
             crossorigin="anonymous"></script>
 
@@ -229,17 +229,12 @@
             //FileList Objekt aus dem Input Element mit der ID "fileA"
             var fileList = document.getElementById("fileA").files;
 
-            //File Objekt (erstes Element der FileList)
-            var file = fileList[0];
-
-            //File Objekt nicht vorhanden = keine Datei ausgewählt oder vom Browser nicht unterstützt
-            if (!file)
-                return;
+	    $('#filelist').empty();
 
             var fileListHTML = '<ul class="list-group">';
 
             $.each(fileList, function (i, item) {
-                    fileListHTML += `<li class="list-group-item">${item}</li>`;
+                    fileListHTML += `<li class="list-group-item">${item.name}</li>`;
             });
             fileListHTML += '</ul>';
 
@@ -252,36 +247,38 @@
 
         function uploadFile() {
             //Wieder unser File Objekt
-            var file = document.getElementById("fileA").files[0];
+            var fileList = document.getElementById("fileA").files;
 
-            //XMLHttpRequest Objekt erzeugen
-            client = new XMLHttpRequest();
+            $.each(fileList, function (i, file) {
 
-            if (!file)
-                return;
+		    //create XMLHttpRequest
+		    client = new XMLHttpRequest();
 
-            client.onerror = function (e) {
-                alert("upload error");
-            };
+		    if (!file)
+			return;
 
-            client.onload = function (e) {
-                $('.progress-bar').css("width", "100%");
-                getAlbumList();
-                $("#fileA").clear();
-            };
+		    client.onerror = function (e) {
+			alert("upload error");
+		    };
 
-            client.upload.onprogress = function (e) {
-                var p = Math.round(100 / e.total * e.loaded);
-                $('.progress-bar').css("width", p + "%");
-            };
+		    client.onload = function (e) {
+			$('.progress-bar').css("width", "100%");
+			getAlbumList();
+			// mark transfered file as copied
+		    };
 
-            client.onabort = function (e) {
-                alert("Upload aborted");
-            };
+		    client.upload.onprogress = function (e) {
+			var p = Math.round(100 / e.total * e.loaded);
+			$('.progress-bar').css("width", p + "%");
+		    };
 
-            client.open("POST", "/upload");
-            client.send(file);
+		    client.onabort = function (e) {
+			alert("Upload aborted");
+		    };
 
+		    client.open("POST", "/upload");
+		    client.send(file);
+            });
         }
 
         function uploadAbort() {
@@ -410,15 +407,16 @@
         <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();"/>
     </form>
 
-    <div class="container" id="filelist">
-    </div>
-
     <div class="progress">
         <div class="progress-bar" role="progressbar" aria-valuenow="0"
              aria-valuemin="0" aria-valuemax="100" style="width:0%">
             upload
         </div>
     </div>
+
+    <div class="container" id="filelist">
+    </div>
+
 
 </body>
 </html>
