@@ -31,11 +31,17 @@ public:
             boost::filesystem::path path{mp3File};
             info.uid = path.stem().string();
 
+            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.titel_name = f.tag()->title().to8Bit(true);
+            std::cerr << __FILE__ << ":" << __LINE__ << "> reading track\n";
             info.track_no = f.tag()->track();
+            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.album_name = f.tag()->album().to8Bit(true);
+            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.performer_name = f.tag()->artist().to8Bit(true);
+            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.all_tracks_no = 0;
+            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.imageFile = cover;
 
         }

@@ -57,7 +57,7 @@ target_include_directories(
     ${TagLib_INCLUDE_DIRS}
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
 #target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)

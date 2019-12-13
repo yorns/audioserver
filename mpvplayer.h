@@ -50,13 +50,14 @@ public:
     explicit MpvPlayer(boost::asio::io_context& context, const std::string& configDB, const std::string &logFilePath)
         : Player(configDB, logFilePath), m_context(context), m_readBuffer(255), m_socket(m_context)
     {
-        // set read handler
+        std::cerr << __FILE__ << ":" << __LINE__ << "> connecting mpv player at <"<<m_accessPoint << ">\n";
         m_socket.connect(m_accessPoint);
 
+        std::cerr << __FILE__ << ":" << __LINE__ << "> establish mpv receiver\n";
         m_socket.async_receive(boost::asio::buffer(m_readBuffer), 0,
                                [this](const boost::system::error_code& error, std::size_t bytes_transferred)
         { read_handler(error, bytes_transferred); });
-
+        std::cerr << __FILE__ << ":" << __LINE__ << "> MPV player Interface established\n";
     }
 
     MpvPlayer() = delete;

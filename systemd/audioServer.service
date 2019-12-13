@@ -1,12 +1,15 @@
 [Unit]
 Description=Audio Server Service
+After=mpv.service
+Requires=mpv.service
 
 [Install]
-After=hostapd.service
-Requires=hostapd.service
+WantedBy=hostapd.service
+# WantedBy=multi-user.target
 
 [Service]
-ExecStart=/bin/audioServer 0.0.0.0 8080 /var/audioserver
+ExecStart=/usr/bin/audioServer 0.0.0.0 8080 /var/audioserver
 
-Restart=no
+Restart=always
+RestartSec=2
 
