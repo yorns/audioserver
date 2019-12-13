@@ -27,7 +27,6 @@ set( AUDIO_HTMLCSS_DIR ${AUDIO_DATA_DIR}/html/css )
 set( AUDIO_PLAYLIST_DIR ${AUDIO_DATA_DIR}/playlist )
 set( AUDIO_PLAYERLOG_DIR ${AUDIO_DATA_DIR}/player_log )
 
-
 add_executable(${PROJECT_NAME}
 		http_server.cpp
 		common/Extractor.h
@@ -126,31 +125,4 @@ install ( FILES
         OWNER_READ OWNER_WRITE
         GROUP_READ
         WORLD_READ )
-
-
-
-#add_executable(databaseTest test/databaseTest.cpp SimpleDatabase.cpp common/urlDecode.c)
-
-#target_link_libraries(databaseTest
-#		Threads::Threads
-#		${Boost_LIBRARIES}
-#		id3
-#		${TagLib_LIBRARIES}
-#		)
-
-#target_include_directories(
-#		databaseTest
-#		PUBLIC
-#		${CMAKE_SOURCE_DIR}
-#		${Boost_INCLUDE_DIRS}
-#		${TagLib_INCLUDE_DIRS}
-#)
-
-#set_target_properties(databaseTest PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-
-
-# 	$ENV{HOME}/raspberrypi/rootfs/usr/include/arm-linux-gnueabihf
-# set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "--sysroot=$ENV{HOME}/raspberrypi/tools/arm-bcm2708/arm-rpi-4.9.3-linux-gnueabihf/arm-linux-gnueabihf/sysroot -std=c++11")
-
-# rsync -rl --delete-after --safe-links pi@192.168.2.115:/{lib,usr} $HOME/raspberrypi/rootfs
 
