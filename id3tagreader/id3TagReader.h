@@ -54,7 +54,6 @@ public:
         static const char *IdPicture = "APIC";
         TagLib::ID3v2::Tag *id3v2tag;
         TagLib::ID3v2::FrameList Frame;
-//        TagLib::ID3v2::AttachedPictureFrame *PicFrame;
 
         std::stringstream mp3File;
         mp3File << ServerConstant::base_path << "/" << ServerConstant::audioPath << "/" << uid << ".mp3";
@@ -79,10 +78,13 @@ public:
                     std::string tmp{PicFrame->mimeType().to8Bit()};
                     filetype = "." + tmp.substr(tmp.find_last_of('/')+1);
                 }
+                std::stringstream coverImageName;
                 std::stringstream coverName;
 
+                coverImageName << uid << filetype;
+
                 coverName << ServerConstant::base_path << "/" << ServerConstant::coverPath;
-                coverName << "/" << uid << filetype;
+                coverName << "/" << coverImageName.str();
 
                 std::ofstream of(coverName.str(), std::ios_base::out | std::ios_base::binary);
                 if (of.good()) {
@@ -90,6 +92,7 @@ public:
                 }
 
                 of.close();
+
                 return ServerConstant::coverPathWeb.to_string() + "/" + coverImageName.str();
             }
         }
