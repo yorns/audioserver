@@ -1,5 +1,6 @@
 #include "SimpleDatabase.h"
 #include "common/NameGenerator.h"
+#include "id3tagreader/id3TagReader.h"
 
 std::vector<SimpleDatabase::FileNameType> SimpleDatabase::getAllFilesInDir(const std::string &dirPath) {
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.3)
 
-project(server)
+project(audioServer)
 
 message("server build")
 
@@ -27,18 +27,55 @@ set( AUDIO_HTMLCSS_DIR ${AUDIO_DATA_DIR}/html/css )
 set( AUDIO_PLAYLIST_DIR ${AUDIO_DATA_DIR}/playlist )
 set( AUDIO_PLAYERLOG_DIR ${AUDIO_DATA_DIR}/player_log )
 
+set(PLAYERINTERFACE
+    ${CMAKE_SOURCE_DIR}/playerinterface/Player.h
+    ${CMAKE_SOURCE_DIR}/playerinterface/Player.cpp
+    ${CMAKE_SOURCE_DIR}/playerinterface/mpvplayer.h
+    ${CMAKE_SOURCE_DIR}/playerinterface/mpvplayer.cpp
+    )
+# ${CMAKE_SOURCE_DIR}/playerinterface/MPlayer.h
+# ${CMAKE_SOURCE_DIR}/playerinterface/MPlayer.cpp
+
+set(WEBSERVER
+    ${CMAKE_SOURCE_DIR}/common/Constants.h
+    ${CMAKE_SOURCE_DIR}/webserver/http_server.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/Listener.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/Listener.h
+    ${CMAKE_SOURCE_DIR}/webserver/RequestHandler.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/RequestHandler.h
+    ${CMAKE_SOURCE_DIR}/webserver/Session.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/Session.h
+    ${CMAKE_SOURCE_DIR}/common/server_certificate.hpp
+    ${CMAKE_SOURCE_DIR}/common/urlDecode.h
+    ${CMAKE_SOURCE_DIR}/common/urlDecode.c
+    )
+
+set(ID3INTERFACE
+    ${CMAKE_SOURCE_DIR}/id3tagreader/Id3Info.h
+    ${CMAKE_SOURCE_DIR}/id3tagreader/id3TagReader.cpp
+    ${CMAKE_SOURCE_DIR}/id3tagreader/id3TagReader.h
+    )
+#${CMAKE_SOURCE_DIR}/id3tagreader/Id3Reader.cpp
+#${CMAKE_SOURCE_DIR}/id3tagreader/Id3Reader.h
+
+set(DATABASE
+    ${CMAKE_SOURCE_DIR}/database/SimpleDatabase.cpp
+    ${CMAKE_SOURCE_DIR}/database/SimpleDatabase.h
+    )
+
+set(COMMONCOMPONENTS
+    ${CMAKE_SOURCE_DIR}/common/Extractor.h
+    ${CMAKE_SOURCE_DIR}/common/mime_type.h
+    ${CMAKE_SOURCE_DIR}/common/NameGenerator.h
+    )
+
 add_executable(${PROJECT_NAME}
-		http_server.cpp
-		common/Extractor.h
-		common/urlDecode.c
-		Player.cpp
-		SimpleDatabase.cpp
-		Listener.cpp
-		Session.cpp
-		RequestHandler.cpp
-                mpvplayer.cpp
-                mpvplayer.h
-                )
+               ${PLAYERINTERFACE}
+               ${WEBSERVER}
+               ${ID3INTERFACE}
+               ${DATABASE}
+               ${COMMONCOMPONENTS}
+               )
 
 target_link_libraries(${PROJECT_NAME}
         Threads::Threads
@@ -51,9 +88,10 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(
 	${PROJECT_NAME}
 	PUBLIC
+        ${CMAKE_SOURCE_DIR}
 	${OPENSSL_INCLUDE_DIR}
 	${Boost_INCLUDE_DIRS}
-    ${TagLib_INCLUDE_DIRS}
+        ${TagLib_INCLUDE_DIRS}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

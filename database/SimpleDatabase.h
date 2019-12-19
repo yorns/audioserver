@@ -8,9 +8,7 @@
 #include <boost/filesystem.hpp>
 #include "common/Extractor.h"
 #include "common/Constants.h"
-//#include "common/NameGenerator.h"
-#include "Id3Info.h"
-#include "id3TagReader.h"
+#include "id3tagreader/Id3Info.h"
 
 namespace filesys =  boost::filesystem;
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
@@ -20,7 +18,7 @@ class SimpleDatabase {
     struct PlaylistContainer {
         std::string internalPlaylistName;
         std::vector<std::string> Playlist;
-        bool changed{false};
+        bool changed { false };
 
         PlaylistContainer()
         {}

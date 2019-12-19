@@ -14,16 +14,16 @@
 #include <boost/asio.hpp>
 #include <boost/config.hpp>
 #include <boost/filesystem.hpp>
+
 #include "nlohmann/json.hpp"
 #include "common/mime_type.h"
 #include "common/Extractor.h"
-//#include "common/NameGenerator.h"
 
 #include "Listener.h"
 #include "Session.h"
-#include "MPlayer.h"
-#include "mpvplayer.h"
-#include "SimpleDatabase.h"
+#include "playerinterface/MPlayer.h"
+#include "playerinterface/mpvplayer.h"
+#include "database/SimpleDatabase.h"
 
 std::unique_ptr<Player> player;
 SimpleDatabase database;
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
     playerLogDir << ServerConstant::base_path << "/" << ServerConstant::playerLogPath;
 
-    std::cout << "path: \naudiopath: "<<mp3Dir.str()<<"\ncoveroath: "<<coverDir.str()
+    std::cout << "path: \naudiopath: "<<mp3Dir.str()<<"\ncoverpath: "<<coverDir.str()
               << "\nplaylist: " << playlistDir.str() << "\nPlayerlog dir: "<<playerLogDir.str()
               << "\n";
 
@@ -91,19 +91,9 @@ int main(int argc, char* argv[])
     //player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
     player.reset(new MpvPlayer(ioc, "config.dat", playerLogDir.str()));
 
-    // The SSL context is required, and holds certificates
-    std::cerr << "create ssl context\n";
-    ssl::context ctx{ssl::context::sslv23};
-
-    std::cerr << "loading certificats\n";
-    // This holds the self-signed certificate used by the server
-    load_server_certificate(ctx);
-
-    ctx.set_verify_mode(boost::asio::ssl::verify_none);
-
-    auto sessionCreator = [](tcp::socket& socket, ssl::context& ctx) {
+    auto sessionCreator = [](tcp::socket& socket) {
         std::cerr << "session creator lambda called\n";
-        std::make_shared<session>(std::move(socket), ctx)->run();
+        std::make_shared<session>(std::move(socket))->run();
     };
 
     std::cerr << "shared Listener creation\n";
@@ -111,7 +101,6 @@ int main(int argc, char* argv[])
     // Create and launch a listening port
     std::make_shared<Listener>(
         ioc,
-        ctx,
         tcp::endpoint{address, port},
         sessionCreator)->run();
 

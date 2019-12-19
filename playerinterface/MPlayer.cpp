@@ -48,7 +48,7 @@ void MPlayer::readPlayerOutput(const boost::system::error_code &ec, std::size_t 
             std::smatch match{};
             const std::regex pattern1{"A:[\\s]*(.*) V:"};
             if (std::regex_search(line, match, pattern1)) {
-                uint32_t stopTime = std::atof(match[1].str().c_str());
+                int stopTime = std::atoi(match[1].str().c_str());
                 m_stopTime_tmp = std::to_string(stopTime/3600) +":"+std::to_string((stopTime/60)%60)+":"+std::to_string(stopTime%3600);
             }
 

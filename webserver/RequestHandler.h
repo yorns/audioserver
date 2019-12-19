@@ -6,8 +6,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include "nlohmann/json.hpp"
-#include "Player.h"
-#include "SimpleDatabase.h"
+#include "playerinterface/Player.h"
+#include "database/SimpleDatabase.h"
 #include "common/Constants.h"
 #include "common/Extractor.h"
 #include "common/mime_type.h"

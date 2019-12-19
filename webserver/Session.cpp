@@ -1,5 +1,6 @@
 #include "Session.h"
 #include "common/NameGenerator.h"
+#include "id3tagreader/id3TagReader.h"
 
 void session::fail(boost::system::error_code ec, const std::string& what) {
     // some errors are annoying .. remove some until handshake and shutdown is corrected
@@ -10,30 +11,13 @@ void session::fail(boost::system::error_code ec, const std::string& what) {
 void session::run() {
     auto self { shared_from_this() };
     // Perform the SSL handshake
-    m_stream.async_handshake(
-            ssl::stream_base::server,
-            [this, self](boost::system::error_code ec) {
-                on_handshake(ec);
-            });
-}
 
-void session::on_handshake(boost::system::error_code ec) {
-    if(ec)
-        return fail(ec, "handshake");
-
-    do_read();
-}
-
-void session::do_read() {
-    auto self { shared_from_this() };
-    // Read a request
-
-    m_reqHeader.body_limit(40*1024*1024); // file size should be 40 MByte at maximum
-
-    http::async_read_header(m_stream, m_buffer, m_reqHeader,
+    m_reqHeader.body_limit(std::numeric_limits<std::uint64_t>::max());
+    http::async_read_header(m_socket, m_buffer, m_reqHeader,
                             [this, self]( boost::system::error_code ec, std::size_t bytes_transferred) {
                                 on_read_header(ec, bytes_transferred);
                             });
+
 }
 
 void session::handle_upload_request()
@@ -65,7 +49,7 @@ void session::handle_upload_request()
 
     std::cerr << "started\n";
     // Read a request
-    http::async_read(m_stream, m_buffer, *m_reqFile.get(),
+    http::async_read(m_socket, m_buffer, *m_reqFile.get(),
                      [this, self, namegen](boost::system::error_code ec,
                                              std::size_t bytes_transferred) {
                          std::cerr << "finished read <" << namegen.unique_id << ">\n";
@@ -89,10 +73,11 @@ void session::handle_upload_request()
 void session::handle_normal_request()
 {
     auto self { shared_from_this() };
+
     m_req = std::make_unique < http::request_parser < http::string_body >> (std::move(m_reqHeader));
     // Read a request
     auto& req = *m_req.get();
-    http::async_read(m_stream, m_buffer, req ,
+    http::async_read(m_socket, m_buffer, req ,
                      [this, self](boost::system::error_code ec,
                                   std::size_t bytes_transferred) { on_read(ec, bytes_transferred); });
 
@@ -107,9 +92,6 @@ void session::on_read_header(boost::system::error_code ec, std::size_t bytes_tra
 
     if (ec)
         return fail(ec, "read");
-
-    //std::cerr << "handle read (async header read)\n";
-
 
     if (m_reqHeader.get().method() == http::verb::post && m_reqHeader.get().target() == "/upload") {
         handle_upload_request();
@@ -150,34 +132,30 @@ void session::on_write(boost::system::error_code ec, std::size_t bytes_transferr
     // We're done with the response so delete it
     m_result = nullptr;
 
+    auto self { shared_from_this() };
+
     // Read another request
-    do_read();
+    http::async_read_header(m_socket, m_buffer, m_reqHeader,
+                            [this, self]( boost::system::error_code ec, std::size_t bytes_transferred) {
+                                on_read_header(ec, bytes_transferred);
+                            });
 }
 
-session::session(tcp::socket socket, ssl::context &ctx)
+session::session(tcp::socket socket)
         : m_socket(std::move(socket))
-        , m_stream(m_socket, ctx)
         , m_lambda(*this)
 {
 }
 
 void session::do_close() {
 
-    auto self { shared_from_this() };
-
+    boost::system::error_code ec;
     // Perform the SSL shutdown
-    m_stream.async_shutdown(
-            [this, self](boost::system::error_code ec) {
-                on_shutdown(ec);
-            });
-}
-
-void session::on_shutdown(boost::system::error_code ec) {
+    m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
 
     if(ec)
         return fail(ec, "shutdown");
 
-    // At this point the connection is closed gracefully
 }
 
 session::send_lambda::send_lambda(session &self)

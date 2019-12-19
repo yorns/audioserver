@@ -60,7 +60,7 @@ class session : public std::enable_shared_from_this<session>
             auto selfself { m_self.shared_from_this() };
             // Write the response
             http::async_write(
-                    m_self.m_stream,
+                    m_self.m_socket,
                     *sp, [this, selfself](boost::system::error_code ,
                                           std::size_t ){
                         m_self.do_close();
@@ -69,7 +69,6 @@ class session : public std::enable_shared_from_this<session>
     };
 
     tcp::socket m_socket;
-    ssl::stream<tcp::socket&> m_stream;
     boost::beast::flat_buffer m_buffer;
     std::shared_ptr<std::string const> m_doc_root;
     std::unique_ptr<http::request_parser<http::string_body>> m_req;
@@ -86,17 +85,14 @@ class session : public std::enable_shared_from_this<session>
 
 public:
 
-    explicit session( tcp::socket socket, ssl::context& ctx);
+    explicit session( tcp::socket socket);
 
     void run();
 
-    void on_handshake(boost::system::error_code ec);
-    void do_read();
     void on_read_header( boost::system::error_code ec, std::size_t bytes_transferred);
     void on_read( boost::system::error_code ec, std::size_t bytes_transferred);
     void on_write( boost::system::error_code ec, std::size_t bytes_transferred, bool close);
     void do_close();
-    void on_shutdown(boost::system::error_code ec);
 
 };
 

@@ -31,17 +31,11 @@ public:
             boost::filesystem::path path{mp3File};
             info.uid = path.stem().string();
 
-            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.titel_name = f.tag()->title().to8Bit(true);
-            std::cerr << __FILE__ << ":" << __LINE__ << "> reading track\n";
             info.track_no = f.tag()->track();
-            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.album_name = f.tag()->album().to8Bit(true);
-            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.performer_name = f.tag()->artist().to8Bit(true);
-            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.all_tracks_no = 0;
-            std::cerr << __FILE__ << ":" << __LINE__ << "> reading title\n";
             info.imageFile = cover;
 
         }
@@ -60,7 +54,6 @@ public:
         static const char *IdPicture = "APIC";
         TagLib::ID3v2::Tag *id3v2tag;
         TagLib::ID3v2::FrameList Frame;
-        TagLib::ID3v2::AttachedPictureFrame *PicFrame;
 
         std::stringstream mp3File;
         mp3File << ServerConstant::base_path << "/" << ServerConstant::audioPath << "/" << uid << ".mp3";
@@ -76,7 +69,7 @@ public:
         Frame = id3v2tag->frameListMap()[IdPicture];
 
         for (auto &it : Frame) {
-            PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
+            auto PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
 
             if (PicFrame->picture().size() > 0) {
 
@@ -89,6 +82,7 @@ public:
                 std::stringstream coverName;
 
                 coverImageName << uid << filetype;
+                
                 coverName << ServerConstant::base_path << "/" << ServerConstant::coverPath;
                 coverName << "/" << coverImageName.str();
 
@@ -98,6 +92,7 @@ public:
                 }
 
                 of.close();
+                
                 return ServerConstant::coverPathWeb.to_string() + "/" + coverImageName.str();
             }
         }

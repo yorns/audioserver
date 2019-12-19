@@ -1,9 +1,8 @@
 #include "Listener.h"
 
-Listener::Listener(boost::asio::io_context &ioc, ssl::context &ctx, tcp::endpoint endpoint,
+Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
                    SessionCreatorFunction &&creator)
-        : m_ctx(ctx)
-        , m_acceptor(ioc)
+        : m_acceptor(ioc)
         , m_socket(ioc)
         , m_sessionCaller (std::move(creator))
 {
@@ -70,7 +69,7 @@ void Listener::on_accept(boost::system::error_code ec) {
     }
     else {
         std::cout << __FILE__ << ":" << __LINE__ << "> Create the session and run it\n";
-        m_sessionCaller(m_socket, m_ctx);
+        m_sessionCaller(m_socket);
     }
 
     // Accept another connection
