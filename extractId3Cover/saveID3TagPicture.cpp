@@ -7,27 +7,21 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <boost/filesystem.hpp>
 
-namespace ServerConstant {
-    static std::string fileRootPath{"mp3"};
-    static std::string coverRootPath{"img"};
-}
-
-
-std::string extractCover(const std::string& uid) {
+std::string extractCover(const std::string& file) {
 
     static const char *IdPicture = "APIC";
     TagLib::ID3v2::Tag *id3v2tag;
     TagLib::ID3v2::FrameList Frame;
     TagLib::ID3v2::AttachedPictureFrame *PicFrame;
 
-    std::stringstream mp3File;
-    mp3File << ServerConstant::fileRootPath << "/" << uid << ".mp3";
-
-    TagLib::MPEG::File mpegFile(mp3File.str().c_str());
+    TagLib::MPEG::File mpegFile(file.c_str());
     id3v2tag = mpegFile.ID3v2Tag();
 
-    std::cout << "file is: "<< mp3File.str() << "\n";
+    std::cout << "trying to extract cover from "<< file << "\n";
+
+    boost::filesystem::path mp3file(file);
 
     if (!id3v2tag || id3v2tag->frameListMap()[IdPicture].isEmpty()) {
         std::cout << "id3v2 not present\n";
@@ -50,8 +44,7 @@ std::string extractCover(const std::string& uid) {
                 filetype = "." + tmp.substr(tmp.find_last_of('/')+1);
             }
             std::stringstream coverName;
-            coverName << ServerConstant::coverRootPath;
-            coverName << "/" << uid;
+            coverName << mp3file.stem().string();
             coverName << filetype;
             std::ofstream of(coverName.str(), std::ios_base::out | std::ios_base::binary);
             if (of.good()) {
@@ -69,6 +62,11 @@ std::string extractCover(const std::string& uid) {
 
 int main(int argc, char* argv[])
 {
+    if (argc != 2) {
+        std::cerr << "usage " << argv[0] << " <mp3-file>\n";
+        return -1;
+    }
+
     std::cout << "generate: " << extractCover(argv[1]) << "\n";
     return 0;
 }

@@ -10,7 +10,6 @@ void session::fail(boost::system::error_code ec, const std::string& what) {
 
 void session::run() {
     auto self { shared_from_this() };
-    // Perform the SSL handshake
 
     m_reqHeader.body_limit(std::numeric_limits<std::uint64_t>::max());
     http::async_read_header(m_socket, m_buffer, m_reqHeader,
@@ -150,7 +149,7 @@ session::session(tcp::socket socket)
 void session::do_close() {
 
     boost::system::error_code ec;
-    // Perform the SSL shutdown
+    // Perform the shutdown
     m_socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
 
     if(ec)

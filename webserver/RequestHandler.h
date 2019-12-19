@@ -4,7 +4,6 @@
 #include <string>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 #include "nlohmann/json.hpp"
 #include "playerinterface/Player.h"
 #include "database/SimpleDatabase.h"
@@ -13,7 +12,6 @@
 #include "common/mime_type.h"
 
 using tcp = boost::asio::ip::tcp;
-namespace ssl = boost::asio::ssl;
 namespace http = boost::beast::http;
 
 extern std::unique_ptr<Player> player;

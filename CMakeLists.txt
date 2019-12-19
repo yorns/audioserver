@@ -11,7 +11,6 @@ if (BOOST_DIR)
 endif (BOOST_DIR)
 
 find_package( Threads REQUIRED)
-find_package( OpenSSL REQUIRED)
 find_package( Boost 1.69.0 REQUIRED COMPONENTS filesystem system regex locale)
 
 include(createdirs)
@@ -37,7 +36,6 @@ set(WEBSERVER
     ${CMAKE_SOURCE_DIR}/webserver/RequestHandler.h
     ${CMAKE_SOURCE_DIR}/webserver/Session.cpp
     ${CMAKE_SOURCE_DIR}/webserver/Session.h
-    ${CMAKE_SOURCE_DIR}/common/server_certificate.hpp
     ${CMAKE_SOURCE_DIR}/common/urlDecode.h
     ${CMAKE_SOURCE_DIR}/common/urlDecode.c
     )
@@ -71,8 +69,6 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
         Threads::Threads
-        OpenSSL::SSL
-        OpenSSL::Crypto
         ${Boost_LIBRARIES}
         ${TagLib_LIBRARIES}
 )
@@ -81,7 +77,6 @@ target_include_directories(
 	${PROJECT_NAME}
 	PUBLIC
         ${CMAKE_SOURCE_DIR}
-	${OPENSSL_INCLUDE_DIR}
 	${Boost_INCLUDE_DIRS}
         ${TagLib_INCLUDE_DIRS}
 )
@@ -91,35 +86,28 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
 #target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
 
+add_executable( mp3CoverExtractor ${CMAKE_SOURCE_DIR}/extractId3Cover/saveID3TagPicture.cpp )
+set_target_properties(mp3CoverExtractor PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+
+target_include_directories(
+        mp3CoverExtractor
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
+        ${TagLib_INCLUDE_DIRS}
+)
+
+target_link_libraries(
+        mp3CoverExtractor
+        Threads::Threads
+        ${Boost_LIBRARIES}
+        ${TagLib_LIBRARIES}
+)
+
 install(
     TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
 )
-  
-install ( FILES ${CMAKE_SOURCE_DIR}/html/index.html 
-	  DESTINATION ${AUDIO_HTML_DIR}
-	  PERMISSIONS
-	  OWNER_READ OWNER_WRITE
-          GROUP_READ
-          WORLD_READ )
-
-install ( FILES
-         ${CMAKE_SOURCE_DIR}/html/js/bootstrap.min.js
-         ${CMAKE_SOURCE_DIR}/html/js/jquery-3.4.1.min.js
-         ${CMAKE_SOURCE_DIR}/html/js/popper.min.js
-        DESTINATION ${AUDIO_HTMLJS_DIR}
-        PERMISSIONS
-        OWNER_READ OWNER_WRITE
-        GROUP_READ
-        WORLD_READ )
-
-install ( FILES
-         ${CMAKE_SOURCE_DIR}/html/css/bootstrap.min.css
-        DESTINATION ${AUDIO_HTMLCSS_DIR}
-        PERMISSIONS
-        OWNER_READ OWNER_WRITE
-        GROUP_READ
-        WORLD_READ )
 

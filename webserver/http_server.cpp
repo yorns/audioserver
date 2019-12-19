@@ -1,5 +1,3 @@
-#include "common/server_certificate.hpp"
-
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
@@ -31,7 +29,6 @@ std::string currentPlaylist;
 bool albumPlaylist {false};
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
-namespace ssl = boost::asio::ssl;       // from <boost/asio/ssl.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
 boost::beast::string_view ServerConstant::base_path{"/var/audioserver"};

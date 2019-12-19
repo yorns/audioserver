@@ -1,12 +1,9 @@
 #ifndef SERVER_SESSION_H
 #define SERVER_SESSION_H
 
-#include "common/server_certificate.hpp"
-
 #include <boost/optional/optional_io.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 #include <boost/config.hpp>
 #include <boost/filesystem.hpp>
 #include <algorithm>
@@ -23,7 +20,6 @@
 #include "RequestHandler.h"
 
 using tcp = boost::asio::ip::tcp;
-namespace ssl = boost::asio::ssl;
 namespace http = boost::beast::http;
 
 extern SimpleDatabase database;
