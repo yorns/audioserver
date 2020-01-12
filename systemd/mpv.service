@@ -3,11 +3,11 @@ Description=mplayer handler
 After=hostapd.service
 
 [Install]
-WantedBy=audioServer.service
+WantedBy=hostapd.service
 # WantedBy=multi-user.target
 
 [Service]
-ExecStart=/bin/mpv --no-video --idle=yes --input-ipc-server=/tmp/mpvsocket --audio-device=alsa/default:CARD=0
+ExecStart=/usr/bin/mpv --no-video --idle=yes --input-ipc-server=/tmp/mpvsocket --audio-device=alsa/default:CARD=0
 
 Restart=always
 RestartSec=2
