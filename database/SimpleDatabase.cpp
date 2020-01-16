@@ -1,6 +1,9 @@
 #include "SimpleDatabase.h"
 #include "common/NameGenerator.h"
 #include "id3tagreader/id3TagReader.h"
+#include <boost/filesystem.hpp>
+
+namespace filesys =  boost::filesystem;
 
 std::vector<SimpleDatabase::FileNameType> SimpleDatabase::getAllFilesInDir(const std::string &dirPath) {
 
@@ -155,8 +158,8 @@ std::vector<std::string> SimpleDatabase::showPlaylist(const std::string &playlis
 
     if (item != playlist.end()) {
         list = item->second.Playlist;
-    //    for (auto i : list)
-    //        std::cout << " -> " << i << "\n";
+//        for (auto i : list)
+//            std::cout << " -> " << i << "\n";
     }
 
     return list;
@@ -214,12 +217,30 @@ std::vector<Id3Info> SimpleDatabase::findAlbum(const std::string &what) {
                           }
                   });
 
+    if (!what.empty()) {
+        std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
+                      [&what, &findData, &isnew](const Id3Info &info) {
+                          if (info.performer_name.find(what) != std::string::npos)
+                              if (isnew(info.album_name)) {
+                                  Id3Info _info {info};
+                                  _info.titel_name = "";
+                                  _info.all_tracks_no = 0;
+                                  _info.track_no = 0;
+                                  findData.emplace_back(_info);
+                              }
+                      });
+
+    }
     return findData;
 }
 
 void SimpleDatabase::addToDatabase(const std::string &uniqueId, const std::string &cover) {
     id3TagReader id3Reader;
     m_simpleDatabase.emplace_back(id3Reader.getInfo(uniqueId, cover));
+}
+
+void SimpleDatabase::addToDatabase(Id3Info&& info) {
+   m_simpleDatabase.emplace_back(info);
 }
 
 void SimpleDatabase::loadDatabase(const std::string &mp3Directory, const std::string imgDirectory) {
@@ -393,6 +414,7 @@ bool SimpleDatabase::addToPlaylist(const std::string &playlistName, const std::s
     if (item != m_playlist.end()) {
         item->second.Playlist.push_back(name);
         item->second.changed = true;
+        std::cerr << "add <"<<name<<"> to playlist <"<<playlistName<<">\n";
         return true;
     }
     return false;

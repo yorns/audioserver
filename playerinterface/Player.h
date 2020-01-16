@@ -5,7 +5,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <iostream>
+#include "common/logger.h"
 
 struct StopInfoEntry {
     std::string fileName;
@@ -17,8 +17,6 @@ class Player {
 
 protected:
     std::string m_configDbFileName;
-    std::string m_logFilePath;
-    std::ofstream log;
     std::vector<StopInfoEntry> m_stopInfoList;
 
     std::string extractName(const std::string& fullName);
@@ -26,13 +24,8 @@ protected:
 
 public:
 
-    Player(const std::string& configDB, const std::string &logFilePath)
-    : m_configDbFileName(configDB), m_logFilePath(logFilePath){
-        log = std::ofstream(m_logFilePath+"/player.log");
-        if (!log.good()) {
-            std::cerr << "cannot open log file <"<<m_logFilePath <<"/player.log>\n";
-	    abort();
-	}
+    Player(const std::string& configDB, const std::string &)
+    : m_configDbFileName(configDB) {
     }
 
     virtual ~Player() = default;

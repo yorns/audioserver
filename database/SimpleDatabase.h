@@ -4,14 +4,10 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <boost/beast.hpp>
-#include <boost/filesystem.hpp>
 #include "common/Extractor.h"
 #include "common/Constants.h"
 #include "id3tagreader/Id3Info.h"
 
-namespace filesys =  boost::filesystem;
-namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 
 class SimpleDatabase {
 
@@ -105,6 +101,7 @@ public:
     std::vector<Id3Info> findAlbum(const std::string& what);
 
     void addToDatabase(const std::string& uniqueId, const std::string& cover);
+    void addToDatabase(Id3Info&& info);
 
     void loadDatabase(const std::string &mp3Directory, const std::string imgDirectory);
 

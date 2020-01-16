@@ -6,6 +6,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include "common/logger.h"
 
 using boost::asio::local::stream_protocol;
 
@@ -27,7 +28,7 @@ class MpvPlayer : public Player
     void read_handler(const boost::system::error_code& error, std::size_t bytes_transferred) {
 
         if (!error) {
-            std::cout << "> " << std::string(m_readBuffer.data(),bytes_transferred) << "\n";
+            logger(Level::debug) << "> " << std::string(m_readBuffer.data(),bytes_transferred) << "\n";
             m_socket.async_receive(boost::asio::buffer(m_readBuffer), 0,
                                    [this](const boost::system::error_code& error, std::size_t bytes_transferred)
             { read_handler(error, bytes_transferred); }
@@ -38,7 +39,7 @@ class MpvPlayer : public Player
     void set_command(std::string&& cmd) {
 
         cmd += "\n";
-        std::cout << "player interface sends "<<cmd<<"\n";
+        logger(Level::debug) << "player interface sends "<<cmd<<"\n";
 
         m_socket.async_send(boost::asio::buffer(cmd),
                             [this](const boost::system::error_code& error, std::size_t bytes_transferred)
@@ -50,14 +51,14 @@ public:
     explicit MpvPlayer(boost::asio::io_context& context, const std::string& configDB, const std::string &logFilePath)
         : Player(configDB, logFilePath), m_context(context), m_readBuffer(255), m_socket(m_context)
     {
-        std::cerr << __FILE__ << ":" << __LINE__ << "> connecting mpv player at <"<<m_accessPoint << ">\n";
+        logger(Level::info) << "> connecting mpv player at <"<<m_accessPoint << ">\n";
         m_socket.connect(m_accessPoint);
 
-        std::cerr << __FILE__ << ":" << __LINE__ << "> establish mpv receiver\n";
+        logger(Level::info) << "> establish mpv receiver\n";
         m_socket.async_receive(boost::asio::buffer(m_readBuffer), 0,
                                [this](const boost::system::error_code& error, std::size_t bytes_transferred)
         { read_handler(error, bytes_transferred); });
-        std::cerr << __FILE__ << ":" << __LINE__ << "> MPV player Interface established\n";
+        logger(Level::info) << "> MPV player Interface established\n";
     }
 
     MpvPlayer() = delete;
@@ -66,6 +67,9 @@ public:
     {
         boost::ignore_unused(fromLastStop);
         boost::ignore_unused(playlist);
+
+        if (isPlaying())
+            stop();
 
         // TODO: readInformation "from last stop"
         nlohmann::json cmd;

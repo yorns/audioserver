@@ -1,4 +1,5 @@
 #include "Listener.h"
+#include "common/logger.h"
 
 Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
                    SessionCreatorFunction &&creator)
@@ -9,7 +10,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     boost::system::error_code ec;
 
     // Open the acceptor
-    std::cout << __FILE__ << ":" << __LINE__ << "> open acceptor\n";
+    logger(Level::debug) << "open acceptor\n";
     m_acceptor.open(endpoint.protocol(), ec);
 
     if(ec) {
@@ -18,7 +19,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     }
 
     // Allow address reuse
-    std::cout << __FILE__ << ":" << __LINE__ << "> set reuse option\n";
+    logger(Level::debug) << "set reuse option\n";
     m_acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
     if(ec) {
         fail_print(ec, "set_option");
@@ -26,7 +27,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     }
 
     // Bind to the server address
-    std::cout << __FILE__ << ":" << __LINE__ << "> bind acceptor to endpoint <"<<endpoint.address() << ":"<<endpoint.port() << "\n";
+    logger(Level::debug) << "bind acceptor to endpoint <"<<endpoint.address() << ":"<<endpoint.port() << "\n";
     m_acceptor.bind(endpoint, ec);
     if(ec) {
         fail_print(ec, "bind");
@@ -34,14 +35,14 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     }
 
     // Start listening for connections
-    std::cout << __FILE__ << ":" << __LINE__ << " listen to connection\n";
+    logger(debug) << "listen to connection\n";
     m_acceptor.listen( boost::asio::socket_base::max_listen_connections, ec);
     if(ec) {
         fail_print(ec, "listen");
         return;
     }
 
-    std::cout << __FILE__ << ":" << __LINE__ << "> Listener established - waiting for connection requests\n";
+    logger(debug) << "Listener established - waiting for connection requests\n";
 }
 
 void Listener::run() {
@@ -68,7 +69,7 @@ void Listener::on_accept(boost::system::error_code ec) {
         return;
     }
     else {
-        std::cout << __FILE__ << ":" << __LINE__ << "> Create the session and run it\n";
+        logger(debug) << "Create the session and run it\n";
         m_sessionCaller(m_socket);
     }
 
@@ -77,5 +78,5 @@ void Listener::on_accept(boost::system::error_code ec) {
 }
 
 void Listener::fail_print(boost::system::error_code ec, char const *what) {
-    std::cerr << what << ": " << ec.message() << "\n";
+    logger(Level::warning) << what << ": " << ec.message() << "\n";
 }

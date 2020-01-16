@@ -114,9 +114,18 @@
                 pausePlayer();
             });
 
+  			  $("#albumSearch").keypress(function() {
+				  //            if (console && console.log)
+        		//        console.log("request: "+url);
+        		   var name_typed = $("#albumSearch").val();
+					// alert("keypressed:"+$("#albumSearch").val());
+					getAlbumList(name_typed);
+		    	});
+
             readPlaylist();
             getActualPlaylist();
-            getAlbumList();
+            getAlbumList("");
+            $('#albumSearch').val("");
         });
 
         function stopPlayer() {
@@ -154,7 +163,7 @@
                     stopPlayer();
                     readPlaylist();
                     getActualPlaylist();
-                    getAlbumList();
+                    getAlbumList("");
                     startPlay();
                 }
 
@@ -165,8 +174,8 @@
 
         }
 
-        function getAlbumList() {
-            var url = "/database?albumList=";
+        function getAlbumList(searchString) {
+            var url = "/database?albumList="+searchString;
             $.getJSON(url).done(function (response) {
                 $('#cover').empty();
                 var trHTML = '<div class="container"> <div class="row mt-5 justify-content-center" id="myimg">';
@@ -263,7 +272,7 @@
 
 		    client.onload = function (e) {
 			$('.progress-bar').css("width", "100%");
-			getAlbumList();
+			getAlbumList("");
 			// mark transfered file as copied
 		    };
 
@@ -285,6 +294,7 @@
             if (client instanceof XMLHttpRequest)
                 client.abort();
         }
+
 
     </script>
 
@@ -357,7 +367,10 @@
         <!--</div>-->
     </div>
 
-
+	<div class="form-group">
+    <label for="albumSearch">Select:</label>
+    <input type="text" class="form-control" id="albumSearch">
+   </div>
 
 <div class="container-fluid center" id="cover">
 <a></a>

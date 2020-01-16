@@ -1,7 +1,6 @@
 #ifndef SERVER_ID3READER_H
 #define SERVER_ID3READER_H
 
-#include <iostream>
 #include <id3/tag.h>
 #include <map>
 #include <string>

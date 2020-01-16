@@ -1,10 +1,10 @@
 #ifndef SERVER_LISTENER_H
 #define SERVER_LISTENER_H
 
-#include <iostream>
 #include <memory>
 #include <functional>
 #include <boost/asio.hpp>
+#include "common/logger.h"
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
@@ -26,7 +26,7 @@ public:
             tcp::endpoint endpoint,
             SessionCreatorFunction&& creator);
 
-    ~Listener() {std::cerr << "Listener destructor\n"; }
+    ~Listener() { logger(Level::debug) << "Listener destructor\n"; }
     void run();
 };
 

@@ -18,9 +18,9 @@ namespace ServerConstant {
     static boost::beast::string_view unknownCoverExtension{".png"};
 
     namespace AccessPoints {
-        static boost::beast::string_view playlist{"playlist"};
-        static boost::beast::string_view database{"database"};
-        static boost::beast::string_view play{"play"};
+        static boost::beast::string_view playlist{"/playlist"};
+        static boost::beast::string_view database{"/database"};
+        static boost::beast::string_view play{"/play"};
 
     }
 

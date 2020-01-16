@@ -11,10 +11,10 @@ std::string Player::extractName(const std::string& fullName) {
     std::smatch match1{};
     if (std::regex_search(fullName, match1, pattern1)) {
         fileName = match1[1].str();
-        log << "filename is <" << fileName << ">\n" << std::flush;
+        logger(Level::info) << "filename is <" << fileName << ">\n";
     } else {
         fileName.clear();
-        log << "cannot extract filename\n" << std::flush;
+        logger(Level::warning) << "cannot extract filename\n";
     }
     return fileName;
 }

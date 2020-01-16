@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <boost/filesystem.hpp>
+#include "common/logger.h"
 
 std::string extractCover(const std::string& file) {
 
@@ -19,12 +20,12 @@ std::string extractCover(const std::string& file) {
     TagLib::MPEG::File mpegFile(file.c_str());
     id3v2tag = mpegFile.ID3v2Tag();
 
-    std::cout << "trying to extract cover from "<< file << "\n";
+    logger(Level::debug) << "trying to extract cover from "<< file << "\n";
 
     boost::filesystem::path mp3file(file);
 
     if (!id3v2tag || id3v2tag->frameListMap()[IdPicture].isEmpty()) {
-        std::cout << "id3v2 not present\n";
+        logger(Level::warning) << "id3v2 not present\n";
         return "";
     }
 
@@ -33,7 +34,7 @@ std::string extractCover(const std::string& file) {
 
     for (auto &it : Frame) {
         PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
-        std::cout << "Type = " << PicFrame->type() << ", mimetype: " << PicFrame->mimeType() << "\n";
+        logger(Level::debug) << "Type = " << PicFrame->type() << ", mimetype: " << PicFrame->mimeType() << "\n";
 
         if (PicFrame->picture().size() > 0) {
 
@@ -63,11 +64,11 @@ std::string extractCover(const std::string& file) {
 int main(int argc, char* argv[])
 {
     if (argc != 2) {
-        std::cerr << "usage " << argv[0] << " <mp3-file>\n";
+        logger(Level::info) << "usage " << argv[0] << " <mp3-file>\n";
         return -1;
     }
 
-    std::cout << "generate: " << extractCover(argv[1]) << "\n";
+    logger(Level::info) << "generate: " << extractCover(argv[1]) << "\n";
     return 0;
 }
 

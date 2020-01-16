@@ -13,40 +13,12 @@
 #include <attachedpictureframe.h>
 
 #include "common/Constants.h"
+#include "common/logger.h"
 
 class id3TagReader {
 
 public:
-    Id3Info getInfo(const std::string& uniqueId, const std::string& cover) {
-
-        std::string mp3File = ServerConstant::base_path.to_string() + "/" + ServerConstant::audioPath.to_string() + "/" + uniqueId + ".mp3";
-
-        std::cout << "Read mp3 info from file <"<<mp3File<<">\n";
-
-        TagLib::FileRef f(mp3File.c_str());
-
-        Id3Info info;
-
-        try {
-            boost::filesystem::path path{mp3File};
-            info.uid = path.stem().string();
-
-            info.titel_name = f.tag()->title().to8Bit(true);
-            info.track_no = f.tag()->track();
-            info.album_name = f.tag()->album().to8Bit(true);
-            info.performer_name = f.tag()->artist().to8Bit(true);
-            info.all_tracks_no = 0;
-            info.imageFile = cover;
-
-        }
-        catch(std::exception& exception) {
-            std::cerr << "Error reading mp3 data\n";
-            return Id3Info();
-        }
-
-        return info;
-
-    }
+    Id3Info getInfo(const std::string& uniqueId, const std::string& cover);
 
 
     static std::string extractCover(const std::string& uid) {
@@ -62,7 +34,7 @@ public:
         id3v2tag = mpegFile.ID3v2Tag();
 
         if (!id3v2tag || id3v2tag->frameListMap()[IdPicture].isEmpty()) {
-            std::cout << "id3v2 not present\n";
+            logger(Level::warning) << "id3v2 not present\n";
             return "";
         }
         // picture frame

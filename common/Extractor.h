@@ -5,7 +5,6 @@
 #include <vector>
 #include <tuple>
 #include <regex>
-#include <iostream>
 #include <boost/optional.hpp>
 #include "urlDecode.h"
 
@@ -57,7 +56,7 @@ namespace utility {
                 } catch (...) {
                     return boost::none;
                 }
-                return info;
+                return UrlInformation(info);
             }
 
             return boost::none;
