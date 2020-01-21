@@ -32,8 +32,9 @@ class SessionHandler {
 
     typedef std::function<const typename NameGenerator::GenerationName (void)> NameGeneratorFunction;
     typedef std::function<std::string(const http::request_parser<http::string_body>&)> RequestHandler;
+    typedef std::function<bool(const NameGenerator::GenerationName&)> UploadFinishedHandler;
 
-    typedef std::vector<std::tuple<boost::beast::string_view, http::verb, PathCompare, NameGeneratorFunction>> FileHandlerList;
+    typedef std::vector<std::tuple<boost::beast::string_view, http::verb, NameGeneratorFunction, UploadFinishedHandler>> FileHandlerList;
     typedef std::vector<std::tuple<boost::beast::string_view, http::verb, PathCompare, RequestHandler>>  StringHandlerList;
 
     FileHandlerList pathToFileHandler;
@@ -58,7 +59,6 @@ class SessionHandler {
                        wipedPath.substr(0,entryPath.size()) == entryPath &&
                        std::get<http::verb>(it) == method;
             }
-
         });
 
         return handlerIt;
@@ -81,14 +81,18 @@ public:
         return true;
     }
 
-    bool addUrlHandler(const boost::beast::string_view& path, http::verb method, PathCompare pathCompare, NameGeneratorFunction&& handler)
+    bool addNameGeratorForUpload(const boost::beast::string_view& path, NameGeneratorFunction&& handler, UploadFinishedHandler&& finishHandler)
     {
-        auto handlerIt = find(pathToFileHandler, path, method);
-        auto newTuple = std::make_tuple(path, method, pathCompare, std::move(handler));
 
-        if (handlerIt != pathToFileHandler.end() && pathCompare == std::get<PathCompare>(*handlerIt)) {
+        http::verb method { http::verb::put };
+
+        auto handlerIt = find(pathToFileHandler, path, method);
+        auto newTuple = std::make_tuple(path, method, std::move(handler), std::move(finishHandler));
+
+        if (handlerIt != pathToFileHandler.end()) {
             logger(Level::warning) << "path is occupied and will be replaces (" << std::get<boost::beast::string_view>(*handlerIt).to_string() << ")\n";
-            //pathToFileHandler.
+            // TODO: replace needs to be implemented .. easy first
+            pathToFileHandler.erase(handlerIt);
         }
 
         pathToFileHandler.emplace_back(newTuple);
@@ -121,6 +125,22 @@ public:
         const boost::beast::string_view& path = requestHeader.get().target();
         const boost::beast::http::verb& method = requestHeader.get().method();
         return find(pathToStringHandler, path, method) != pathToStringHandler.end();
+    }
+
+    bool callFileUploadHandler(http::request_parser<http::file_body>& request, const NameGenerator::GenerationName& name) const {
+
+        const boost::beast::string_view& path = request.get().target();
+        const http::verb& method = request.get().method();
+
+        auto handlerIt = find(pathToStringHandler, path, method);
+
+        if (handlerIt != pathToStringHandler.end()) {
+            auto& handler = std::get<UploadFinishedHandler>(*handlerIt);
+            return handler(name);
+        }
+
+        return false;
+
     }
 
     NameGenerator::GenerationName getName(http::request_parser<http::empty_body>& requestHeader) const {
@@ -163,7 +183,6 @@ class session : public std::enable_shared_from_this<session>
 
     bool is_unknown_http_method(http::request_parser<http::empty_body>& req) const;
     bool is_illegal_request_target(http::request_parser<http::empty_body>& req) const;
-
 
     http::response<http::string_body> generate_result_packet(http::status status,
                                                              boost::beast::string_view why,

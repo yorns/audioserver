@@ -9,6 +9,8 @@
 class PlaylistAccess
 {
     SimpleDatabase& m_database;
+    std::string& m_currentPlaylist;
+    bool m_albumPlaylist  { false };
 
     std::string convertToJson(const std::vector<Id3Info> list) {
         nlohmann::json json;
@@ -25,12 +27,11 @@ class PlaylistAccess
         return json.dump(2);
     }
 
-    std::string currentPlaylist;
-    bool albumPlaylist;
 
 
 public:
-    PlaylistAccess(SimpleDatabase& simpleDatabase) : m_database(simpleDatabase) {}
+    PlaylistAccess(SimpleDatabase& simpleDatabase, std::string& currentPlaylist)
+        : m_database(simpleDatabase), m_currentPlaylist(currentPlaylist) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo) {
 
@@ -38,11 +39,11 @@ public:
 
         if (urlInfo->parameter == ServerConstant::Command::create) {
             std::string ID = m_database.createPlaylist(urlInfo->value);
-            albumPlaylist = false;
+            m_albumPlaylist = false;
             logger(Level::info) << "create playlist with name <" << urlInfo->value << "> "<<"-> "<<ID<<" \n";
             if (!ID.empty()) {
-                currentPlaylist = ID;
-                albumPlaylist = false;
+                m_currentPlaylist = ID;
+                m_albumPlaylist = false;
                 m_database.writeChangedPlaylists();
                 return R"({"result": "ok"})";
             } else {
@@ -54,8 +55,8 @@ public:
             std::string ID = m_database.createAlbumPlaylistTmp(urlInfo->value);
             logger(Level::info) << "create album playlist with name <" << urlInfo->value << "> "<<"-> "<<ID<<" \n";
             if (!ID.empty()) {
-                currentPlaylist = ID;
-                albumPlaylist = true;
+                m_currentPlaylist = ID;
+                m_albumPlaylist = true;
                 m_database.writeChangedPlaylists();
                 return R"({"result": "ok"})";
             } else {
@@ -68,9 +69,9 @@ public:
 
             if (m_database.isPlaylist(urlInfo->value)) {
                 logger(Level::info) << "changed to playlist with name <" << urlInfo->value << ">\n";
-                currentPlaylist = m_database.getNameFromHumanReadable(urlInfo->value);
-                albumPlaylist = false;
-                logger(Level::debug) << "current playlist is <" << currentPlaylist << ">\n";
+                m_currentPlaylist = m_database.getNameFromHumanReadable(urlInfo->value);
+                m_albumPlaylist = false;
+                logger(Level::debug) << "current playlist is <" << m_currentPlaylist << ">\n";
                 return R"({"result": "ok"})";
             } else {
                 logger(Level::warning) << "playlist with name <" << urlInfo->value << "> not found\n";
@@ -79,20 +80,20 @@ public:
         }
 
         if (urlInfo->parameter == ServerConstant::Command::add) {
-            if (!currentPlaylist.empty() && m_database.isPlaylistID(currentPlaylist)) {
-                logger(Level::debug) << "add title with name <" << urlInfo->value << "> to playlist <"<<currentPlaylist<<">\n";
-                m_database.addToPlaylistID(currentPlaylist, urlInfo->value);
+            if (!m_currentPlaylist.empty() && m_database.isPlaylistID(m_currentPlaylist)) {
+                logger(Level::debug) << "add title with name <" << urlInfo->value << "> to playlist <"<<m_currentPlaylist<<">\n";
+                m_database.addToPlaylistID(m_currentPlaylist, urlInfo->value);
                 m_database.writeChangedPlaylists();
                 return R"({"result": "ok"})";
             } else {
-                return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + currentPlaylist + ">}";
+                return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + m_currentPlaylist + ">}";
             }
         }
 
         if (urlInfo->parameter == ServerConstant::Command::show) {
             try {
-                if ((urlInfo->value.empty() && !currentPlaylist.empty()) || m_database.isPlaylist(urlInfo->value)) {
-                    std::string playlistName(currentPlaylist);
+                if ((urlInfo->value.empty() && !m_currentPlaylist.empty()) || m_database.isPlaylist(urlInfo->value)) {
+                    std::string playlistName(m_currentPlaylist);
                     if (!urlInfo->value.empty())
                         playlistName = m_database.getNameFromHumanReadable(urlInfo->value);
                     logger(Level::debug) << "show playlist <" << playlistName << ">\n";
@@ -125,7 +126,7 @@ public:
                         json1.push_back(jentry);
                     }
                     json["playlists"] = json1;
-                    json["actualPlaylist"] = m_database.getHumanReadableName(currentPlaylist);
+                    json["actualPlaylist"] = m_database.getHumanReadableName(m_currentPlaylist);
                 } catch (std::exception& e) {
                     logger(Level::warning) << "error: " << e.what() << "\n";
                 }

@@ -27,7 +27,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     }
 
     // Bind to the server address
-    logger(Level::debug) << "bind acceptor to endpoint <"<<endpoint.address() << ":"<<endpoint.port() << "\n";
+    logger(Level::debug) << "bind acceptor to endpoint <"<<endpoint.address() << ":"<<endpoint.port() << ">\n";
     m_acceptor.bind(endpoint, ec);
     if(ec) {
         fail_print(ec, "bind");

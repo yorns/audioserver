@@ -38,6 +38,8 @@ set(WEBSERVER
     ${CMAKE_SOURCE_DIR}/webserver/databaseaccess.h
     ${CMAKE_SOURCE_DIR}/webserver/playlistaccess.cpp
     ${CMAKE_SOURCE_DIR}/webserver/playlistaccess.h
+    ${CMAKE_SOURCE_DIR}/webserver/playeraccess.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/playeraccess.h
     )
 
 #${CMAKE_SOURCE_DIR}/webserver/RequestHandler.cpp

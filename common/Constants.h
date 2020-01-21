@@ -20,7 +20,7 @@ namespace ServerConstant {
     namespace AccessPoints {
         static boost::beast::string_view playlist{"/playlist"};
         static boost::beast::string_view database{"/database"};
-        static boost::beast::string_view play{"/play"};
+        static boost::beast::string_view player{"/player"};
 
     }
 
@@ -47,7 +47,7 @@ namespace ServerConstant {
             static boost::beast::string_view playlist{"playlist"};
             static boost::beast::string_view imageFile{"cover"};
         }
-        namespace Play {
+        namespace Player {
             static boost::beast::string_view next{"next"};
             static boost::beast::string_view previous{"prev"};
             static boost::beast::string_view play{"play"};

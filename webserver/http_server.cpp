@@ -25,11 +25,7 @@
 #include "database/SimpleDatabase.h"
 #include "webserver/databaseaccess.h"
 #include "webserver/playlistaccess.h"
-
-std::unique_ptr<Player> player;
-SimpleDatabase database;
-std::string currentPlaylist;
-bool albumPlaylist {false};
+#include "webserver/playeraccess.h"
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
@@ -74,6 +70,10 @@ int main(int argc, char* argv[])
               << "\nplaylist: " << playlistDir.str() << "\nPlayerlog dir: "<<playerLogDir.str()
               << "\n";
 
+    SimpleDatabase database;
+    std::string currentPlaylist;
+    std::unique_ptr<Player> player;
+
     logger(Level::info) << "creating database by reading all mp3 files\n";
     database.loadDatabase(mp3Dir.str(), coverDir.str());
 
@@ -83,7 +83,9 @@ int main(int argc, char* argv[])
     if (!database.showAllPlaylists().empty())
         currentPlaylist = database.showAllPlaylists().back().second;
 
-    if (currentPlaylist.empty()) logger(Level::info) << "no current playlist specified\n";
+    if (currentPlaylist.empty())
+        logger(Level::info) << "no current playlist specified\n";
+
     else logger(Level::info) << "current playlist on startup is: <"<< currentPlaylist<<">\n";
 
     logger(Level::info) << "\n";
@@ -95,7 +97,8 @@ int main(int argc, char* argv[])
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
-    PlaylistAccess playlistAccess(database);
+    PlaylistAccess playlistAccess(database, currentPlaylist);
+    PlayerAccess playerAccess(player, currentPlaylist);
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
@@ -107,6 +110,22 @@ int main(int argc, char* argv[])
         auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
         return playlistAccess.access(url);
     });
+    sessionHandler.addUrlHandler(ServerConstant::AccessPoints::player, http::verb::post, PathCompare::exact,
+                                 [&playerAccess](const http::request_parser<http::string_body>& request) -> std::string {
+        auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
+        return playerAccess.access(url);
+    });
+
+    sessionHandler.addNameGeratorForUpload(ServerConstant::, http::verb::put, PathCompare::exact,
+                                 [](const http::request_parser<http::file_body>& request) -> std::string {
+        auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
+        return playerAccess.access(url);
+    },
+    [&database](const http::request_parser<http::file_body>& request, const NameGenerator::GenerationName& name) {
+                             std::string cover = id3TagReader::extractCover(name.unique_id);
+                             database.addToDatabase(name.unique_id, cover);
+    });
+
 
     auto sessionCreator = [&sessionHandler, &htmlDir](tcp::socket& socket) {
         logger(Level::debug) << "--- new session created ---\n";
@@ -114,7 +133,7 @@ int main(int argc, char* argv[])
         std::make_shared<session>(std::move(socket), sessionHandler, std::move(localHtmlDir))->start();
     };
 
-    logger(Level::info) << "shared Listener creation\n";
+    logger(Level::info) << "shared Listener creation:\n";
 
     // Create and launch a listening port
     std::make_shared<Listener>(

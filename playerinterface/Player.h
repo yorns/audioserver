@@ -40,6 +40,9 @@ public:
 
     virtual bool isPlaying() = 0;
 
+    virtual std::string getSongFile() = 0;
+    virtual std::string getSongName() = 0;
+
     void setPlayerEndCB(const std::function<void(const std::string& )>& endfunc);
 
 };

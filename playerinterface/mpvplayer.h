@@ -145,6 +145,9 @@ public:
         return true;
     }
 
+    virtual std::string getSongFile() { return ""; }
+    virtual std::string getSongName() { return ""; }
+
     void setPlayerEndCB(const std::function<void(const std::string& )>& endfunc);
 };
 
