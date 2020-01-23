@@ -78,6 +78,9 @@ void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
 
     if (m_sessionHandler.isUploadFile(*requestHandler_sp)) {
+
+        logger(debug) << "request is upload\n";
+
         auto name = m_sessionHandler.getName(*requestHandler_sp);
 
         auto reqFile = std::make_shared < http::request_parser < http::file_body >> (std::move(*requestHandler_sp));
@@ -87,25 +90,29 @@ void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         reqFile->get().body().open(name.filename.c_str(), boost::beast::file_mode::write, error_code);
 
         if (error_code) {
-            answer(generate_result_packet(http::status::internal_server_error, "An error occurred: 'open file failed for writing'", reqFile->get().version(), reqFile->get().keep_alive()));
+            answer(generate_result_packet(http::status::internal_server_error,
+                                          "An error occurred: 'open file failed for writing'",
+                                          reqFile->get().version(), reqFile->get().keep_alive()));
         }
         else {
             auto self { shared_from_this() };
 
-            http::async_read(m_socket, m_buffer, *reqFile.get(),
-                             [this, self, name, reqFile](boost::system::error_code ec,
-                                                     std::size_t bytes_transferred) {
-                                 logger(debug) << "finished read <" << name.unique_id << ">\n";
-                                 boost::ignore_unused(ec, bytes_transferred);
-                                 m_sessionHandler.callFileUploadHandler(*reqFile, name);
-            //                     handleFileUploadFinish(*reqFile, name); // .. do this outside:
-            //                     std::string cover = id3TagReader::extractCover(name.unique_id);
-            //                     database.addToDatabase(name.unique_id, cover);
-                                 answer(generate_result_packet(http::status::ok , "",
-                                                               reqFile->get().version(), reqFile->get().keep_alive(),
-                                                               "audio/mp3"));
-                            }
-            );
+            auto read_done_handler = [this, self, name, reqFile](boost::system::error_code ec,
+                    std::size_t bytes_transferred) {
+                logger(debug) << "finished read <" << name.unique_id << ">\n";
+                boost::ignore_unused(bytes_transferred);
+                if (!ec) {
+                    m_sessionHandler.callFileUploadHandler(*reqFile, name);
+                    answer(generate_result_packet(http::status::ok , "",
+                                                  reqFile->get().version(), reqFile->get().keep_alive(),
+                                                  "audio/mp3"));
+                }
+                else {
+                    logger(Level::warning) << "could not reade file <" << name.filename << ">\n";
+                }
+            };
+
+            http::async_read(m_socket, m_buffer, *reqFile.get(), read_done_handler);
         }
         return;
     }

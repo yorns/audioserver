@@ -18,6 +18,8 @@
 #include "common/Extractor.h"
 #include "common/logger.h"
 
+#include "id3tagreader/id3TagReader.h"
+
 #include "Listener.h"
 #include "Session.h"
 #include "playerinterface/MPlayer.h"
@@ -93,7 +95,7 @@ int main(int argc, char* argv[])
     logger(Level::info) << "player logs go to: " << playerLogDir.str() <<"\n";
 
     //player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
-    player.reset(new MpvPlayer(ioc, "config.dat", playerLogDir.str()));
+    player.reset(new MpvPlayer(ioc, "config.dat"));
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
@@ -116,16 +118,29 @@ int main(int argc, char* argv[])
         return playerAccess.access(url);
     });
 
-    sessionHandler.addNameGeratorForUpload(ServerConstant::, http::verb::put, PathCompare::exact,
-                                 [](const http::request_parser<http::file_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
-        return playerAccess.access(url);
-    },
-    [&database](const http::request_parser<http::file_body>& request, const NameGenerator::GenerationName& name) {
-                             std::string cover = id3TagReader::extractCover(name.unique_id);
-                             database.addToDatabase(name.unique_id, cover);
-    });
+    auto generateName = [&mp3Dir]() -> NameGenerator::GenerationName
+    {
+        auto name = NameGenerator::create(mp3Dir.str() , ".mp3");
+        logger(Level::debug) << "generating file name: " << name.filename << "\n";
+        return name;
+    };
 
+    auto uploadFinishHandler = [&database](const NameGenerator::GenerationName& name)-> bool
+    {
+        logger(Level::debug) << "creating cover for: " << name.unique_id << "\n";
+        id3TagReader reader;
+        auto cover = reader.extractCover(name.unique_id);
+        if (cover) {
+            database.addToDatabase(name.unique_id, *cover);
+            return true;
+        }
+        database.addToDatabase(name.unique_id, "");
+        return true;
+    };
+
+    sessionHandler.addUploadHandler(ServerConstant::AccessPoints::upload,
+                                    generateName,
+                                    uploadFinishHandler);
 
     auto sessionCreator = [&sessionHandler, &htmlDir](tcp::socket& socket) {
         logger(Level::debug) << "--- new session created ---\n";

@@ -236,7 +236,8 @@ std::vector<Id3Info> SimpleDatabase::findAlbum(const std::string &what) {
 
 void SimpleDatabase::addToDatabase(const std::string &uniqueId, const std::string &cover) {
     id3TagReader id3Reader;
-    m_simpleDatabase.emplace_back(id3Reader.getInfo(uniqueId, cover));
+    if (auto id3info = id3Reader.getInfo(uniqueId, cover))
+        m_simpleDatabase.emplace_back(*id3info);
 }
 
 void SimpleDatabase::addToDatabase(Id3Info&& info) {
@@ -349,12 +350,12 @@ std::string SimpleDatabase::createPlaylist(const std::string &name) {
     return playlistName.unique_id;
 }
 
-boost::optional<Id3Info> SimpleDatabase::getEntryOnId(const std::string& id) {
-    for(auto i : m_simpleDatabase ) {
+std::optional<Id3Info> SimpleDatabase::getEntryOnId(const std::string& id) {
+    for(auto& i : m_simpleDatabase ) {
         if (i.uid == id)
             return i;
     }
-    return boost::none;
+    return std::nullopt;
 }
 
 std::string SimpleDatabase::createAlbumPlaylistTmp(const std::string &album) {
@@ -387,7 +388,13 @@ std::string SimpleDatabase::createAlbumPlaylistTmp(const std::string &album) {
     std::sort(std::begin(m_playlistAlbum[playlistName].Playlist),
               std::end(m_playlistAlbum[playlistName].Playlist),
               [this](const std::string& a, const std::string& b)
-              { return getEntryOnId(a)->track_no < getEntryOnId(b)->track_no; });
+              {
+        auto trackNoA = getEntryOnId(a);
+        auto trackNoB = getEntryOnId(b);
+        if ( trackNoA && trackNoB )
+            return trackNoA->track_no < trackNoB->track_no;
+        return false;
+    });
 
     return playlistName;
 }

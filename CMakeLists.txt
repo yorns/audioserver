@@ -64,6 +64,7 @@ set(COMMONCOMPONENTS
     ${CMAKE_SOURCE_DIR}/common/Extractor.h
     ${CMAKE_SOURCE_DIR}/common/mime_type.h
     ${CMAKE_SOURCE_DIR}/common/NameGenerator.h
+    ${CMAKE_SOURCE_DIR}/common/NameGenerator.cpp
     ${CMAKE_SOURCE_DIR}/common/urlDecode.h
     ${CMAKE_SOURCE_DIR}/common/urlDecode.c
     )

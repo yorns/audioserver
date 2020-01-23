@@ -28,6 +28,7 @@ class MpvPlayer : public Player
     void read_handler(const boost::system::error_code& error, std::size_t bytes_transferred) {
 
         if (!error) {
+            //  {"event":"property-change","id":1,"name":"time-pos","data":15.124732}
             logger(Level::debug) << "> " << std::string(m_readBuffer.data(),bytes_transferred) << "\n";
             m_socket.async_receive(boost::asio::buffer(m_readBuffer), 0,
                                    [this](const boost::system::error_code& error, std::size_t bytes_transferred)
@@ -48,8 +49,8 @@ class MpvPlayer : public Player
     }
 
 public:
-    explicit MpvPlayer(boost::asio::io_context& context, const std::string& configDB, const std::string &logFilePath)
-        : Player(configDB, logFilePath), m_context(context), m_readBuffer(255), m_socket(m_context)
+    explicit MpvPlayer(boost::asio::io_context& context, const std::string& configFile)
+        : Player(configFile), m_context(context), m_readBuffer(255), m_socket(m_context)
     {
         logger(Level::info) << "> connecting mpv player at <"<<m_accessPoint << ">\n";
         m_socket.connect(m_accessPoint);
@@ -58,10 +59,16 @@ public:
         m_socket.async_receive(boost::asio::buffer(m_readBuffer), 0,
                                [this](const boost::system::error_code& error, std::size_t bytes_transferred)
         { read_handler(error, bytes_transferred); });
+
+        std::string observerTime{"{ \"command\": [\"observe_property\", 1, \"time-pos\"] }"};
+        //set_command(std::move(observerTime));
+        // creates:  {"event":"property-change","id":1,"name":"time-pos","data":15.124732}
         logger(Level::info) << "> MPV player Interface established\n";
     }
 
     MpvPlayer() = delete;
+
+    virtual ~MpvPlayer() = default;
 
     virtual bool startPlay(const std::string &url, const std::string& playlist, bool fromLastStop = false)
     {
@@ -70,6 +77,11 @@ public:
 
         if (isPlaying())
             stop();
+
+        // if title is paused, unpause
+        if (m_pause) {
+            pause();
+        }
 
         // TODO: readInformation "from last stop"
         nlohmann::json cmd;
@@ -91,6 +103,7 @@ public:
         cmd["command"] = cmdList;
 
         set_command(cmd.dump());
+
         return true;
     }
 
@@ -133,7 +146,7 @@ public:
         nlohmann::json cmdList;
         cmdList.emplace_back("set_property");
         cmdList.emplace_back("pause");
-        cmdList.emplace_back(m_pause);
+        cmdList.push_back(m_pause);
         cmd["command"] = cmdList;
 
         set_command(cmd.dump());

@@ -55,7 +55,7 @@ class SimpleDatabase {
 
     void emplace_back(Id3Info &&info);
 
-    boost::optional<Id3Info> getEntryOnId(const std::string& id);
+    std::optional<Id3Info> getEntryOnId(const std::string& id);
 
 public:
     SimpleDatabase() = default;

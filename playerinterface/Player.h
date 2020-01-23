@@ -24,7 +24,7 @@ protected:
 
 public:
 
-    Player(const std::string& configDB, const std::string &)
+    Player(const std::string& configDB)
     : m_configDbFileName(configDB) {
     }
 

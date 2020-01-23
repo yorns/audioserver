@@ -10,20 +10,12 @@
 namespace NameGenerator {
 
 struct GenerationName {
-  std::string filename;
-  std::string unique_id;
+    std::string filename;
+    std::string unique_id;
 };
 
-    static GenerationName create(const std::string& prefix, const std::string& suffix) {
+extern GenerationName create(const std::string& prefix, const std::string& suffix);
 
-        GenerationName retName;
-        boost::uuids::random_generator generator;
-        boost::uuids::uuid name = generator();
-        retName.unique_id = boost::lexical_cast<std::string>(name);
-        retName.filename = prefix + "/" + retName.unique_id + suffix;
-
-        return retName;
-    }
 }
 
 #endif //SERVER_NAMEGENERATOR_H
