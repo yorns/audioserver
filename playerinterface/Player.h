@@ -30,7 +30,7 @@ public:
 
     virtual ~Player() = default;
 
-    virtual bool startPlay(const std::string &url, const std::string& playerInfo, bool fromLastStop = false) = 0;
+    virtual bool startPlay(const std::string &&url, const std::string&& playerInfo, bool fromLastStop = false) = 0;
     virtual bool stop() = 0;
     virtual bool seek_forward() = 0;
     virtual bool seek_backward() = 0;
@@ -40,11 +40,14 @@ public:
 
     virtual bool isPlaying() = 0;
 
-    virtual std::string getSongFile() = 0;
-    virtual std::string getSongName() = 0;
+    virtual std::string getSongID() = 0;
+    virtual uint32_t getSongPercentage() = 0;
+
+    virtual void selectPlaylistsEntry(uint32_t id) = 0;
 
     void setPlayerEndCB(const std::function<void(const std::string& )>& endfunc);
 
+    virtual bool stopPlayer() = 0;
 };
 
 

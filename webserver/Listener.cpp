@@ -14,7 +14,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     m_acceptor.open(endpoint.protocol(), ec);
 
     if(ec) {
-        fail_print(ec, "open");
+        failPrint(ec, "open");
         return;
     }
 
@@ -22,7 +22,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     logger(Level::debug) << "set reuse option\n";
     m_acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
     if(ec) {
-        fail_print(ec, "set_option");
+        failPrint(ec, "set_option");
         return;
     }
 
@@ -30,7 +30,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     logger(Level::debug) << "bind acceptor to endpoint <"<<endpoint.address() << ":"<<endpoint.port() << ">\n";
     m_acceptor.bind(endpoint, ec);
     if(ec) {
-        fail_print(ec, "bind");
+        failPrint(ec, "bind");
         return;
     }
 
@@ -38,7 +38,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     logger(debug) << "listen to connection\n";
     m_acceptor.listen( boost::asio::socket_base::max_listen_connections, ec);
     if(ec) {
-        fail_print(ec, "listen");
+        failPrint(ec, "listen");
         return;
     }
 
@@ -48,24 +48,24 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
 void Listener::run() {
     if(! m_acceptor.is_open())
         return;
-    do_accept();
+    doAccept();
 }
 
-void Listener::do_accept() {
+void Listener::doAccept() {
 
     auto self { shared_from_this() };
 
     m_acceptor.async_accept( m_socket,
             [this, self](const boost::system::error_code& error)
             {
-                on_accept(error);
+                onAccept(error);
             } );
 }
 
-void Listener::on_accept(boost::system::error_code ec) {
+void Listener::onAccept(boost::system::error_code ec) {
 
     if(ec) {
-        fail_print(ec, "accept");
+        failPrint(ec, "accept");
         return;
     }
     else {
@@ -74,9 +74,9 @@ void Listener::on_accept(boost::system::error_code ec) {
     }
 
     // Accept another connection
-    do_accept();
+    doAccept();
 }
 
-void Listener::fail_print(boost::system::error_code ec, char const *what) {
+void Listener::failPrint(boost::system::error_code ec, char const *what) {
     logger(Level::warning) << what << ": " << ec.message() << "\n";
 }

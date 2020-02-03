@@ -32,6 +32,8 @@ set(WEBSERVER
     ${CMAKE_SOURCE_DIR}/webserver/http_server.cpp
     ${CMAKE_SOURCE_DIR}/webserver/Listener.cpp
     ${CMAKE_SOURCE_DIR}/webserver/Listener.h
+    ${CMAKE_SOURCE_DIR}/webserver/sessionhandler.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/sessionhandler.h
     ${CMAKE_SOURCE_DIR}/webserver/Session.cpp
     ${CMAKE_SOURCE_DIR}/webserver/Session.h
     ${CMAKE_SOURCE_DIR}/webserver/databaseaccess.cpp
@@ -40,6 +42,10 @@ set(WEBSERVER
     ${CMAKE_SOURCE_DIR}/webserver/playlistaccess.h
     ${CMAKE_SOURCE_DIR}/webserver/playeraccess.cpp
     ${CMAKE_SOURCE_DIR}/webserver/playeraccess.h
+    ${CMAKE_SOURCE_DIR}/webserver/websocketsession.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/websocketsession.h
+    ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
+    ${CMAKE_SOURCE_DIR}/common/repeattimer.h
     )
 
 #${CMAKE_SOURCE_DIR}/webserver/RequestHandler.cpp
@@ -129,6 +135,29 @@ target_link_libraries(
         ${Boost_LIBRARIES}
         ${TagLib_LIBRARIES}
 )
+
+add_executable( playerCmdl ${PLAYERINTERFACE} ${COMMONCOMPONENTS}
+    ${CMAKE_SOURCE_DIR}/playerinterface/example/PlayerCmdl.cpp
+    ${CMAKE_SOURCE_DIR}/playerinterface/example/KeyHit.cpp
+    ${CMAKE_SOURCE_DIR}/playerinterface/example/KeyHit.h
+    ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
+    ${CMAKE_SOURCE_DIR}/common/repeattimer.h
+    )
+
+set_target_properties( playerCmdl PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_compile_options( playerCmdl PUBLIC -O0 -g)
+target_include_directories(
+        playerCmdl
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
+)
+target_link_libraries(
+        playerCmdl
+        Threads::Threads
+        ${Boost_LIBRARIES}
+)
+
 
 install(
     TARGETS ${PROJECT_NAME}

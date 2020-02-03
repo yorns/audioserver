@@ -16,9 +16,9 @@ class Listener : public std::enable_shared_from_this<Listener>
     tcp::socket m_socket;
     SessionCreatorFunction m_sessionCaller;
 
-    void fail_print(boost::system::error_code ec, char const *what);
-    void do_accept();
-    void on_accept(boost::system::error_code ec);
+    void failPrint(boost::system::error_code ec, char const *what);
+    void doAccept();
+    void onAccept(boost::system::error_code ec);
 
 public:
     Listener(

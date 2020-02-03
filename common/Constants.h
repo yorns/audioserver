@@ -22,6 +22,7 @@ namespace ServerConstant {
         static boost::beast::string_view database{"/database"};
         static boost::beast::string_view player{"/player"};
         static boost::beast::string_view upload{"/upload"};
+        static boost::beast::string_view websocket{"/dynamic"};
     }
 
     namespace Command {

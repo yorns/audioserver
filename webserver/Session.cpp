@@ -1,14 +1,14 @@
 #include "Session.h"
-//#include "common/NameGenerator.h"
 #include "common/logger.h"
+#include "websocketsession.h"
 
-void session::fail(boost::system::error_code ec, const std::string& what) {
+void Session::fail(boost::system::error_code ec, const std::string& what) {
     // some errors are annoying .. remove some until handshake and shutdown is corrected
     if (what != "handshake" && what != "shutdown")
         logger(Level::warning) << what << ": " << ec.message() << "\n";
 }
 
-void session::start() {
+void Session::start() {
     auto self { shared_from_this() };
 
     logger(Level::debug) << "start request\n";
@@ -20,22 +20,21 @@ void session::start() {
         logger(Level::debug) << "read header finished\n";
         on_read_header(requestHandler, ec, bytes_transferred);
     });
-
 }
 
-bool session::is_unknown_http_method(http::request_parser<http::empty_body>& req) const {
+bool Session::is_unknown_http_method(http::request_parser<http::empty_body>& req) const {
     return req.get().method() != http::verb::get &&
             req.get().method() != http::verb::head &&
             req.get().method() != http::verb::post;
 }
 
-bool session::is_illegal_request_target(http::request_parser<http::empty_body>& req) const {
+bool Session::is_illegal_request_target(http::request_parser<http::empty_body>& req) const {
     return req.get().target().empty() ||
             req.get().target()[0] != '/' ||
             req.get().target().find("..") != boost::beast::string_view::npos;
 }
 
-http::response<http::string_body> session::generate_result_packet(http::status status, boost::beast::string_view why,
+http::response<http::string_body> Session::generate_result_packet(http::status status, boost::beast::string_view why,
                                                                   uint32_t version, bool keep_alive,
                                                                   boost::beast::string_view mime_type )
 {
@@ -48,7 +47,7 @@ http::response<http::string_body> session::generate_result_packet(http::status s
     return res;
 }
 
-void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_body>> requestHandler_sp,
+void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_body>> requestHandler_sp,
                              boost::system::error_code ec, std::size_t bytes_transferred) {
 
     boost::ignore_unused(bytes_transferred);
@@ -62,6 +61,7 @@ void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     }
 
     if (is_unknown_http_method(*requestHandler_sp)) {
+        // read until finished
         logger(Level::debug) << "Method unknown\n";
         return answer(generate_result_packet(http::status::bad_request,
                                              "Unknown HTTP-method", requestHandler_sp->get().version(),
@@ -70,21 +70,36 @@ void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     // Request path must be absolute and not contain "..".
     if (is_illegal_request_target(*requestHandler_sp)) {
+        // read until finished
         logger(Level::debug) << "Illegal request\n";
         return answer(generate_result_packet(http::status::bad_request,
                                              "Illegal request-target", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
     }
 
+    // See if it is a WebSocket Upgrade
+    if( websocket::is_upgrade(requestHandler_sp->get()) &&
+        requestHandler_sp->get().target() == ServerConstant::AccessPoints::websocket)
+    {
+        logger(debug) << "request target is websocket upgrade\n";
+
+        // read full request
+        // if so, create a websocket_session by transferring the socket
+        auto websocketSession = std::make_shared<WebsocketSession>(std::move(m_socket));
+        websocketSession->do_accept(requestHandler_sp->release());
+
+        m_sessionHandler.addWebsocketConnection(websocketSession);
+
+        return;
+    }
 
     if (m_sessionHandler.isUploadFile(*requestHandler_sp)) {
 
-        logger(debug) << "request is upload\n";
+        logger(debug) << "request target is an upload point\n";
 
         auto name = m_sessionHandler.getName(*requestHandler_sp);
 
         auto reqFile = std::make_shared < http::request_parser < http::file_body >> (std::move(*requestHandler_sp));
-        requestHandler_sp->release();
 
         boost::beast::error_code error_code;
         reqFile->get().body().open(name.filename.c_str(), boost::beast::file_mode::write, error_code);
@@ -119,9 +134,9 @@ void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     if (m_sessionHandler.isRestAccesspoint(*requestHandler_sp)) {
        // ownership goes to session handler
-        auto requestString = std::make_shared < http::request_parser < http::string_body >> (std::move(*requestHandler_sp));
-        requestHandler_sp->release();
+        logger(debug) << "request target is a REST accesspoint\n";
 
+        auto requestString = std::make_shared < http::request_parser < http::string_body >> (std::move(*requestHandler_sp));
         auto self { shared_from_this() };
 
         // do full read
@@ -165,13 +180,15 @@ void session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                         requestHandler_sp->get().keep_alive());
 }
 
-void session::handle_file_request(const std::string &file_root, std::string target, http::verb method, uint32_t version, bool keep_alive) {
+void Session::handle_file_request(const std::string &file_root, std::string target, http::verb method, uint32_t version, bool keep_alive) {
 
     std::string path = file_root + '/' + target;
     if(target.back() == '/')
         path.append("index.html");
 
     logger(Level::debug) << "file request on: <"<< path << ">\n";
+
+    // read full request (should be empty, however ..)
 
     // Attempt to open the file
     boost::beast::error_code ec;
@@ -214,12 +231,12 @@ void session::handle_file_request(const std::string &file_root, std::string targ
 }
 
 
-session::session(tcp::socket socket, const SessionHandler& sessionHandler, std::string&& filePath)
+Session::Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath)
         : m_socket(std::move(socket)), m_sessionHandler(sessionHandler), m_filePath(std::move(filePath))
 {
 }
 
-void session::do_close() {
+void Session::do_close() {
 
     boost::system::error_code ec;
     // Perform the shutdown

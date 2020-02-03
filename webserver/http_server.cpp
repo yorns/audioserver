@@ -22,12 +22,12 @@
 
 #include "Listener.h"
 #include "Session.h"
-#include "playerinterface/MPlayer.h"
 #include "playerinterface/mpvplayer.h"
 #include "database/SimpleDatabase.h"
 #include "webserver/databaseaccess.h"
 #include "webserver/playlistaccess.h"
 #include "webserver/playeraccess.h"
+#include "common/repeattimer.h"
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
@@ -92,9 +92,7 @@ int main(int argc, char* argv[])
 
     logger(Level::info) << "\n";
     logger(Level::info) << "create player instance\n";
-    logger(Level::info) << "player logs go to: " << playerLogDir.str() <<"\n";
 
-    //player = std::make_unique<MPlayer>(ioc, "config.dat", playerLogDir.str());
     player.reset(new MpvPlayer(ioc, "config.dat"));
 
     SessionHandler sessionHandler;
@@ -143,20 +141,37 @@ int main(int argc, char* argv[])
                                     uploadFinishHandler);
 
     auto sessionCreator = [&sessionHandler, &htmlDir](tcp::socket& socket) {
-        logger(Level::debug) << "--- new session created ---\n";
+        logger(Level::debug) << "\n--- new session created ---\n";
         std::string localHtmlDir{htmlDir.str()};
-        std::make_shared<session>(std::move(socket), sessionHandler, std::move(localHtmlDir))->start();
+        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir))->start();
     };
 
-    logger(Level::info) << "shared Listener creation:\n";
+    RepeatTimer websocketSonginfoSender(ioc, std::chrono::milliseconds(500));
 
-    // Create and launch a listening port
-    std::make_shared<Listener>(
+    // create a timer service to request actual song information and send them to the session handlers
+    websocketSonginfoSender.setHandler( [&player, &sessionHandler](){
+      if (player && player->isPlaying()) {
+          std::string songID = player->getSongID();
+          uint32_t timePercent = player->getSongPercentage();
+          //std::string msg = createSongMessage(songID, timePercent);
+          nlohmann::json songBroadcast;
+          nlohmann::json songInfo;
+          songInfo["songID"] = songID;
+          songInfo["position"] = timePercent*1.0/100.0;
+          songBroadcast["SongBroadcastMessage"] = songInfo;
+          sessionHandler.broadcast(songBroadcast);
+      }
+    });
+
+    websocketSonginfoSender.start();
+
+    logger(Level::info) << "shared Listener creation and run\n";
+       std::make_shared<Listener>(
         ioc,
         tcp::endpoint{address, port},
         sessionCreator)->run();
 
-    logger(Level::info) << "run server\n";
+    logger(Level::info) << "server started\n";
 
     ioc.run();
 
