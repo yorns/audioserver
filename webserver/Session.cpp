@@ -85,10 +85,8 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
         // read full request
         // if so, create a websocket_session by transferring the socket
-        auto websocketSession = std::make_shared<WebsocketSession>(std::move(m_socket));
+        auto websocketSession = std::make_shared<WebsocketSession>(std::move(m_socket), m_sessionHandler);
         websocketSession->do_accept(requestHandler_sp->release());
-
-        m_sessionHandler.addWebsocketConnection(websocketSession);
 
         return;
     }

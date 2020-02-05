@@ -146,24 +146,24 @@ int main(int argc, char* argv[])
         std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir))->start();
     };
 
-    RepeatTimer websocketSonginfoSender(ioc, std::chrono::milliseconds(500));
+    RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
 
     // create a timer service to request actual song information and send them to the session handlers
-    websocketSonginfoSender.setHandler( [&player, &sessionHandler](){
+    // gues together audio player and webservers websocket
+    websocketSonginfoSenderTimer.setHandler( [&player, &sessionHandler](){
       if (player && player->isPlaying()) {
           std::string songID = player->getSongID();
           uint32_t timePercent = player->getSongPercentage();
-          //std::string msg = createSongMessage(songID, timePercent);
           nlohmann::json songBroadcast;
           nlohmann::json songInfo;
           songInfo["songID"] = songID;
           songInfo["position"] = timePercent*1.0/100.0;
           songBroadcast["SongBroadcastMessage"] = songInfo;
-          sessionHandler.broadcast(songBroadcast);
+          sessionHandler.broadcast(songBroadcast.dump());
       }
     });
 
-    websocketSonginfoSender.start();
+    websocketSonginfoSenderTimer.start();
 
     logger(Level::info) << "shared Listener creation and run\n";
        std::make_shared<Listener>(

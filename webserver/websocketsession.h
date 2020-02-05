@@ -4,6 +4,7 @@
 #include <memory>
 #include <boost/beast.hpp>
 #include "common/logger.h"
+#include "sessionhandler.h"
 
 namespace beast = boost::beast;                 // from <boost/beast.hpp>
 namespace http = beast::http;                   // from <boost/beast/http.hpp>
@@ -15,15 +16,23 @@ using tcp = boost::asio::ip::tcp;               // from <boost/asio/ip/tcp.hpp>
 class WebsocketSession : public std::enable_shared_from_this<WebsocketSession>
 {
     websocket::stream<beast::tcp_stream> m_websocketStream;
+    boost::asio::ip::tcp::endpoint m_endpoint;
+    SessionHandler& m_sessionHandler;
     beast::flat_buffer m_readBuffer;
     beast::flat_buffer m_writeBuffer;
 
 public:
     // Take ownership of the socket
     explicit
-    WebsocketSession(tcp::socket&& socket)
-        : m_websocketStream(std::move(socket))
+    WebsocketSession(tcp::socket&& socket, SessionHandler& sessionHandler)
+        : m_websocketStream(std::move(socket)),
+          m_endpoint(m_websocketStream.next_layer().socket().remote_endpoint()),
+          m_sessionHandler(sessionHandler)
     {
+    }
+
+    ~WebsocketSession() {
+       m_sessionHandler.removeWebsocketConnection(m_endpoint);
     }
 
     // Start the asynchronous accept operation
@@ -44,6 +53,8 @@ public:
                     std::string(BOOST_BEAST_VERSION_STRING) +
                         " advanced-server");
             }));
+
+        m_sessionHandler.addWebsocketConnection(shared_from_this(), m_endpoint);
 
         // Accept the websocket handshake
         m_websocketStream.async_accept(

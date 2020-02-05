@@ -1,4 +1,5 @@
 #include "sessionhandler.h"
+#include "websocketsession.h"
 #include "common/logger.h"
 
 bool SessionHandler::addUrlHandler(const boost::beast::string_view &path, http::verb method, PathCompare pathCompare, SessionHandler::RequestHandler &&handler)
@@ -88,4 +89,27 @@ NameGenerator::GenerationName SessionHandler::getName(http::request_parser<http:
     }
 
     return NameGenerator::GenerationName();
+}
+
+void SessionHandler::addWebsocketConnection(std::weak_ptr<WebsocketSession> websocketSession, const tcp::endpoint &endpoint) {
+    logger(Level::debug) << "add websocket endpoint <"<<endpoint<<">\n";
+    m_websocketSessionList[endpoint] = websocketSession;
+}
+
+void SessionHandler::removeWebsocketConnection(const tcp::endpoint &endpoint) {
+    const auto& it = m_websocketSessionList.find(endpoint);
+    logger(Level::debug) << "remove websocket endpoint <"<<endpoint<<">\n";
+    if (it != m_websocketSessionList.end() )
+        m_websocketSessionList.erase(it);
+    else
+        logger(Level::warning) << "remove websocket endpoint <"<<endpoint<<"> not found - FAILED\n";
+}
+
+void SessionHandler::broadcast(const std::string &message) {
+
+    std::for_each(std::begin(m_websocketSessionList), std::end(m_websocketSessionList),[&message](auto elem) {
+        if (auto session = elem.second.lock())
+            session->write(message);
+    });
+
 }

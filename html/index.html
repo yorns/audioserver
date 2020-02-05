@@ -53,7 +53,35 @@
             height: 20%;
         }
     </style>
+	<script type="text/javascript">
+        var webSocket = new WebSocket('ws://localhost:8080/dynamic');
+
+        webSocket.onerror = function(event) {
+            onError(event)
+        };
+
+        webSocket.onopen = function(event) {
+            onOpen(event)
+        };
+
+        webSocket.onmessage = function(event) {
+		try {
+		var msg = JSON.parse(event.data);
+			// TODO: only if song ID is new, request the name
+                var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
+                $.getJSON(url).done(function (response) {
+//                    console.log('received: ' + response[0].titel);
+		    $("#actSong").text(response[0].titel);
+                });
+		$("#actPercent").text(msg.SongBroadcastMessage.position);
+		} catch (e) {
+		  console.log("json parse failed");
+		}
+
+        };
+	</script>
     <script type="text/javascript">
+	    var webSocket;
         $(document).ready(function () {
 
             $("#createPlaylist").click(function () {
@@ -353,6 +381,14 @@
         </div>
     </div>
     <br>
+
+    <div class="container">
+      <div class="row">
+        <div class="col-sm-6">
+	    <p id="actSong">nothing</p><p id="actPercent">0</p><p>%</p>
+        </div>
+      </div>
+    </div>
 
     <div id='toolbar' class="col-">
         <!--<div class='wrapper text-center'> -->

@@ -36,5 +36,10 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::album )
         return convertToJson(m_database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::album));
 
+    if ( urlInfo->parameter == ServerConstant::Parameter::Database::uid ){
+        logger(Level::debug) << "uid found <"<<m_database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::uid).size()<<"> elements\n";
+        return convertToJson(m_database.findInDatabase(urlInfo->value, SimpleDatabase::DatabaseSearchType::uid));
+    }
+
     return "[]";
 }

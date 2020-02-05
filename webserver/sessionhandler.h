@@ -3,12 +3,15 @@
 
 #include <functional>
 #include <string>
+#include <map>
+#include <memory>
 #include <boost/beast.hpp>
 #include "common/NameGenerator.h"
-#include "websocketsession.h"
 
 using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
+
+class WebsocketSession;
 
 enum class PathCompare {
     exact,
@@ -27,7 +30,7 @@ class SessionHandler {
     FileHandlerList pathToFileHandler;
     StringHandlerList pathToStringHandler;
 
-    std::weak_ptr<WebsocketSession> m_websocketSession;
+    std::map<boost::asio::ip::tcp::endpoint, std::weak_ptr<WebsocketSession>> m_websocketSessionList;
 
     template<class A>
     typename A::const_iterator find(const A& a, const boost::beast::string_view& path, const http::verb& method) const {
@@ -68,13 +71,11 @@ public:
 
     NameGenerator::GenerationName getName(http::request_parser<http::empty_body>& requestHeader) const;
 
-    void addWebsocketConnection(std::weak_ptr<WebsocketSession> websocketSession) {
-        m_websocketSession = websocketSession;
-    }
+    void addWebsocketConnection(std::weak_ptr<WebsocketSession> websocketSession, const boost::asio::ip::tcp::endpoint& endpoint);
 
-    void broadcast(const std::string& message) {
+    void removeWebsocketConnection(const boost::asio::ip::tcp::endpoint& endpoint);
 
-    }
+    void broadcast(const std::string& message);
 
 };
 

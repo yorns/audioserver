@@ -21,6 +21,7 @@ class MpvPlayer : public Player
 
     stream_protocol::socket m_socket;
 
+    bool m_isPlaying {false};
     bool m_pause {false};
     float actTime { 0.0 };
     std::string actFile;
@@ -31,15 +32,15 @@ class MpvPlayer : public Player
 
     void read_handler(const boost::system::error_code& error, std::size_t bytes_transferred) {
 
-        boost::ignore_unused(bytes_transferred);
+        //boost::ignore_unused(bytes_transferred);
 
         if (!error) {
-            std::istream tmp(&m_readBuffer);
-            std::string line;
-            tmp >> line;
+            std::string line(boost::asio::buffer_cast<const char*>(m_readBuffer.data()), bytes_transferred);
+            m_readBuffer.consume(bytes_transferred);
+
             if (line.size() > 0 && line.at(0) == '{' ) // identify json
             {
-                //logger(Level::debug) << "line: "<< line << "\n";
+                logger(Level::debug) << "line: "<<line.size()<<" - " << line << "\n";
                 try {
                     nlohmann::json returnData;
                     returnData = nlohmann::json::parse(line);
@@ -52,10 +53,11 @@ class MpvPlayer : public Player
                             actFile = returnData.at("data");
                             logger(Level::debug) << "file is "<< actFile << "\n";
                         }
-                        else if (returnData.at("event") == "end-file") {
-                            actTime = 0;
-                            if (m_endfunc) m_endfunc(actFile);
-                        } else  {
+                        else if (returnData.at("event") == "end-file" || returnData.at("event") == "idle") {
+                                actTime = 0;
+                                m_isPlaying = false;
+                                if (m_endfunc) m_endfunc(actFile);
+                            } else  {
                             logger(Level::debug) << "unknown event " << line << "\n";
                         }
 
@@ -69,7 +71,7 @@ class MpvPlayer : public Player
 //                    logger(Level::debug) << "line: "<< line << "\n";
                 }
             }
-            boost::asio::async_read_until(m_socket, m_readBuffer, '\n',
+            boost::asio::async_read_until(m_socket, m_readBuffer, "\n",
                                           [this](const boost::system::error_code& error, std::size_t bytes_transferred)
             { read_handler(error, bytes_transferred); }
             );
@@ -117,7 +119,7 @@ public:
         m_socket.connect(m_accessPoint);
 
         logger(Level::info) << "establish mpv receiver\n";
-        boost::asio::async_read_until(m_socket, m_readBuffer, '\n',
+        boost::asio::async_read_until(m_socket, m_readBuffer, "\n",
                                [this](const boost::system::error_code& error, std::size_t bytes_transferred)
         { read_handler(error, bytes_transferred); });
 
@@ -130,6 +132,9 @@ public:
         std::string observerFilename{"{ \"command\": [\"observe_property\", 2, \"filename/no-ext\"] }"};
         set_command(std::move(observerFilename));
 
+        std::string observerMetadata{"{ \"command\": [\"observe_property\", 3, \"metadata\"] }"};
+        set_command(std::move(observerMetadata));
+
     }
 
     MpvPlayer() = delete;
@@ -141,8 +146,10 @@ public:
         boost::ignore_unused(fromLastStop);
         boost::ignore_unused(playlist);
 
-        if (isPlaying())
+        if (m_isPlaying)
             stop();
+
+        m_isPlaying = true;
 
         // unpause (just to be sure)
         sendCommand({"set_property", "pause", false});
@@ -152,6 +159,7 @@ public:
 
     virtual bool stop()
     {
+        m_isPlaying = false;
         return sendCommand({"stop"});
     }
 
@@ -183,10 +191,11 @@ public:
 
     virtual bool isPlaying()
     {
-        return true;
+        return m_isPlaying;
     }
 
     virtual bool stopPlayer() {
+        m_isPlaying = false;
         if (m_socket.is_open()) {
             boost::system::error_code ec;
             m_socket.close(ec);
