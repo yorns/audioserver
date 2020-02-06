@@ -50,13 +50,21 @@
         }
     </style>
     <script type="text/javascript">
-        var webSocket = new WebSocket('ws://localhost:8080/dynamic');
+	var webSocket;
+            $(document).ready(function () {
+   	function runWebsocket() {
+
+            if ("WebSocket" in window) {
+
+        webSocket = new WebSocket("ws://" + location.host + "/dynamic");
 
         webSocket.onerror = function(event) {
             //onError(event)
+alert("ws error" + event.data );
         };
 
         webSocket.onopen = function(event) {
+alert("ws open");
             //onOpen(event)
         };
 
@@ -69,19 +77,25 @@
 //                    console.log('received: ' + response[0].titel);
 			if (response) {
 		    $("#actSong").html(response[0].performer + "<br>" + response[0].album+ "<br>" + response[0].titel);
+                    $("#actCover").attr("src",response[0].cover);
 			}
                 });
 		$("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
+                getActualPlaylist();
 		} catch (e) {
 		  console.log("json parse failed");
 		}
 
         };
-    </script>
-    <script type="text/javascript">
-        var webSocket;
-            $(document).ready(function () {
-    
+            } else {
+              
+               // The browser doesn't support WebSocket
+               alert("WebSocket NOT supported by your Browser!");
+            }
+
+	    }
+
+		    runWebsocket();
                 $("#createPlaylist").click(function () {
                     var newPlaylistName = $("#newPlaylistName").val();
                     if (newPlaylistName === "") {
@@ -348,31 +362,38 @@
                 </div>
                 <div class="modal-body">
                     <div class="container">
-			  <div class="row">
-                        <div class="col-sm-3">
-			</div>
-                        <div class="col-sm-9">
-                            <p id="actSong">nothing</p>
-                            <div class="progress">
-                                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="songProgress" style="width:0%">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <img class="img-rounded"  id="actCover" style="width: 100px" src="img/unknown.png" alt="1234"></img>
+                            </div>
+                            <div class="col-sm-9">
+                                <p id="actSong">nothing</p>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="songProgress" style="width:0%">
+                                    </div>
                                 </div>
                             </div>
-			  </div>
                         </div>
                     </div>
+                    <div class="row" style="margin-top: 20px"></div>
+                    <div class="row">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-9">
 
-                    <div id='toolbar' class="col-">
-                        <!--<div class='wrapper text-center'> -->
-                        <div class="btn-group btn-group" role="group" aria-label="Player" id="Player">
-                            <h2>Player Control </h2>
-                            <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
-                            <button id="btnPause" type="button" class="btn btn-secondary">Pause</button>
-                            <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
-                            <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
-                            <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+                            <div id='toolbar' class="col-">
+                                <!--<div class='wrapper text-center'> -->
+                                <div class="btn-group btn-group" role="group" aria-label="Player" id="Player">
+                                    <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
+                                    <button id="btnPause" type="button" class="btn btn-secondary">Pause</button>
+                                    <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
+                                    <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
+                                    <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+                                </div>
+                                <!--</div>-->
+                            </div>
                         </div>
-                        <!--</div>-->
                     </div>
+                    <div class="row" style="margin-top: 20px"></div>
                     <table class="table table-hover col-" id="act_playlist">
                         <thead>
                             <tr>
@@ -441,4 +462,5 @@
     </div>
 
 </body>
+
 </html>

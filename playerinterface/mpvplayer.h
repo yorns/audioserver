@@ -14,13 +14,10 @@ using boost::asio::local::stream_protocol;
 class MpvPlayer : public Player
 {
     boost::asio::io_context& m_context;
-
-    std::string m_accessPoint {"/tmp/mpvsocket"};
-
     boost::asio::streambuf m_readBuffer;
-
     stream_protocol::socket m_socket;
 
+    std::string m_accessPoint {"/tmp/mpvsocket"};
     bool m_isPlaying {false};
     bool m_pause {false};
     float actTime { 0.0 };
@@ -133,14 +130,14 @@ public:
         logger(Level::info) << "MPV player interface established\n";
 
         /* set observers */
-        std::string observerTime{"{ \"command\": [\"observe_property\", 1, \"percent-pos\"] }"};
-        set_command(std::move(observerTime));
+//        std::string observerTime{"{ \"command\": [\"observe_property\", 1, \"percent-pos\"] }"};
+        set_command("{ \"command\": [\"observe_property\", 1, \"percent-pos\"] }");
 
         std::string observerFilename{"{ \"command\": [\"observe_property\", 2, \"filename/no-ext\"] }"};
-        set_command(std::move(observerFilename));
+        set_command("{ \"command\": [\"observe_property\", 2, \"filename/no-ext\"] }"); // std::move(observerFilename));
 
         std::string observerMetadata{"{ \"command\": [\"observe_property\", 3, \"metadata\"] }"};
-        set_command(std::move(observerMetadata));
+        set_command("{ \"command\": [\"observe_property\", 3, \"metadata\"] }"); // std::move(observerMetadata));
 
     }
 
