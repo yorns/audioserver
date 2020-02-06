@@ -1,17 +1,13 @@
 <!doctype html>
 <html lang="de">
+
 <head>
     <meta charset="utf-8">
     <title>Nano Player</title>
-    <link rel="stylesheet" href="css/bootstrap.min.css"
-          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="js/jquery-3.4.1.min.js"></script>
-    <script src="js/popper.min.js"
-            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-            crossorigin="anonymous"></script>
-    <script src="js/bootstrap.min.js"
-            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-            crossorigin="anonymous"></script>
+    <script src="js/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
     <style>
         .bild {
@@ -53,15 +49,15 @@
             height: 20%;
         }
     </style>
-	<script type="text/javascript">
+    <script type="text/javascript">
         var webSocket = new WebSocket('ws://localhost:8080/dynamic');
 
         webSocket.onerror = function(event) {
-            onError(event)
+            //onError(event)
         };
 
         webSocket.onopen = function(event) {
-            onOpen(event)
+            //onOpen(event)
         };
 
         webSocket.onmessage = function(event) {
@@ -71,402 +67,378 @@
                 var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
                 $.getJSON(url).done(function (response) {
 //                    console.log('received: ' + response[0].titel);
-		    $("#actSong").text(response[0].titel);
+			if (response) {
+		    $("#actSong").html(response[0].performer + "<br>" + response[0].album+ "<br>" + response[0].titel);
+			}
                 });
-		$("#actPercent").text(msg.SongBroadcastMessage.position);
+		$("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
 		} catch (e) {
 		  console.log("json parse failed");
 		}
 
         };
-	</script>
+    </script>
     <script type="text/javascript">
-	    var webSocket;
-        $(document).ready(function () {
-
-            $("#createPlaylist").click(function () {
-                var newPlaylistName = $("#newPlaylistName").val();
-                if (newPlaylistName === "") {
-                    alert("no playlist set");
-                }
-                $.get("/playlist?create=" + newPlaylistName, function () {
-                })
-                    .always(function () {
-                        alert("Playlist <" + newPlaylistName + "> created");
+        var webSocket;
+            $(document).ready(function () {
+    
+                $("#createPlaylist").click(function () {
+                    var newPlaylistName = $("#newPlaylistName").val();
+                    if (newPlaylistName === "") {
+                        alert("no playlist set");
+                    }
+                    $.get("/playlist?create=" + newPlaylistName, function () {
+                    })
+                        .always(function () {
+                            alert("Playlist <" + newPlaylistName + "> created");
+                        });
+                });
+    
+                $("#requesttable").click(function () {
+                    searchstring = $('#myText').val();
+                    url = "/database?overall=" + searchstring;
+                    //alert("button "+ url );
+                    $.getJSON(url).done(function (response) {
+                        $('#my_table tbody').empty();
+                        var trHTML;
+                        $.each(response, function (i, item) {
+                            trHTML += '<tr class="clickable-row" id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+                        });
+                        $('#my_table tbody').append(trHTML);
+                        $('#my_table ').on('click', '.clickable-row', function (event) {
+                            if ($(this).hasClass('bg-success')) {
+                                $(this).removeClass('bg-success');
+                            } else {
+                                $(this).addClass('bg-success');
+                            }
+                        });
                     });
+    
+                });
+    
+                $("#btnPlay").click(function () {
+                    startPlay();
+                });
+    
+                $("#btnNext").click(function () {
+                    url = "/player?next=true";
+                    $.post(url, "", function (data, textStatus) {
+                    }, "json");
+                });
+    
+                $("#btnPrevious").click(function () {
+                    url = "/player?prev=true";
+                    $.post(url, "", function (data, textStatus) {
+                    }, "json");
+                });
+    
+                $("#btnStop").click(function () {
+                    stopPlayer();
+                });
+    
+                $("#btnPause").click(function () {
+                    pausePlayer();
+                });
+    
+      			  $("#albumSearch").keyup(function() {
+    				  //            if (console && console.log)
+            		   var name_typed = $("#albumSearch").val();
+            		        console.log("request: "+name_typed);
+    					// alert("keypressed:"+$("#albumSearch").val());
+    					getAlbumList(name_typed);
+    		    	});
+    
+                readPlaylist();
+                getActualPlaylist();
+                getAlbumList("");
+                $('#albumSearch').val("");
             });
-
-            $("#requesttable").click(function () {
-                searchstring = $('#myText').val();
-                url = "/database?overall=" + searchstring;
-                //alert("button "+ url );
+    
+            function stopPlayer() {
+                url = "/player?stop=true";
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            }
+    
+            function startPlay() {
+                url = "/player?play=true";
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            }
+    
+            function pausePlayer() {
+                url = "/player?pause=true";
+                $.post(url, "", function (data, textStatus) {
+                }, "json");
+            }
+    
+    
+            function albumSelect(album) {
+                if (console && console.log)
+                    console.log("albumSelect:"+album);
+                // open overlay / new page
+                // create playlist with all album titles
+                var url = "/playlist?createAlbumList="+ encodeURIComponent(album);
+                if (console && console.log)
+                    console.log("request: "+url);
                 $.getJSON(url).done(function (response) {
-                    $('#my_table tbody').empty();
+                    if (response.result != "ok") {
+                        alert(response.result);
+                    }
+                    else {
+                        stopPlayer();
+                        readPlaylist();
+                        getActualPlaylist();
+                        getAlbumList("");
+                        startPlay();
+                    }
+    
+                });
+    
+                // show playlist with image
+                // show player
+    
+            }
+    
+            function getAlbumList(searchString) {
+                var url = "/database?albumList="+searchString;
+                $.getJSON(url).done(function (response) {
+                    $('#cover').empty();
+                    var trHTML = '<div class="container"> <div class="row mt-5 justify-content-center" id="myimg">';
+                    $.each(response, function (i, item) {
+                        trHTML += `
+                        <div class="card card-custom mx-2 mb-3"> 
+                        <img class="card-img-top" style="width: 240px" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                        <div class="card-body">
+                          <h5 class="card-title" style="width: 200px">${item.album}</h5>
+                          <p class="card-text">${item.performer}</p>
+                        </div>
+                        </div>`
+                    });
+                    trHTML += '</div>'; 
+                    $('#cover').append(trHTML);
+                    $("#myimg div img").on("click", function(){albumSelect($(this).attr("alt"));}); //??
+                })
+            }
+    
+            function readPlaylist() {
+                var url = "/playlist?showLists=true";
+                $.getJSON(url).done(function (response) {
+                    var items = '';
+                    $.each(response.playlists, function (i, item) {
+                        var text = item.playlist;
+                        items += '<a class="dropdown-item" href="#">' + decodeURIComponent(text) + '</a>';
+                    });
+    
+                    $("#demolist").html(items);
+                    $('#actPlaylistName').text(decodeURIComponent(response.actualPlaylist));
+    
+                    //alert(response.actualPlaylist);
+    
+                    $('#demolist a').on('click', function () {
+                        var txt = encodeURIComponent($(this).text());
+                        var url = "/playlist?change="+txt;
+                        $.getJSON(url).done(function (response) {
+                            getActualPlaylist();
+                            //alert(txt);
+                            $('#actPlaylistName').html(txt);
+                        });
+                    });
+                });
+            }
+    
+            function getActualPlaylist() {
+                url = "/playlist?show=";
+                $.getJSON(url).done(function (response) {
+                    $('#act_playlist tbody').empty();
                     var trHTML;
                     $.each(response, function (i, item) {
-                        trHTML += '<tr class="clickable-row" id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+                        trHTML += '<tr id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
                     });
-                    $('#my_table tbody').append(trHTML);
-                    $('#my_table ').on('click', '.clickable-row', function (event) {
-                        if ($(this).hasClass('bg-success')) {
-                            $(this).removeClass('bg-success');
-                        } else {
-                            $(this).addClass('bg-success');
-                        }
-                    });
+                    $('#act_playlist tbody').append(trHTML);
                 });
-
-            });
-
-            $("#btnPlay").click(function () {
-                startPlay();
-            });
-
-            $("#btnNext").click(function () {
-                url = "/player?next=true";
-                $.post(url, "", function (data, textStatus) {
-                }, "json");
-            });
-
-            $("#btnPrevious").click(function () {
-                url = "/player?prev=true";
-                $.post(url, "", function (data, textStatus) {
-                }, "json");
-            });
-
-            $("#btnStop").click(function () {
-                stopPlayer();
-            });
-
-            $("#btnPause").click(function () {
-                pausePlayer();
-            });
-
-  			  $("#albumSearch").keypress(function() {
-				  //            if (console && console.log)
-        		//        console.log("request: "+url);
-        		   var name_typed = $("#albumSearch").val();
-					// alert("keypressed:"+$("#albumSearch").val());
-					getAlbumList(name_typed);
-		    	});
-
-            readPlaylist();
-            getActualPlaylist();
-            getAlbumList("");
-            $('#albumSearch').val("");
-        });
-
-        function stopPlayer() {
-            url = "/player?stop=true";
-            $.post(url, "", function (data, textStatus) {
-            }, "json");
-        }
-
-        function startPlay() {
-            url = "/player?play=true";
-            $.post(url, "", function (data, textStatus) {
-            }, "json");
-        }
-
-        function pausePlayer() {
-            url = "/player?pause=true";
-            $.post(url, "", function (data, textStatus) {
-            }, "json");
-        }
-
-
-        function albumSelect(album) {
-            if (console && console.log)
-                console.log("albumSelect:"+album);
-            // open overlay / new page
-            // create playlist with all album titles
-            var url = "/playlist?createAlbumList="+ encodeURIComponent(album);
-            if (console && console.log)
-                console.log("request: "+url);
-            $.getJSON(url).done(function (response) {
-                if (response.result != "ok") {
-                    alert(response.result);
-                }
-                else {
-                    stopPlayer();
-                    readPlaylist();
-                    getActualPlaylist();
-                    getAlbumList("");
-                    startPlay();
-                }
-
-            });
-
-            // show playlist with image
-            // show player
-
-        }
-
-        function getAlbumList(searchString) {
-            var url = "/database?albumList="+searchString;
-            $.getJSON(url).done(function (response) {
-                $('#cover').empty();
-                var trHTML = '<div class="container"> <div class="row mt-5 justify-content-center" id="myimg">';
-                $.each(response, function (i, item) {
-                    trHTML += `
-                    <div class="card card-custom mx-2 mb-3"> 
-                    <img class="card-img-top" style="width: 240px" src="${item.cover}" alt="${item.album}" id="${item.uid}">
-                    <div class="card-body">
-                      <h5 class="card-title" style="width: 200px">${item.album}</h5>
-                      <p class="card-text">${item.performer}</p>
-                    </div>
-                    </div>`
+    
+            }
+    
+            function fileChange() {
+                //FileList Objekt aus dem Input Element mit der ID "fileA"
+                var fileList = document.getElementById("fileA").files;
+    
+    	    $('#filelist').empty();
+    
+                var fileListHTML = '<ul class="list-group">';
+    
+                $.each(fileList, function (i, item) {
+                        fileListHTML += `<li class="list-group-item">${item.name}</li>`;
                 });
-                trHTML += '</div>'; 
-                $('#cover').append(trHTML);
-                $("#myimg div img").on("click", function(){albumSelect($(this).attr("alt"));}); //??
-            })
-        }
-
-        function readPlaylist() {
-            var url = "/playlist?showLists=true";
-            $.getJSON(url).done(function (response) {
-                var items = '';
-                $.each(response.playlists, function (i, item) {
-                    var text = item.playlist;
-                    items += '<a class="dropdown-item" href="#">' + decodeURIComponent(text) + '</a>';
+                fileListHTML += '</ul>';
+    
+                $('#filelist').append(fileListHTML);
+    
+                $('.progress-bar').css("width", "0%");
+            }
+    
+            var client = null;
+    
+            function uploadFile() {
+                //Wieder unser File Objekt
+                var fileList = document.getElementById("fileA").files;
+    
+                $.each(fileList, function (i, file) {
+    
+    		    //create XMLHttpRequest
+    		    client = new XMLHttpRequest();
+    
+    		    if (!file)
+    			return;
+    
+    		    client.onerror = function (e) {
+    			alert("upload error");
+    		    };
+    
+    		    client.onload = function (e) {
+    			$('.progress-bar').css("width", "100%");
+    			getAlbumList("");
+    			// mark transfered file as copied
+    		    };
+    
+    		    client.upload.onprogress = function (e) {
+    			var p = Math.round(100 / e.total * e.loaded);
+    			$('.progress-bar').css("width", p + "%");
+    		    };
+    
+    		    client.onabort = function (e) {
+    			alert("Upload aborted");
+    		    };
+    
+    		    client.open("POST", "/upload");
+    		    client.send(file);
                 });
-
-                $("#demolist").html(items);
-                $('#actPlaylistName').text(decodeURIComponent(response.actualPlaylist));
-
-                //alert(response.actualPlaylist);
-
-                $('#demolist a').on('click', function () {
-                    var txt = encodeURIComponent($(this).text());
-                    var url = "/playlist?change="+txt;
-                    $.getJSON(url).done(function (response) {
-                        getActualPlaylist();
-                        //alert(txt);
-                        $('#actPlaylistName').html(txt);
-                    });
-                });
-            });
-        }
-
-        function getActualPlaylist() {
-            url = "/playlist?show=";
-            $.getJSON(url).done(function (response) {
-                $('#act_playlist tbody').empty();
-                var trHTML;
-                $.each(response, function (i, item) {
-                    trHTML += '<tr id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
-                });
-                $('#act_playlist tbody').append(trHTML);
-            });
-
-        }
-
-        function fileChange() {
-            //FileList Objekt aus dem Input Element mit der ID "fileA"
-            var fileList = document.getElementById("fileA").files;
-
-	    $('#filelist').empty();
-
-            var fileListHTML = '<ul class="list-group">';
-
-            $.each(fileList, function (i, item) {
-                    fileListHTML += `<li class="list-group-item">${item.name}</li>`;
-            });
-            fileListHTML += '</ul>';
-
-            $('#filelist').append(fileListHTML);
-
-            $('.progress-bar').css("width", "0%");
-        }
-
-        var client = null;
-
-        function uploadFile() {
-            //Wieder unser File Objekt
-            var fileList = document.getElementById("fileA").files;
-
-            $.each(fileList, function (i, file) {
-
-		    //create XMLHttpRequest
-		    client = new XMLHttpRequest();
-
-		    if (!file)
-			return;
-
-		    client.onerror = function (e) {
-			alert("upload error");
-		    };
-
-		    client.onload = function (e) {
-			$('.progress-bar').css("width", "100%");
-			getAlbumList("");
-			// mark transfered file as copied
-		    };
-
-		    client.upload.onprogress = function (e) {
-			var p = Math.round(100 / e.total * e.loaded);
-			$('.progress-bar').css("width", p + "%");
-		    };
-
-		    client.onabort = function (e) {
-			alert("Upload aborted");
-		    };
-
-		    client.open("POST", "/upload");
-		    client.send(file);
-            });
-        }
-
-        function uploadAbort() {
-            if (client instanceof XMLHttpRequest)
-                client.abort();
-        }
-
-
+            }
+    
+            function uploadAbort() {
+                if (client instanceof XMLHttpRequest)
+                    client.abort();
+            }
     </script>
 
 </head>
 
 <body>
-<div class="jumbotron text-center">
-    <h1>Nano Audio Player</h1>
-    <p>small, efficient, independent</p>
-</div>
+    <div class="jumbotron text-center">
+        <h1>Nano Audio Player</h1>
+        <p>small, efficient, independent</p>
+    </div>
 
     <!--<h1>Playlist <span id="actPlaylistName" class="badge badge-secondary">nothing</span></h1>-->
 
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-">
-                Playlists
-                <div class="dropdown">
-                    <button class="btn-lg btn-secondary dropdown-toggle" type="button"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="actPlaylistName">
-                        nothing
-                    </button>
-                    <div class="dropdown-menu" id="demolist" aria-labelledby="actPlaylistName" >
-                    </div>
-                </div>
-            </div>
-            <div class="col-">
-                <!-- Trigger the modal with a button -->
-                <button playlistsDropdowntype="button" class="btn btn-info btn-lg" data-toggle="modal"
-                        data-target="#myModal">create Playlist</button>
-                <!-- Modal -->
-                <div class="modal fade" id="myModal" role="dialog">
-                    <div class="modal-dialog">
+    <!-- Trigger the modal with a button -->
+    <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Open Player</button>
+    <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#upload">Upload</button>
 
-                        <!-- Modal content-->
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h4 class="modal-title">Create Playlist</h4>
-                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+    <!-- Modal -->
+    <div id="myModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Playing</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="container">
+			  <div class="row">
+                        <div class="col-sm-3">
+			</div>
+                        <div class="col-sm-9">
+                            <p id="actSong">nothing</p>
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="songProgress" style="width:0%">
+                                </div>
                             </div>
-                            <div class="modal-body">
-                                <p>Name of new playlist</p>
-                                <input id="newPlaylistName">
-                            </div>
-                            <div class="modal-footer">
-                                <button id="createPlaylist" type="button" class="btn btn-default" data-dismiss="modal">
-                                    Create
-                                </button>
-                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                            </div>
+			  </div>
                         </div>
-
                     </div>
+
+                    <div id='toolbar' class="col-">
+                        <!--<div class='wrapper text-center'> -->
+                        <div class="btn-group btn-group" role="group" aria-label="Player" id="Player">
+                            <h2>Player Control </h2>
+                            <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
+                            <button id="btnPause" type="button" class="btn btn-secondary">Pause</button>
+                            <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
+                            <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
+                            <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+                        </div>
+                        <!--</div>-->
+                    </div>
+                    <table class="table table-hover col-" id="act_playlist">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Artist</th>
+                                <th>Album</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 </div>
             </div>
+
         </div>
     </div>
-    <br>
 
-    <div class="container">
-      <div class="row">
-        <div class="col-sm-6">
-	    <p id="actSong">nothing</p><p id="actPercent">0</p><p>%</p>
-        </div>
-      </div>
-    </div>
+    <div id="upload" class="modal fade" role="dialog">
+        <div class="modal-dialog">
 
-    <div id='toolbar' class="col-">
-        <!--<div class='wrapper text-center'> -->
-            <div class="btn-group btn-group-lg" role="group" aria-label="Player" id="Player">
-                <h2>Player Control  </h2>
-                <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
-                <button id="btnPause" type="button" class="btn btn-secondary">Pause</button>
-                <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
-                <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
-                <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Upload</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+
+                    <form action="" method="post" enctype="multipart/form-data">
+                        <input name="file" type="file" id="fileA" multiple onchange="fileChange();" />
+                        <input name="upload" value="Upload" type="button" onclick="uploadFile();" />
+                        <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();" />
+                    </form>
+
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">
+                            upload
+                        </div>
+                    </div>
+
+                    <div class="container" id="filelist">
+                    </div>
+
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
             </div>
-        <!--</div>-->
-    </div>
 
-	<div class="form-group">
-    <label for="albumSearch">Select:</label>
-    <input type="text" class="form-control" id="albumSearch">
-   </div>
-
-<div class="container-fluid center" id="cover">
-<a></a>
-</div>
-
-
-    <table class="table table-hover col-" id="act_playlist">
-        <thead>
-        <tr>
-            <th>Title</th>
-            <th>Artist</th>
-            <th>Album</th>
-        </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
-    <br><br>
-
-
-    <div class="input-group mb-3 col-">
-        <div class="input-group-prepend">
-            <span class="input-group-text" id="basic-addon1">Search for:</span>
-        </div>
-        <input type="text" id="myText" class="form-control" placeholder="" aria-label="Username"
-               aria-describedby="basic-addon1">
-        <button type="button" class="btn btn-secondary" id="requesttable">Search</button>
-    </div>
-    <br>
-    <table class="table col-" id="my_table">
-        <thead>
-        <tr>
-            <th>Title</th>
-            <th>Artist</th>
-            <th>Album</th>
-        </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
-    <br><br>
-
-
-    <form action="" method="post" enctype="multipart/form-data">
-        <input name="file" type="file" id="fileA" multiple onchange="fileChange();"/>
-        <input name="upload" value="Upload" type="button" onclick="uploadFile();"/>
-        <input name="abort" value="Abbrechen" type="button" onclick="uploadAbort();"/>
-    </form>
-
-    <div class="progress">
-        <div class="progress-bar" role="progressbar" aria-valuenow="0"
-             aria-valuemin="0" aria-valuemax="100" style="width:0%">
-            upload
         </div>
     </div>
 
-    <div class="container" id="filelist">
+    <div class="form-group">
+        <label for="albumSearch">Select:</label>
+        <input type="text" class="form-control" id="albumSearch">
     </div>
 
+    <div class="container-fluid center" id="cover">
+        <a></a>
+    </div>
 
 </body>
 </html>
-

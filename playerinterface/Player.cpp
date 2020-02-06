@@ -1,10 +1,6 @@
 #include "Player.h"
 #include <regex>
 
-void Player::setPlayerEndCB(const std::function<void(const std::string &)> &endfunc) {
-    m_endfunc = endfunc;
-}
-
 std::string Player::extractName(const std::string& fullName) {
     std::string fileName;
     const std::regex pattern1{"/([^/]*)\\..*$"};
@@ -19,3 +15,10 @@ std::string Player::extractName(const std::string& fullName) {
     return fileName;
 }
 
+void Player::setPlayerEndCB(const std::function<void(const std::string& )>& endfunc) {
+    m_endfunc = endfunc;
+}
+
+void Player::setSongEndCB(const std::function<void()>& endfunc) {
+    m_songEndfunc = endfunc;
+}

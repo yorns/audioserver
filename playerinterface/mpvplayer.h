@@ -25,6 +25,7 @@ class MpvPlayer : public Player
     bool m_pause {false};
     float actTime { 0.0 };
     std::string actFile;
+    std::string actHumanReadable;
 
     void write_handler( const boost::system::error_code& , std::size_t ) {
 
@@ -32,50 +33,56 @@ class MpvPlayer : public Player
 
     void read_handler(const boost::system::error_code& error, std::size_t bytes_transferred) {
 
-        //boost::ignore_unused(bytes_transferred);
+        if (error)
+            return;
 
-        if (!error) {
-            std::string line(boost::asio::buffer_cast<const char*>(m_readBuffer.data()), bytes_transferred);
-            m_readBuffer.consume(bytes_transferred);
+        std::string line(boost::asio::buffer_cast<const char*>(m_readBuffer.data()), bytes_transferred);
+        m_readBuffer.consume(bytes_transferred);
 
-            if (line.size() > 0 && line.at(0) == '{' ) // identify json
-            {
-                logger(Level::debug) << "line: "<<line.size()<<" - " << line << "\n";
-                try {
-                    nlohmann::json returnData;
-                    returnData = nlohmann::json::parse(line);
-                    if (returnData.find("event") != returnData.end()) {
-                        if (returnData.at("event") == "property-change" && returnData.at("name") == "percent-pos") {
-                            actTime = returnData.at("data");
-                            //logger(Level::debug) << "time is "<< actTime << "\n";
-                        }
-                        else if (returnData.at("event") == "property-change" && returnData.at("name") == "filename/no-ext") {
-                            actFile = returnData.at("data");
-                            logger(Level::debug) << "file is "<< actFile << "\n";
-                        }
-                        else if (returnData.at("event") == "end-file" || returnData.at("event") == "idle") {
-                                actTime = 0;
-                                m_isPlaying = false;
-                                if (m_endfunc) m_endfunc(actFile);
-                            } else  {
-                            logger(Level::debug) << "unknown event " << line << "\n";
-                        }
+        logger(Level::debug) << "line: "<<line.size()<<" - " << line;
+        try {
+            nlohmann::json returnData;
+            returnData = nlohmann::json::parse(line);
 
-                    }
-                    else {
-                        logger(Level::debug) << "unknown event " << line << "\n";
-                    }
-                } catch (nlohmann::json::exception& ex) {
-                    boost::ignore_unused(ex);
-//                    logger(Level::warning) << "cannot read json: "<< ex.what() << "\n";
-//                    logger(Level::debug) << "line: "<< line << "\n";
+                if (returnData.at("event") == "property-change" && returnData.at("name") == "percent-pos") {
+                    actTime = returnData.at("data");
+                    if (actTime > 1 )
+                        m_isPlaying = true;
                 }
-            }
-            boost::asio::async_read_until(m_socket, m_readBuffer, "\n",
-                                          [this](const boost::system::error_code& error, std::size_t bytes_transferred)
-            { read_handler(error, bytes_transferred); }
-            );
+                else if (returnData.at("event") == "property-change" && returnData.at("name") == "filename/no-ext") {
+                    actFile = returnData.at("data");
+                }
+                else if (returnData.at("event") == "property-change" && returnData.at("name") == "metadata") {
+                    nlohmann::json actmeta = returnData.at("data");
+                    actHumanReadable = actmeta["title"];
+                    actHumanReadable += " - ";
+                    actHumanReadable += actmeta["artist"];
+                }
+                else if (returnData.at("event") == "idle") {
+                    m_isPlaying = false;
+                    if (m_endfunc) m_endfunc(actFile);
+                }
+                else if (returnData.at("event") == "end-file") {
+                    if (m_songEndfunc) m_songEndfunc();
+                }
+                else if (returnData.at("event") == "start-file") {
+                    actTime = 0;
+                    m_isPlaying = true;
+                }
+                else  {
+                    logger(Level::debug) << "unknown event " << line << "\n";
+                }
+
+        } catch (nlohmann::json::exception& ex) {
+            boost::ignore_unused(ex);
+            //                    logger(Level::warning) << "cannot read json: "<< ex.what() << "\n";
+            //                    logger(Level::debug) << "line: "<< line << "\n";
         }
+
+        boost::asio::async_read_until(m_socket, m_readBuffer, "\n",
+                                      [this](const boost::system::error_code& error, std::size_t bytes_transferred)
+        { read_handler(error, bytes_transferred); });
+
     }
 
     bool set_command(std::string&& cmd) {
@@ -149,8 +156,6 @@ public:
         if (m_isPlaying)
             stop();
 
-        m_isPlaying = true;
-
         // unpause (just to be sure)
         sendCommand({"set_property", "pause", false});
 
@@ -210,6 +215,7 @@ public:
         return true;
     }
 
+    virtual std::string getSong() final { return actHumanReadable; }
     virtual std::string getSongID() final { return actFile; }
     virtual uint32_t getSongPercentage() final { if (actTime > 100.0) actTime = 100.0; return static_cast<uint32_t>(actTime*100); }
 
@@ -217,9 +223,6 @@ public:
     boost::ignore_unused(id);
     }
 
-    void setPlayerEndCB(const std::function<void(const std::string& )>& endfunc) {
-        m_endfunc = endfunc;
-    }
 };
 
 #endif // MPVPLAYER_H

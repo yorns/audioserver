@@ -21,6 +21,7 @@ protected:
 
     std::string extractName(const std::string& fullName);
     std::function<void(const std::string& )> m_endfunc;
+    std::function<void()> m_songEndfunc;
 
 public:
 
@@ -40,12 +41,14 @@ public:
 
     virtual bool isPlaying() = 0;
 
+    virtual std::string getSong() = 0;
     virtual std::string getSongID() = 0;
     virtual uint32_t getSongPercentage() = 0;
 
     virtual void selectPlaylistsEntry(uint32_t id) = 0;
 
     void setPlayerEndCB(const std::function<void(const std::string& )>& endfunc);
+    void setSongEndCB(const std::function<void()>& endfunc);
 
     virtual bool stopPlayer() = 0;
 };

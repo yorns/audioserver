@@ -11,13 +11,13 @@
 
 int main(int argc, char* argv[])
 {
-    globalLevel = Level::debug;
+    globalLevel = Level::info;
     boost::asio::io_context context;
     KeyHit keyHit;
     std::shared_ptr<Player> player(new MpvPlayer(context,""));
 
     using namespace std::chrono_literals;
-    RepeatTimer timer(context, 10ms);
+    RepeatTimer timer(context, 20ms);
 
     std::string playlistFilename {"/usr/local/var/audioserver/playlist/f7f10f6b-6527-4b6a-91b3-c2da1db14ebb.m3u"};
     if (argc == 2) {
@@ -64,20 +64,26 @@ int main(int argc, char* argv[])
 
     timer.setHandler([&player]() {
         if (player->isPlaying()) {
-            auto file = player->getSongID();
+            auto file = player->getSong();
             auto pos  = player->getSongPercentage();
             std::cout.precision(2);
             std::cout.setf(std::ios::floatfield,std::ios::fixed);
-            std::cout << "\e[?25l"<<std::setw(10) << file<< " "<< std::setw(6) << pos/100.0 << " \t" << std::string((pos+1)/200, '#') << "      \r";
-        }
+            std::cout << "\e[?25l"<<std::setw(40) << file << " "<< std::setw(6) << pos/100.0 << " \t" << std::string((pos+1)/200, '#') << "     \r" <<std::flush;
+       }
     });
 
     timer.start();
 
     player->setPlayerEndCB([](const std::string& name){
         boost::ignore_unused(name);
-        std::cout << "\n";
+        std::cout << "\nEND";
     });
+
+    player->setSongEndCB([&player](){
+        if (player->isPlaying())
+            std::cout << "\n";
+    });
+
 
     context.run();
 
