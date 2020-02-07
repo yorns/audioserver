@@ -1,6 +1,6 @@
 #include "NameGenerator.h"
 
-NameGenerator::GenerationName NameGenerator::create(const std::__cxx11::string &prefix, const std::__cxx11::string &suffix) {
+NameGenerator::GenerationName NameGenerator::create(const std::string &prefix, const std::string &suffix) {
 
     GenerationName retName;
     boost::uuids::random_generator generator;
