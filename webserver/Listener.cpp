@@ -1,6 +1,8 @@
 #include "Listener.h"
 #include "common/logger.h"
 
+using namespace LoggerFramework;
+
 Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
                    SessionCreatorFunction &&creator)
         : m_acceptor(ioc)

@@ -4,62 +4,63 @@
 #include <boost/beast.hpp>
 
 namespace ServerConstant {
-    extern boost::beast::string_view base_path;
+    using sv = std::string_view;
+    extern sv base_path;
 
-    static boost::beast::string_view audioPath{"mp3"};
-    static boost::beast::string_view playlistPath{"playlist"};
-    static boost::beast::string_view htmlPath{"html"};
-    static boost::beast::string_view coverPath{"html/img"};
-    static boost::beast::string_view coverPathWeb{"img"};
-    static boost::beast::string_view albumPlaylistDirectory{"tmp"};
-    static boost::beast::string_view playerLogPath{"player_log"};
+    static constexpr auto audioPath {sv("mp3")};
+    static constexpr auto playlistPath {sv("playlist")};
+    static constexpr auto htmlPath {sv("html")};
+    static constexpr auto coverPath {sv("html/img")};
+    static constexpr auto coverPathWeb {sv("img")};
+    static constexpr auto albumPlaylistDirectory {sv("tmp")};
+    static constexpr auto playerLogPath {sv("player_log")};
 
-    static boost::beast::string_view unknownCoverFile{"unknown"};
-    static boost::beast::string_view unknownCoverExtension{".png"};
+    static constexpr auto unknownCoverFile {sv("unknown")};
+    static constexpr auto unknownCoverExtension {sv(".png")};
 
     namespace AccessPoints {
-        static boost::beast::string_view playlist{"/playlist"};
-        static boost::beast::string_view database{"/database"};
-        static boost::beast::string_view player{"/player"};
-        static boost::beast::string_view upload{"/upload"};
-        static boost::beast::string_view websocket{"/dynamic"};
+        static constexpr auto playlist {sv("/playlist")};
+        static constexpr auto database {sv("/database")};
+        static constexpr auto player {sv("/player")};
+        static constexpr auto upload {sv("/upload")};
+        static constexpr auto websocket {sv("/dynamic")};
     }
 
     namespace Command {
-        static boost::beast::string_view play{"play"};
-        static boost::beast::string_view find{"find"};
-        static boost::beast::string_view create{"create"};
-        static boost::beast::string_view createAlbumList{"createAlbumList"};
-        static boost::beast::string_view add{"add"};
-        static boost::beast::string_view change{"change"};
-        static boost::beast::string_view show{"show"};
-        static boost::beast::string_view showLists{"showLists"};
-        static boost::beast::string_view getAlbumList{"albumList"};
+        static constexpr auto play {sv("play")};
+        static constexpr auto find {sv("find")};
+        static constexpr auto create {sv("create")};
+        static constexpr auto createAlbumList {sv("createAlbumList")};
+        static constexpr auto add {sv("add")};
+        static constexpr auto change {sv("change")};
+        static constexpr auto show {sv("show")};
+        static constexpr auto showLists {sv("showLists")};
+        static constexpr auto getAlbumList {sv("albumList")};
     }
 
     namespace Parameter {
         namespace Database {
-            static boost::beast::string_view titel{"titel"};
-            static boost::beast::string_view album{"album"};
-            static boost::beast::string_view interpret{"performer"};
-            static boost::beast::string_view trackNo{"trackNo"};
-            static boost::beast::string_view uid{"uid"};
-            static boost::beast::string_view overall{"overall"};
-            static boost::beast::string_view playlist{"playlist"};
-            static boost::beast::string_view imageFile{"cover"};
+            static constexpr auto titel {sv("titel")};
+            static constexpr auto album {sv("album")};
+            static constexpr auto interpret {sv("performer")};
+            static constexpr auto trackNo {sv("trackNo")};
+            static constexpr auto uid {sv("uid")};
+            static constexpr auto overall {sv("overall")};
+            static constexpr auto playlist {sv("playlist")};
+            static constexpr auto imageFile {sv("cover")};
         }
         namespace Player {
-            static boost::beast::string_view next{"next"};
-            static boost::beast::string_view previous{"prev"};
-            static boost::beast::string_view play{"play"};
-            static boost::beast::string_view stop{"stop"};
-            static boost::beast::string_view pause{"pause"};
+            static constexpr auto next {sv("next")};
+            static constexpr auto previous {sv("prev")};
+            static constexpr auto play {sv("play")};
+            static constexpr auto stop {sv("stop")};
+            static constexpr auto pause {sv("pause")};
         }
     }
 
     namespace Value {
-        static boost::beast::string_view _true{"true"};
-        static boost::beast::string_view _false{"false"};
+        static constexpr auto _true {sv("true")};
+        static constexpr auto _false {sv("false")};
     }
 
 

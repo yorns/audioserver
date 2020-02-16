@@ -12,6 +12,8 @@ namespace websocket = beast::websocket;         // from <boost/beast/websocket.h
 namespace net = boost::asio;                    // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;               // from <boost/asio/ip/tcp.hpp>
 
+using namespace LoggerFramework;
+
 // Echoes back all received WebSocket messages
 class WebsocketSession : public std::enable_shared_from_this<WebsocketSession>
 {

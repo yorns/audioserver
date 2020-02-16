@@ -20,9 +20,7 @@ namespace utility {
         std::vector<char> tmp2(url.length()+2,0);
         std::memcpy(tmp1.data(), url.data(), url.length());
 
-        //std::cout << "url("<<url.length()<<"): "<< url << "\n";
-
-        int length = decodeURIComponent(tmp1.data(), tmp2.data());
+        std::size_t length = static_cast<std::size_t>(decodeURIComponent(tmp1.data(), tmp2.data()));
 
         return std::string(tmp2.data(), length);
     }
@@ -43,16 +41,13 @@ namespace utility {
             const std::regex pattern{".*/([^\\?]*)\\?([^=]*)=([^&]*)$"};
 
             std::smatch match{};
-            if (std::regex_search(url, match, pattern)) {
+            if (std::regex_search(url, match, pattern)) { /* no regex string_view with c++17 */
                 UrlInfo info;
                 try {
-                    //std::cout << "do extract <"<<url<<">\n";
                     info.command = match[1].str();
                     info.parameter = match[2].str();
                     std::string m = match[3].str();
                     info.value = urlConvert(m);
-                    //std::cout << "convert <"<<m<<"> to <"<<info.value <<">\n";
-
                 } catch (...) {
                     return boost::none;
                 }

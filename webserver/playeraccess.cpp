@@ -1,5 +1,9 @@
+#include <boost/filesystem.hpp>
+#include "common/Constants.h"
+
 #include "playeraccess.h"
 
+using namespace LoggerFramework;
 
 std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
@@ -16,7 +20,7 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         boost::filesystem::path pathAlbum { albumPlaylist.str() };
         std::string playlist = boost::filesystem::exists(pathAlbum)?albumPlaylist.str():genericPlaylist.str();
 
-        m_player->startPlay(std::move(playlist), "");
+        m_player->startPlay(std::move(playlist));
         return R"({"result": "ok"})";
     }
 
@@ -40,7 +44,7 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
     if (urlInfo->parameter == ServerConstant::Parameter::Player::pause &&
             urlInfo->value == ServerConstant::Value::_true) {
-        m_player->pause();
+        m_player->pause_toggle();
         return R"({"result": "ok"})";
     }
 

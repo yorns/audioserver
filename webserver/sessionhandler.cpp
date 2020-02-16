@@ -2,12 +2,14 @@
 #include "websocketsession.h"
 #include "common/logger.h"
 
-bool SessionHandler::addUrlHandler(const boost::beast::string_view &path, http::verb method, PathCompare pathCompare, SessionHandler::RequestHandler &&handler)
+using namespace LoggerFramework;
+
+bool SessionHandler::addUrlHandler(const std::string_view &path, http::verb method, PathCompare pathCompare, SessionHandler::RequestHandler &&handler)
 {
     auto handlerIt = find(pathToStringHandler, path, method);
 
     if (handlerIt != pathToStringHandler.end() && pathCompare == std::get<PathCompare>(*handlerIt)) {
-        logger(Level::warning) << "path is occupied and will be replaces (" << std::get<boost::beast::string_view>(*handlerIt).to_string() << ")\n";
+        logger(Level::warning) << "path is occupied and will be replaces (" << std::get<std::string_view>(*handlerIt) << ")\n";
     }
 
     auto indexTuple = std::make_tuple(path, method, pathCompare, std::move(handler));
@@ -16,7 +18,7 @@ bool SessionHandler::addUrlHandler(const boost::beast::string_view &path, http::
     return true;
 }
 
-bool SessionHandler::addUploadHandler(const boost::beast::string_view &path, SessionHandler::NameGeneratorFunction &&handler, SessionHandler::UploadFinishedHandler &&finishHandler)
+bool SessionHandler::addUploadHandler(const std::string_view &path, SessionHandler::NameGeneratorFunction &&handler, SessionHandler::UploadFinishedHandler &&finishHandler)
 {
 
     http::verb method { http::verb::post };
@@ -25,7 +27,7 @@ bool SessionHandler::addUploadHandler(const boost::beast::string_view &path, Ses
     auto newTuple = std::make_tuple(path, method, PathCompare::exact, std::move(handler), std::move(finishHandler));
 
     if (handlerIt != pathToFileHandler.end()) {
-        logger(Level::warning) << "path is occupied and will be replaces (" << std::get<boost::beast::string_view>(*handlerIt).to_string() << ")\n";
+        logger(Level::warning) << "path is occupied and will be replaces (" << std::get<std::string_view>(*handlerIt) << ")\n";
         // TODO: replace needs to be implemented .. easy first
         pathToFileHandler.erase(handlerIt);
     }
@@ -36,7 +38,7 @@ bool SessionHandler::addUploadHandler(const boost::beast::string_view &path, Ses
 
 std::string SessionHandler::callHandler(http::request_parser<http::string_body> &requestHeader) const {
 
-    const boost::beast::string_view& path = requestHeader.get().target();
+    std::string_view path = requestHeader.get().target();
     const http::verb& method = requestHeader.get().method();
 
     auto handlerIt = find(pathToStringHandler, path, method);
@@ -50,20 +52,20 @@ std::string SessionHandler::callHandler(http::request_parser<http::string_body> 
 }
 
 bool SessionHandler::isUploadFile(const http::request_parser<http::empty_body> &requestHeader) const {
-    const boost::beast::string_view& path = requestHeader.get().target();
+    const std::string_view& path = requestHeader.get().target();
     const boost::beast::http::verb& method = requestHeader.get().method();
     return find(pathToFileHandler, path, method) != pathToFileHandler.end();
 }
 
 bool SessionHandler::isRestAccesspoint(const http::request_parser<http::empty_body> &requestHeader) const {
-    const boost::beast::string_view& path = requestHeader.get().target();
+    const std::string_view& path = requestHeader.get().target();
     const boost::beast::http::verb& method = requestHeader.get().method();
     return find(pathToStringHandler, path, method) != pathToStringHandler.end();
 }
 
 bool SessionHandler::callFileUploadHandler(http::request_parser<http::file_body> &request, const NameGenerator::GenerationName &name) const {
 
-    const boost::beast::string_view& path = request.get().target();
+    const std::string_view& path = request.get().target();
     const http::verb& method = request.get().method();
 
     auto handlerIt = find(pathToFileHandler, path, method);
@@ -80,7 +82,7 @@ bool SessionHandler::callFileUploadHandler(http::request_parser<http::file_body>
 
 NameGenerator::GenerationName SessionHandler::getName(http::request_parser<http::empty_body> &requestHeader) const {
 
-    const boost::beast::string_view& path = requestHeader.get().target();
+    const std::string_view& path = requestHeader.get().target();
     const boost::beast::http::verb& method = requestHeader.get().method();
 
     auto fileIt = find(pathToFileHandler, path, method);

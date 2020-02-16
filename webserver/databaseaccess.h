@@ -2,8 +2,6 @@
 #define DATABASEACCESS_H
 
 #include "database/SimpleDatabase.h"
-#include "common/logger.h"
-#include <nlohmann/json.hpp>
 
 class DatabaseAccess
 {

@@ -1,16 +1,19 @@
 #include "playlistaccess.h"
+#include <nlohmann/json.hpp>
+#include "common/logger.h"
 
+using namespace LoggerFramework;
 
 std::string PlaylistAccess::convertToJson(const std::vector<Id3Info> list) {
     nlohmann::json json;
     for(auto item : list) {
         nlohmann::json jentry;
-        jentry[ServerConstant::Parameter::Database::uid.to_string()] = item.uid;
-        jentry[ServerConstant::Parameter::Database::interpret.to_string()] = item.performer_name;
-        jentry[ServerConstant::Parameter::Database::album.to_string()] = item.album_name;
-        jentry[ServerConstant::Parameter::Database::titel.to_string()] = item.titel_name;
-        jentry[ServerConstant::Parameter::Database::imageFile.to_string()] = item.imageFile;
-        jentry[ServerConstant::Parameter::Database::trackNo.to_string()] = item.track_no;
+        jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.uid;
+        jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.performer_name;
+        jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
+        jentry[std::string(ServerConstant::Parameter::Database::titel)] = item.titel_name;
+        jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.imageFile;
+        jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
         json.push_back(jentry);
     }
     return json.dump(2);
@@ -104,8 +107,8 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
                 for (auto item : lists) {
                     logger(Level::debug) << item.first << " - " << item.second << "\n";
                     nlohmann::json jentry;
-                    jentry[ServerConstant::Parameter::Database::uid.to_string()] = item.first;
-                    jentry[ServerConstant::Parameter::Database::playlist.to_string()] = item.second;
+                    jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.first;
+                    jentry[std::string(ServerConstant::Parameter::Database::playlist)] = item.second;
                     json1.push_back(jentry);
                 }
                 json["playlists"] = json1;

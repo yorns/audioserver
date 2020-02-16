@@ -1,10 +1,11 @@
 #include "id3TagReader.h"
 
 namespace fs = boost::filesystem;
+using namespace LoggerFramework;
 
 std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const std::string &cover) {
 
-    std::string mp3FileName = ServerConstant::base_path.to_string() + "/" + ServerConstant::audioPath.to_string() + "/" + uniqueId + ".mp3";
+    std::string mp3FileName = std::string(ServerConstant::base_path) + "/" + std::string(ServerConstant::audioPath) + "/" + uniqueId + ".mp3";
     fs::path mp3File {mp3FileName};
 
     Id3Info info;
@@ -81,11 +82,11 @@ std::optional<std::string> id3TagReader::extractCover(const std::string &uid) {
 
             of.close();
 
-            return ServerConstant::coverPathWeb.to_string() + "/" + coverImageName.str();
+            return std::string(ServerConstant::coverPathWeb) + "/" + coverImageName.str();
         }
     }
 
-    return  ServerConstant::coverPathWeb.to_string() + "/" +
-            ServerConstant::unknownCoverFile.to_string() +
-            ServerConstant::unknownCoverExtension.to_string();
+    return  std::string(ServerConstant::coverPathWeb) + "/" +
+            std::string(ServerConstant::unknownCoverFile) +
+            std::string(ServerConstant::unknownCoverExtension);
 }

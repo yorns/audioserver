@@ -1,16 +1,19 @@
 #include "databaseaccess.h"
+#include "common/logger.h"
+#include <nlohmann/json.hpp>
 
+using namespace LoggerFramework;
 
 std::string DatabaseAccess::convertToJson(const std::vector<Id3Info> list) {
     nlohmann::json json;
     for(auto item : list) {
         nlohmann::json jentry;
-        jentry[ServerConstant::Parameter::Database::uid.to_string()] = item.uid;
-        jentry[ServerConstant::Parameter::Database::interpret.to_string()] = item.performer_name;
-        jentry[ServerConstant::Parameter::Database::album.to_string()] = item.album_name;
-        jentry[ServerConstant::Parameter::Database::titel.to_string()] = item.titel_name;
-        jentry[ServerConstant::Parameter::Database::imageFile.to_string()] = item.imageFile;
-        jentry[ServerConstant::Parameter::Database::trackNo.to_string()] = item.track_no;
+        jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.uid;
+        jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.performer_name;
+        jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
+        jentry[std::string(ServerConstant::Parameter::Database::titel)] = item.titel_name;
+        jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.imageFile;
+        jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
         json.push_back(jentry);
     }
     return json.dump(2);

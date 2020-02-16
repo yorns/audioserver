@@ -1,6 +1,8 @@
 #include "Session.h"
+
+#include "common/mime_type.h"
+#include "common/Constants.h"
 #include "common/logger.h"
-#include "websocketsession.h"
 
 void Session::fail(boost::system::error_code ec, const std::string& what) {
     // some errors are annoying .. remove some until handshake and shutdown is corrected
@@ -31,18 +33,18 @@ bool Session::is_unknown_http_method(http::request_parser<http::empty_body>& req
 bool Session::is_illegal_request_target(http::request_parser<http::empty_body>& req) const {
     return req.get().target().empty() ||
             req.get().target()[0] != '/' ||
-            req.get().target().find("..") != boost::beast::string_view::npos;
+            req.get().target().find("..") != std::string_view::npos;
 }
 
-http::response<http::string_body> Session::generate_result_packet(http::status status, boost::beast::string_view why,
+http::response<http::string_body> Session::generate_result_packet(http::status status, std::string_view why,
                                                                   uint32_t version, bool keep_alive,
-                                                                  boost::beast::string_view mime_type )
+                                                                  std::string_view mime_type )
 {
     http::response<http::string_body> res{status, version};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, mime_type.to_string());
+    res.set(http::field::content_type, mime_type);
     res.keep_alive(keep_alive);
-    res.body() = why.to_string();
+    res.body() = why;
     res.prepare_payload();
     return res;
 }
@@ -171,9 +173,9 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         return;
     }
 
-    logger(Level::debug) << "find the file <" << requestHandler_sp->get().target().to_string() << "> on directory\n";
+    logger(Level::debug) << "find the file <" << requestHandler_sp->get().target() << "> on directory\n";
 
-    handle_file_request(m_filePath, requestHandler_sp->get().target().to_string(),
+    handle_file_request(m_filePath, std::string(requestHandler_sp->get().target()),
                         requestHandler_sp->get().method(), requestHandler_sp->get().version(),
                         requestHandler_sp->get().keep_alive());
 }

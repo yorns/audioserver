@@ -10,6 +10,8 @@
 #include <boost/filesystem.hpp>
 #include "common/logger.h"
 
+using namespace LoggerFramework;
+
 std::string extractCover(const std::string& file) {
 
     static const char *IdPicture = "APIC";

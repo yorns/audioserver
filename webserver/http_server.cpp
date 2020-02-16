@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -31,8 +30,9 @@
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
+using namespace LoggerFramework;
 
-boost::beast::string_view ServerConstant::base_path{"/var/audioserver"};
+std::string_view ServerConstant::base_path{"/var/audioserver"};
 
 int main(int argc, char* argv[])
 {
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     auto const address = boost::asio::ip::make_address(argv[1]);
     auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
     if (argc == 4)  {
-        ServerConstant::base_path = boost::beast::string_view(argv[3]);
+        ServerConstant::base_path = std::string_view(argv[3]);
         logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
     }
 
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 
     SimpleDatabase database;
     std::string currentPlaylist;
-    std::unique_ptr<Player> player;
+    std::unique_ptr<BasePlayer> player;
 
     logger(Level::info) << "creating database by reading all mp3 files\n";
     database.loadDatabase(mp3Dir.str(), coverDir.str());
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     logger(Level::info) << "\n";
     logger(Level::info) << "create player instance\n";
 
-    player.reset(new MpvPlayer(ioc, "config.dat"));
+    player.reset(new MpvPlayer(ioc));
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
@@ -102,17 +102,17 @@ int main(int argc, char* argv[])
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return databaseWrapper.access(url);
     });
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::playlist, http::verb::get, PathCompare::exact,
                                  [&playlistAccess](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return playlistAccess.access(url);
     });
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::player, http::verb::post, PathCompare::exact,
                                  [&playerAccess](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(request.get().target().to_string());
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return playerAccess.access(url);
     });
 

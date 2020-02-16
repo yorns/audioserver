@@ -1,4 +1,4 @@
 #include "logger.h"
 
-Level globalLevel { Level::debug };
-Logger logger_intern;
+LoggerFramework::Level LoggerFramework::globalLevel { LoggerFramework::Level::debug };
+LoggerFramework::Logger logger_intern;

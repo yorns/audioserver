@@ -1,24 +1,11 @@
 #ifndef SERVER_SESSION_H
 #define SERVER_SESSION_H
 
-#include <boost/optional/optional_io.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
-#include <boost/config.hpp>
-#include <boost/filesystem.hpp>
-#include <algorithm>
-#include <cstdlib>
-#include <functional>
 #include <memory>
 #include <string>
-#include <thread>
-#include <vector>
-#include <tuple>
-#include "nlohmann/json.hpp"
-#include "common/Constants.h"
-#include "common/logger.h"
-#include "common/NameGenerator.h"
-#include "common/mime_type.h"
+#include <string_view>
 #include "sessionhandler.h"
 #include "websocketsession.h"
 
@@ -53,10 +40,10 @@ class Session : public std::enable_shared_from_this<Session>
     bool is_illegal_request_target(http::request_parser<http::empty_body>& req) const;
 
     http::response<http::string_body> generate_result_packet(http::status status,
-                                                             boost::beast::string_view why,
+                                                             std::string_view why,
                                                              uint32_t version,
                                                              bool keep_alive,
-                                                             boost::beast::string_view mime_type = {"text/html"});
+                                                             std::string_view mime_type = {"text/html"});
 
     template <class Body>
     void answer(http::response<Body>&& response) {

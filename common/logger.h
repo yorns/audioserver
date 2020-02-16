@@ -4,6 +4,8 @@
 #include <iostream>
 #include <sstream>
 
+namespace LoggerFramework {
+
 enum Level {
     debug   = 0,
     info    = 1,
@@ -20,8 +22,6 @@ private:
 
 public:
 
-    Logger() = default;
-
     Logger& operator()(Level level) {
         actualLevel = level;
         return *this;
@@ -36,8 +36,10 @@ public:
 
 };
 
-extern Logger logger_intern;
+}
 
-#define logger(l) logger_intern(l) << __FILE__ << ":"<< __LINE__ << " # "
+extern LoggerFramework::Logger logger_intern;
+
+#define logger(l) logger_intern(l) << __FILE__ << ":" << __LINE__ << " # "
 
 #endif // LOGGER_H

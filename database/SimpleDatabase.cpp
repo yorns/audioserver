@@ -254,7 +254,7 @@ void SimpleDatabase::loadDatabase(const std::string &mp3Directory, const std::st
                                [&name](const FileNameType& fileName){ return fileName.name == name; });
         if (it != imglist.end())
             return *it;
-        return {ServerConstant::unknownCoverFile.to_string(),ServerConstant::unknownCoverExtension.to_string()};
+        return {std::string(ServerConstant::unknownCoverFile),std::string(ServerConstant::unknownCoverExtension)};
     };
 
     for (auto& file : filelist) {
@@ -272,7 +272,7 @@ bool SimpleDatabase::readPlaylist(const SimpleDatabase::FileNameType &filename) 
     std::string playlistNameCRYPTIC;
 
     std::string fullFilename =
-            ServerConstant::playlistPath.to_string() + "/" + filename.name + filename.extension;
+            std::string(ServerConstant::playlistPath) + "/" + filename.name + filename.extension;
     std::ifstream stream(fullFilename);
 
     playlistNameCRYPTIC = filename.name;

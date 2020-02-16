@@ -2,10 +2,8 @@
 #define PLAYLISTACCESS_H
 
 #include <string>
-#include <nlohmann/json.hpp>
 
 #include "database/SimpleDatabase.h"
-#include "common/logger.h"
 
 class PlaylistAccess
 {

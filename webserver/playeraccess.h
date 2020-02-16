@@ -1,19 +1,18 @@
 #ifndef PLAYERACCESS_H
 #define PLAYERACCESS_H
 
-#include <boost/filesystem.hpp>
-
-#include "playerinterface/Player.h"
+#include <memory>
+#include <string>
 #include "common/Extractor.h"
-#include "common/Constants.h"
+#include "playerinterface/Player.h"
 
 class PlayerAccess
 {
-    std::unique_ptr<Player>& m_player;
+    std::unique_ptr<BasePlayer>& m_player;
     std::string& m_currentPlaylist;
 
 public:
-    PlayerAccess(std::unique_ptr<Player>& player, std::string& currentPlaylist)
+    PlayerAccess(std::unique_ptr<BasePlayer>& player, std::string& currentPlaylist)
         : m_player(player), m_currentPlaylist(currentPlaylist) {}
 
     PlayerAccess() = delete;

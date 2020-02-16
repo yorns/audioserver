@@ -6,7 +6,7 @@
 #include <boost/asio.hpp>
 #include "common/logger.h"
 
-using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+using tcp = boost::asio::ip::tcp;
 
 typedef std::function<void (tcp::socket&)> SessionCreatorFunction;
 
@@ -26,7 +26,7 @@ public:
             tcp::endpoint endpoint,
             SessionCreatorFunction&& creator);
 
-    ~Listener() { logger(Level::debug) << "Listener destructor\n"; }
+    ~Listener() { logger(LoggerFramework::Level::debug) << "Listener destructor\n"; }
     void run();
 };
 

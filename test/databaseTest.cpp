@@ -9,15 +9,15 @@
 #include "database/SimpleDatabase.h"
 #include "common/NameGenerator.h"
 
-boost::beast::string_view ServerConstant::base_path{"/tmp"};
+std::string_view ServerConstant::base_path{"/tmp"};
 
 int main()
 {
-    boost::filesystem::path playlist_path{ServerConstant::base_path.to_string() + "/" + "playlist"};
+    boost::filesystem::path playlist_path{std::string(ServerConstant::base_path) + "/" + "playlist"};
     boost::filesystem::remove_all( playlist_path);
     boost::filesystem::create_directory(playlist_path);
 
-    boost::filesystem::path mp3_path{ServerConstant::base_path.to_string() + "/" + "mp3"};
+    boost::filesystem::path mp3_path{std::string(ServerConstant::base_path) + "/" + "mp3"};
     boost::filesystem::remove_all(mp3_path);
     boost::filesystem::create_directory(mp3_path);
 
