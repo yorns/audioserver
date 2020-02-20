@@ -135,7 +135,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    std::make_unique<AudioPlayer>(argv[1])->run();
+    auto audioPlayer = std::make_unique<AudioPlayer>(argv[1]);
+    audioPlayer->run();
 
     return EXIT_SUCCESS;
 }
