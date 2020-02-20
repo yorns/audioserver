@@ -137,7 +137,5 @@ int main(int argc, char* argv[])
 
     std::make_unique<AudioPlayer>(argv[1])->run();
 
-    //audioPlayer->run();
-
     return EXIT_SUCCESS;
 }

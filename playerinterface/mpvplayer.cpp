@@ -5,7 +5,7 @@ void MpvPlayer::init_communication() {
     boost::system::error_code ec;
     m_socket.connect(m_accessPoint, ec);
     if (ec) {
-        logger(LoggerFramework::Level::info) << "connecting mpv player - FAILED: mpv peer not available\n";
+        logger(LoggerFramework::Level::warning) << "connecting mpv player - FAILED: mpv peer not available\n";
         abort();
     }
     logger(LoggerFramework::Level::info) << "connecting mpv player - DONE\n";

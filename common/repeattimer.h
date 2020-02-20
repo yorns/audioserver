@@ -8,26 +8,28 @@
 
 class RepeatTimer {
 
-    boost::asio::io_context& m_context;
     boost::asio::steady_timer m_timer;
-    std::function<void()> simpleFunc;
     std::chrono::milliseconds m_duration;
+    std::function<void()> m_handler;
 
 public:
-    RepeatTimer(boost::asio::io_context& context, const std::chrono::milliseconds& duration)
-        : m_context(context), m_timer(m_context), m_duration(duration) {
-        logger(LoggerFramework::Level::debug) << "set Repeat Timer timeout to " << m_duration.count() << "\n";
+    RepeatTimer(boost::asio::io_context& context,
+                const std::chrono::milliseconds& duration)
+        : m_timer(context), m_duration(duration) {
+        logger(LoggerFramework::Level::debug)
+                << "set Repeat Timer timeout to " << m_duration.count() << "\n";
     }
 
     void start() {
-        m_timer.expires_from_now(m_duration);
+        m_timer.expires_after(m_duration);
         m_timer.async_wait([this](const boost::system::error_code& error){
-            if(!error && simpleFunc) {simpleFunc(); start(); } });
+            if(!error && m_handler) { m_handler(); start(); } });
     }
 
     void stop() { m_timer.cancel(); }
 
-    void setHandler(std::function<void()>&& handler) { simpleFunc = std::move(handler); }
+    void setHandler(std::function<void()>&& handler)
+    { m_handler = std::move(handler); }
 
 };
 
