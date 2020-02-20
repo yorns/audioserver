@@ -20,7 +20,7 @@ namespace utility {
         std::vector<char> tmp2(url.length()+2,0);
         std::memcpy(tmp1.data(), url.data(), url.length());
 
-        std::size_t length = static_cast<std::size_t>(decodeURIComponent(tmp1.data(), tmp2.data()));
+        auto length = static_cast<std::size_t>(decodeURIComponent(tmp1.data(), tmp2.data()));
 
         return std::string(tmp2.data(), length);
     }
@@ -34,7 +34,7 @@ namespace utility {
             std::string value;
         };
 
-        typedef boost::optional<UrlInfo> UrlInformation;
+        using UrlInformation = boost::optional<UrlInfo>;
 
         static UrlInformation getUrlInformation(const std::string& url) {
 

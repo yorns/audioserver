@@ -9,8 +9,8 @@ struct Id3Info {
     std::string album_name;
     std::string titel_name;
     std::string performer_name;
-    uint32_t track_no;
-    uint32_t all_tracks_no;
+    uint32_t track_no {0};
+    uint32_t all_tracks_no {0};
     std::string imageFile;
 };
 

@@ -1,6 +1,10 @@
 #include "KeyHit.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <cstring>
+#include "common/logger.h"
+
+using namespace LoggerFramework;
 
 void KeyHit::setTerminal() {
     if (tcgetattr(0, &m_term) < 0)
@@ -55,7 +59,6 @@ void KeyHit::start() {
         resetTerminal();
 
         m_stopped = true;
-
     });
 }
 
@@ -69,6 +72,7 @@ KeyHit::~KeyHit() {
     }
     if (m_thread.joinable())
         m_thread.join();
+    logger(Level::info) << "keyhit ended\n";
 }
 
 void KeyHit::setKeyReceiver(KeyFunc keyFunc) { m_keyFunc = keyFunc; }
@@ -76,4 +80,5 @@ void KeyHit::setKeyReceiver(KeyFunc keyFunc) { m_keyFunc = keyFunc; }
 void KeyHit::stop() {
     // is called from another context
     m_stop = true;
+    logger(Level::info) << "keyhit stop called\n";
 }

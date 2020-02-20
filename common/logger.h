@@ -2,44 +2,54 @@
 #define LOGGER_H
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 
 namespace LoggerFramework {
 
-enum Level {
-    debug   = 0,
-    info    = 1,
-    warning = 2,
-    error   = 3
+enum class Level {
+    debug,
+    info,
+    warning,
+    error
 };
 
 extern Level globalLevel;
 
+template<class IO>
 class Logger
 {
 private:
-    Level actualLevel { Level::debug };
+    Level m_actualLevel { Level::debug };
+    IO& m_stream;
 
 public:
 
+    Logger(IO& stream) : m_stream(stream) {}
+
     Logger& operator()(Level level) {
-        actualLevel = level;
+        m_actualLevel = level;
         return *this;
     }
 
     template <typename T>
     Logger& operator<<(T value) {
-        if (actualLevel >= globalLevel)
-            std::cout << value;
+        if (m_actualLevel >= globalLevel && m_stream.good())
+            m_stream << value;
         return *this;
     }
+
+    IO& getStream() { return m_stream; }
 
 };
 
 }
 
-extern LoggerFramework::Logger logger_intern;
-
+extern LoggerFramework::Logger<std::ostream> logger_intern;
 #define logger(l) logger_intern(l) << __FILE__ << ":" << __LINE__ << " # "
+
+extern std::fstream loggerFile;
+extern LoggerFramework::Logger<std::fstream> file_logger_intern;
+#define fileLog(l) file_logger_intern(l) << __FILE__ << ":" << __LINE__ << " # "
 
 #endif // LOGGER_H

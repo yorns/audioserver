@@ -134,14 +134,18 @@ target_link_libraries(
 #
 # playerCmdl
 #
-add_executable( playerCmdl ${PLAYERINTERFACE} ${COMMONCOMPONENTS}
-    ${CMAKE_SOURCE_DIR}/playerinterface/example/PlayerCmdl.cpp
-    ${CMAKE_SOURCE_DIR}/playerinterface/example/KeyHit.cpp
-    ${CMAKE_SOURCE_DIR}/playerinterface/example/KeyHit.h
+add_executable( playerCmdl ${PLAYERINTERFACE}
+    ${CMAKE_SOURCE_DIR}/common/logger.cpp
+    ${CMAKE_SOURCE_DIR}/common/logger.h
+    ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
+    ${CMAKE_SOURCE_DIR}/common/repeattimer.h
+    ${CMAKE_SOURCE_DIR}/test/PlayerCmdl.cpp
+    ${CMAKE_SOURCE_DIR}/test/KeyHit.cpp
+    ${CMAKE_SOURCE_DIR}/test/KeyHit.h
     )
 
 set_target_properties( playerCmdl PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options( playerCmdl PUBLIC -O0 -g)
+target_compile_options( playerCmdl PUBLIC -O2)
 target_include_directories(
         playerCmdl
         PUBLIC

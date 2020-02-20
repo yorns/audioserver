@@ -15,6 +15,9 @@ namespace ServerConstant {
     static constexpr auto albumPlaylistDirectory {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
 
+    static constexpr int seekForwardSeconds {20};
+    static constexpr int seekBackwardSeconds {-20};
+
     static constexpr auto unknownCoverFile {sv("unknown")};
     static constexpr auto unknownCoverExtension {sv(".png")};
 

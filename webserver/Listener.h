@@ -8,7 +8,7 @@
 
 using tcp = boost::asio::ip::tcp;
 
-typedef std::function<void (tcp::socket&)> SessionCreatorFunction;
+using SessionCreatorFunction = std::function<void (tcp::socket&)>;
 
 class Listener : public std::enable_shared_from_this<Listener>
 {
@@ -26,7 +26,6 @@ public:
             tcp::endpoint endpoint,
             SessionCreatorFunction&& creator);
 
-    ~Listener() { logger(LoggerFramework::Level::debug) << "Listener destructor\n"; }
     void run();
 };
 

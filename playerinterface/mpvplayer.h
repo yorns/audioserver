@@ -9,12 +9,13 @@
 #include <boost/asio.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include "common/logger.h"
+#include "common/Constants.h"
 
 using boost::asio::local::stream_protocol;
 
 class MpvPlayer : public BasePlayer
 {
-    //boost::asio::io_context& m_context;
+
     stream_protocol::socket m_socket;
 
     std::string m_stringBuffer;
@@ -23,6 +24,7 @@ class MpvPlayer : public BasePlayer
     bool m_isPlaying {false};
     bool m_pause {false};
     double actTime { 0.0 };
+
     std::string actFile;
     std::string actHumanReadable;
 
@@ -38,9 +40,8 @@ class MpvPlayer : public BasePlayer
 
 public:
     explicit MpvPlayer(boost::asio::io_context& context)
-        : BasePlayer(),m_socket(context)
+        : m_socket(context)
     {
-
         init_communication();
         init_MpvCommandHandling();
     }
@@ -53,9 +54,9 @@ public:
     MpvPlayer& operator=(const MpvPlayer& ) = delete;
     MpvPlayer& operator=(MpvPlayer&& ) = default;
 
-    virtual ~MpvPlayer() final = default;
+    virtual ~MpvPlayer() = default;
 
-    virtual bool startPlay(const std::string &url) final
+    bool startPlay(const std::string &url) final
     {
         if (m_isPlaying && !stop())
             return false;
@@ -66,44 +67,45 @@ public:
 
     }
 
-    virtual bool stop() final
+    bool stop() final
     {
+        logger(LoggerFramework::Level::info)<<"stopping player\n";
         m_isPlaying = false;
         return sendData({"stop"});
     }
 
-    virtual bool seek_forward() final
+    bool seek_forward() final
     {
-        return sendCommand({"seek",20});
+        return sendCommand({"seek",ServerConstant::seekForwardSeconds});
     }
 
-    virtual bool seek_backward() final
+    bool seek_backward() final
     {
-        return sendCommand({"seek",-20});
+        return sendCommand({"seek",ServerConstant::seekBackwardSeconds});
     }
 
-    virtual bool next_file() final
+    bool next_file() final
     {
         return sendCommand({"playlist-next"});
     }
 
-    virtual bool prev_file() final
+    bool prev_file() final
     {
         return sendCommand({"playlist-prev"});
     }
 
-    virtual bool pause_toggle() final
+    bool pause_toggle() final
     {
         m_pause = !m_pause;
         return sendCommand({"set_property", "pause", m_pause});
     }
 
-    virtual bool isPlaying() final
+    bool isPlaying() final
     {
         return m_isPlaying;
     }
 
-    virtual bool stopPlayerConnection() final
+    bool stopPlayerConnection() final
     {
         m_isPlaying = false;
         if (m_socket.is_open()) {
@@ -121,11 +123,11 @@ public:
         return true;
     }
 
-    virtual std::string getSong() final { return actHumanReadable; }
-    virtual std::string getSongID() final { return actFile; }
-    virtual uint32_t getSongPercentage() final { if (actTime > 100.0) actTime = 100.0; return static_cast<uint32_t>(actTime*100); }
+    std::string getSong() final { return actHumanReadable; }
+    std::string getSongID() final { return actFile; }
+    uint32_t getSongPercentage() final { if (actTime > 100.0) actTime = 100.0; return static_cast<uint32_t>(actTime*100); }
 
-    virtual void selectPlaylistsEntry(uint32_t id) final
+    void selectPlaylistsEntry(uint32_t id) final
     {
     boost::ignore_unused(id);
     }

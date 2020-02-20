@@ -7,8 +7,13 @@
 
 using namespace LoggerFramework;
 
-int main()
+int main(int argc, char* argv[])
 {
+    if (argc != 2) {
+        std::cerr << "usage " << argv[0] << " <playlist file>\n";
+        return EXIT_FAILURE;
+    }
+
     globalLevel = Level::debug;
 
     boost::asio::io_context m_context;
@@ -17,15 +22,28 @@ int main()
     std::string m_stringBuffer;
     boost::asio::dynamic_string_buffer m_readBuffer(m_stringBuffer);
 
-    std::string m_accessPoint {"/tmp/mpvsocket"};
+    const std::string m_accessPoint {"/tmp/mpvsocket"};
 
+    boost::system::error_code ec;
     logger(Level::info) << "connect to access <"<<m_accessPoint<<">\n";
-    m_socket.connect(m_accessPoint);
+    m_socket.connect(m_accessPoint, ec);
+
+    if (ec) {
+        logger(Level::warning) << "could not connect to mpv socket (" << m_accessPoint << ")\n";
+        return EXIT_FAILURE;
+    }
+
+    //
+    //
+    //
 
     {
         // write command
-        std::string command = R"({ "command": ["loadlist", "/home/yorn/tmp/playlist/f7f10f6b-6527-4b6a-91b3-c2da1db14ebb.m3u"] })";
-        boost::asio::write(m_socket, boost::asio::buffer(command + '\n'));
+        std::string command = R"({ "command": ["loadlist", ")";
+        command += argv[1];
+        command += R"("] })";
+        command += "\n";
+        boost::asio::write(m_socket, boost::asio::buffer(command));
 
         // read answer
         std::size_t size = boost::asio::read_until(m_socket, m_readBuffer, '\n');
@@ -49,6 +67,10 @@ int main()
         }
 
     }
+
+    //
+    //
+    //
 
     while (1) {
         std::size_t size = boost::asio::read_until(m_socket, m_readBuffer, '\n');

@@ -37,14 +37,14 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
     }
 
     // Start listening for connections
-    logger(debug) << "listen to connection\n";
+    logger(Level::debug) << "listen to connection\n";
     m_acceptor.listen( boost::asio::socket_base::max_listen_connections, ec);
     if(ec) {
         failPrint(ec, "listen");
         return;
     }
 
-    logger(debug) << "Listener established - waiting for connection requests\n";
+    logger(Level::debug) << "Listener established - waiting for connection requests\n";
 }
 
 void Listener::run() {
@@ -71,7 +71,7 @@ void Listener::onAccept(boost::system::error_code ec) {
         return;
     }
     else {
-        logger(debug) << "Create the session and run it\n";
+        logger(Level::debug) << "Create the session and run it\n";
         m_sessionCaller(m_socket);
     }
 

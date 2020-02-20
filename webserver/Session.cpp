@@ -83,7 +83,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     if( websocket::is_upgrade(requestHandler_sp->get()) &&
         requestHandler_sp->get().target() == ServerConstant::AccessPoints::websocket)
     {
-        logger(debug) << "request target is websocket upgrade\n";
+        logger(Level::debug) << "request target is websocket upgrade\n";
 
         // read full request
         // if so, create a websocket_session by transferring the socket
@@ -95,7 +95,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     if (m_sessionHandler.isUploadFile(*requestHandler_sp)) {
 
-        logger(debug) << "request target is an upload point\n";
+        logger(Level::debug) << "request target is an upload point\n";
 
         auto name = m_sessionHandler.getName(*requestHandler_sp);
 
@@ -114,7 +114,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
             auto read_done_handler = [this, self, name, reqFile](boost::system::error_code ec,
                     std::size_t bytes_transferred) {
-                logger(debug) << "finished read <" << name.unique_id << ">\n";
+                logger(Level::debug) << "finished read <" << name.unique_id << ">\n";
                 boost::ignore_unused(bytes_transferred);
                 if (!ec) {
                     m_sessionHandler.callFileUploadHandler(*reqFile, name);
@@ -134,7 +134,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     if (m_sessionHandler.isRestAccesspoint(*requestHandler_sp)) {
        // ownership goes to session handler
-        logger(debug) << "request target is a REST accesspoint\n";
+        logger(Level::debug) << "request target is a REST accesspoint\n";
 
         auto requestString = std::make_shared < http::request_parser < http::string_body >> (std::move(*requestHandler_sp));
         auto self { shared_from_this() };
@@ -144,7 +144,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                          [this, self, requestString](boost::system::error_code ec,
                          std::size_t bytes_transferred) {
             if (!ec) {
-                logger(debug) << "finished read on target <" << requestString->get().target() << ">\n";
+                logger(Level::debug) << "finished read on target <" << requestString->get().target() << ">\n";
                 boost::ignore_unused(ec, bytes_transferred);
 
                 // find if this is a rest request, run the handler

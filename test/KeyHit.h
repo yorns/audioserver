@@ -6,8 +6,6 @@
 
 #include <functional>
 #include <thread>
-#include <iostream>
-#include <cstring>
 
 typedef std::function<void(char key)> KeyFunc;
 

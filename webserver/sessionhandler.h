@@ -20,12 +20,12 @@ enum class PathCompare {
 
 class SessionHandler {
 
-    typedef std::function<const typename NameGenerator::GenerationName (void)> NameGeneratorFunction;
-    typedef std::function<std::string(const http::request_parser<http::string_body>&)> RequestHandler;
-    typedef std::function<bool(const NameGenerator::GenerationName&)> UploadFinishedHandler;
+    using NameGeneratorFunction = std::function<const typename NameGenerator::GenerationName (void)>;
+    using RequestHandler = std::function<std::string(const http::request_parser<http::string_body>&)>;
+    using UploadFinishedHandler = std::function<bool(const NameGenerator::GenerationName&)>;
 
-    typedef std::vector<std::tuple<std::string_view, http::verb, PathCompare, NameGeneratorFunction, UploadFinishedHandler>> FileHandlerList;
-    typedef std::vector<std::tuple<std::string_view, http::verb, PathCompare, RequestHandler>>  StringHandlerList;
+    using FileHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, NameGeneratorFunction, UploadFinishedHandler>>;
+    using StringHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, RequestHandler>>;
 
     FileHandlerList pathToFileHandler;
     StringHandlerList pathToStringHandler;
@@ -63,8 +63,8 @@ public:
     bool addUrlHandler(const std::string_view& path, http::verb method, PathCompare pathCompare, RequestHandler&& handler);
     bool addUploadHandler(const std::string_view& path, NameGeneratorFunction&& handler, UploadFinishedHandler&& finishHandler);
 
-    bool isUploadFile(const http::request_parser<http::empty_body>& requestHeader) const;
-    bool isRestAccesspoint(const http::request_parser<http::empty_body>& requestHeader) const;
+    [[nodiscard]] bool isUploadFile(const http::request_parser<http::empty_body>& requestHeader) const;
+    [[nodiscard]] bool isRestAccesspoint(const http::request_parser<http::empty_body>& requestHeader) const;
 
     std::string callHandler(http::request_parser<http::string_body>& requestHeader) const;
     bool callFileUploadHandler(http::request_parser<http::file_body>& request, const NameGenerator::GenerationName& name) const;

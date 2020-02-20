@@ -1,9 +1,9 @@
-#include<id3v2tag.h>
-#include<mpegfile.h>
-#include<id3v2frame.h>
-#include<id3v2header.h>
-#include<attachedpictureframe.h>
-#include<cstdio>
+#include <id3v2tag.h>
+#include <mpegfile.h>
+#include <id3v2frame.h>
+#include <id3v2header.h>
+#include <attachedpictureframe.h>
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -35,7 +35,10 @@ std::string extractCover(const std::string& file) {
     Frame = id3v2tag->frameListMap()[IdPicture];
 
     for (auto &it : Frame) {
-        PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
+        PicFrame = dynamic_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
+        if (!PicFrame)
+            continue;
+
         logger(Level::debug) << "Type = " << PicFrame->type() << ", mimetype: " << PicFrame->mimeType() << "\n";
 
         if (PicFrame->picture().size() > 0) {
@@ -59,7 +62,7 @@ std::string extractCover(const std::string& file) {
         }
     }
 
-    return "";
+    return "none cover";
 }
 
 

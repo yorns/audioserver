@@ -8,13 +8,13 @@ int main()
     boost::asio::io_context context;
     boost::asio::signal_set signals(context, SIGINT);
 
-    //RepeatTimer timer1(context,std::chrono::milliseconds(500));
-    RepeatTimer timer1(context, 500ms);
+    //RepeatTimer timer(context, std::chrono::milliseconds(500));
+    RepeatTimer timer(context, 500ms);
 
-    signals.async_wait([&timer1](const boost::system::error_code&, int ) { timer1.stop(); std::cout << "END\n"; });
+    timer.setHandler([](){ static int i{0}; std::cout << "I was here ( x "<<i++<<" )\n"; });
+    timer.start();
 
-    timer1.setHandler([](){ static int i{0}; std::cout << "I was here ( x "<<i++<<" )\n"; });
-    timer1.start();
+    signals.async_wait([&timer](const boost::system::error_code&, int ) { timer.stop(); std::cout << "END\n"; });
 
     context.run();
 
