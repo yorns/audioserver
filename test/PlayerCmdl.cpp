@@ -15,52 +15,51 @@ using namespace std::chrono_literals;
 class AudioPlayer
 {
 private:
-    boost::asio::io_context context;
-    KeyHit keyHit;
-    std::unique_ptr<BasePlayer> player { new MpvPlayer(context) };
-    RepeatTimer m_timer {context, 100ms};
-    boost::asio::signal_set signals {context, SIGINT};
+    boost::asio::io_context m_context;
+    KeyHit m_keyHit;
+    std::unique_ptr<BasePlayer> m_player { new MpvPlayer(m_context) };
+    RepeatTimer m_timer {m_context, 100ms};
+    boost::asio::signal_set m_signals {m_context, SIGINT};
 
     std::string m_playlistFilename;
 
     void keyHandler(const char key) {
         switch (key) {
         case 'q': {
-            player->stop();
-            player->stopPlayerConnection();
+            m_player->stop();
+            m_player->stopPlayerConnection();
             m_timer.stop();
-            signals.cancel();
-            keyHit.stop();
+            m_signals.cancel();
+            m_keyHit.stop();
             logger(Level::info) << "all components stopped\n";
             break;
         }
         case 'p': {
-            std::string url {m_playlistFilename};
-            player->startPlay(std::move(url));
+            m_player->startPlay(m_playlistFilename);
             break;
         }
         case '+': {
-            player->next_file();
+            m_player->next_file();
             break;
         }
         case '-': {
-            player->prev_file();
+            m_player->prev_file();
             break;
         }
         case 'k': {
-            player->seek_forward();
+            m_player->seek_forward();
             break;
         }
         case 'j': {
-            player->seek_backward();
+            m_player->seek_backward();
             break;
         }
         case ' ': {
-            player->pause_toggle();
+            m_player->pause_toggle();
             break;
         }
         case 's': {
-            player->stop();
+            m_player->stop();
             break;
         }
         }
@@ -69,8 +68,8 @@ private:
 
     void init() {
 
-        keyHit.setKeyReceiver([this](const char key){
-            context.post([this, key]() { keyHandler(key); });
+        m_keyHit.setKeyReceiver([this](const char key){
+            m_context.post([this, key]() { keyHandler(key); });
         });
 
         std::cout.precision(2);
@@ -78,28 +77,30 @@ private:
         std::cout << "\e[?25l";
 
         m_timer.setHandler([this]() {
-            if (player->isPlaying()) {
-                auto file = player->getSong();
-                auto pos  = player->getSongPercentage();
-                std::cout << std::setw(40) << file << " "<< std::setw(6) << pos/100.0 << " \t" << std::string((pos+1)/200, '#') << "           \r" <<std::flush;
+            if (m_player->isPlaying()) {
+                auto file = m_player->getSong();
+                auto pos  = m_player->getSongPercentage();
+                std::cout << std::setw(40) << file << " "<< std::setw(6)
+                          << pos/100.0 << " \t" << std::string((pos+1)/200, '#')
+                          << "           \r" <<std::flush;
            }
         });
 
-        player->setPlayerEndCallBack([](){
+        m_player->setPlayerEndCallBack([](){
             std::cout << "\nstopped\n";
         });
 
-        player->setSongEndCB([this](const std::string& ){
-            if (player->isPlaying())
+        m_player->setSongEndCB([this](const std::string& ){
+            if (m_player->isPlaying())
                 std::cout << "\n";
         });
 
-        signals.async_wait([this](const boost::system::error_code& ec, int ) {
+        m_signals.async_wait([this](const boost::system::error_code& ec, int ) {
             if (!ec) {
-                player->stop();
-                player->stopPlayerConnection();
+                m_player->stop();
+                m_player->stopPlayerConnection();
                 m_timer.stop();
-                keyHit.stop();
+                m_keyHit.stop();
             } else {
                 logger(Level::info) << "signal handler stopped\n";
             }
@@ -119,9 +120,9 @@ public:
     AudioPlayer& operator=(AudioPlayer&& ) = delete;
 
     void run() {
-        keyHit.start();
+        m_keyHit.start();
         m_timer.start();
-        context.run();
+        m_context.run();
     }
 
 };
