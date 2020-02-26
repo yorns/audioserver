@@ -6,27 +6,26 @@
 #include <thread>
 #include <vector>
 
-#include <boost/optional/optional_io.hpp>
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/config.hpp>
 #include <boost/filesystem.hpp>
 
 #include "nlohmann/json.hpp"
+
 #include "common/mime_type.h"
 #include "common/Extractor.h"
 #include "common/logger.h"
-
-#include "id3tagreader/id3TagReader.h"
-
-#include "Listener.h"
-#include "Session.h"
-#include "playerinterface/mpvplayer.h"
-#include "database/SimpleDatabase.h"
+#include "common/repeattimer.h"
+#include "webserver/Listener.h"
+#include "webserver/Session.h"
 #include "webserver/databaseaccess.h"
 #include "webserver/playlistaccess.h"
 #include "webserver/playeraccess.h"
-#include "common/repeattimer.h"
+#include "playerinterface/mpvplayer.h"
+#include "database/SimpleDatabase.h"
+#include "id3tagreader/id3TagReader.h"
+
 
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
@@ -52,6 +51,8 @@ int main(int argc, char* argv[])
         logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
     }
 
+    globalLevel = Level::info;
+
     // The io_context is required for all I/O
     boost::asio::io_context ioc;
 
@@ -65,12 +66,13 @@ int main(int argc, char* argv[])
     mp3Dir << ServerConstant::base_path << "/" << ServerConstant::audioPath;
     coverDir << ServerConstant::base_path << "/" << ServerConstant::coverPath;
     playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
-    playerLogDir << ServerConstant::base_path << "/" << ServerConstant::playerLogPath;
     htmlDir << ServerConstant::base_path << "/" << ServerConstant::htmlPath;
 
-    logger(Level::info) << "path: \naudiopath: "<<mp3Dir.str()<<"\ncoverpath: "<<coverDir.str()
-              << "\nplaylist: " << playlistDir.str() << "\nPlayerlog dir: "<<playerLogDir.str()
-              << "\n";
+    logger(Level::info) << "path: \n";
+    logger(Level::info) << " audio path    : " << mp3Dir.str() << "\n";
+    logger(Level::info) << " cover path    : " << coverDir.str() << "\n";
+    logger(Level::info) << " playlist path : " << playlistDir.str() << "\n";
+    logger(Level::info) << " html path     : " << htmlDir.str() << "\n";
 
     SimpleDatabase database;
     std::string currentPlaylist;
@@ -97,8 +99,8 @@ int main(int argc, char* argv[])
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
-    PlaylistAccess playlistAccess(database, currentPlaylist);
-    PlayerAccess playerAccess(player, currentPlaylist);
+    PlaylistAccess playlistWrapper(database, currentPlaylist);
+    PlayerAccess playerWrapper(player, currentPlaylist);
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
@@ -106,14 +108,14 @@ int main(int argc, char* argv[])
         return databaseWrapper.access(url);
     });
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::playlist, http::verb::get, PathCompare::exact,
-                                 [&playlistAccess](const http::request_parser<http::string_body>& request) -> std::string {
+                                 [&playlistWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
-        return playlistAccess.access(url);
+        return playlistWrapper.access(url);
     });
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::player, http::verb::post, PathCompare::exact,
-                                 [&playerAccess](const http::request_parser<http::string_body>& request) -> std::string {
+                                 [&playerWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
-        return playerAccess.access(url);
+        return playerWrapper.access(url);
     });
 
     auto generateName = [&mp3Dir]() -> NameGenerator::GenerationName
@@ -141,9 +143,10 @@ int main(int argc, char* argv[])
                                     uploadFinishHandler);
 
     auto sessionCreator = [&sessionHandler, &htmlDir](tcp::socket& socket) {
-        logger(Level::debug) << "\n--- new session created ---\n";
+        logger(Level::debug) << "--- new session created ---\n";
+        static uint32_t sessionId { 0 };
         std::string localHtmlDir{htmlDir.str()};
-        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir))->start();
+        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), sessionId++)->start();
     };
 
     RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
@@ -166,10 +169,10 @@ int main(int argc, char* argv[])
     websocketSonginfoSenderTimer.start();
 
     logger(Level::info) << "shared Listener creation and run\n";
-       std::make_shared<Listener>(
-        ioc,
-        tcp::endpoint{address, port},
-        sessionCreator)->run();
+    std::make_shared<Listener>(
+                ioc,
+                tcp::endpoint{address, port},
+                sessionCreator)->run();
 
     logger(Level::info) << "server started\n";
 

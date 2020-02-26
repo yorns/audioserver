@@ -11,7 +11,7 @@ if (BOOST_DIR)
 endif (BOOST_DIR)
 
 find_package( Threads REQUIRED)
-find_package( Boost 1.69.0 REQUIRED COMPONENTS filesystem system regex locale)
+find_package( Boost 1.70.0 REQUIRED COMPONENTS filesystem system regex locale)
 
 include(createdirs)
 include(FindPkgConfig)
@@ -27,7 +27,6 @@ set(PLAYERINTERFACE
 
 set(WEBSERVER
     ${CMAKE_SOURCE_DIR}/common/Constants.h
-    ${CMAKE_SOURCE_DIR}/webserver/http_server.cpp
     ${CMAKE_SOURCE_DIR}/webserver/Listener.cpp
     ${CMAKE_SOURCE_DIR}/webserver/Listener.h
     ${CMAKE_SOURCE_DIR}/webserver/sessionhandler.cpp
@@ -70,6 +69,7 @@ set(COMMONCOMPONENTS
     )
 
 add_executable(${PROJECT_NAME}
+               ${CMAKE_SOURCE_DIR}/audioserver/audioServer.cpp
                ${PLAYERINTERFACE}
                ${WEBSERVER}
                ${ID3INTERFACE}
@@ -94,7 +94,6 @@ target_include_directories(
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
-target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW)
 
 add_executable( mp3CoverExtractor ${CMAKE_SOURCE_DIR}/extractId3Cover/saveID3TagPicture.cpp ${COMMONCOMPONENTS})

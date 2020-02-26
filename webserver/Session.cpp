@@ -7,19 +7,19 @@
 void Session::fail(boost::system::error_code ec, const std::string& what) {
     // some errors are annoying .. remove some until handshake and shutdown is corrected
     if (what != "handshake" && what != "shutdown")
-        logger(Level::warning) << what << ": " << ec.message() << "\n";
+        logger(Level::warning) << "<" << m_runID << ">" << what << ": " << ec.message() << "\n";
 }
 
 void Session::start() {
     auto self { shared_from_this() };
 
-    logger(Level::debug) << "start request\n";
+    logger(Level::debug) << "<" << m_runID << "> " << "request from client started\n";
     std::shared_ptr<http::request_parser<http::empty_body>> requestHandler(new http::request_parser<http::empty_body>);
     requestHandler->body_limit(std::numeric_limits<std::uint64_t>::max());
 
     http::async_read_header(m_socket, m_buffer, *requestHandler,
                             [this, self, requestHandler]( boost::system::error_code ec, std::size_t bytes_transferred) {
-        logger(Level::debug) << "read header finished\n";
+        logger(Level::debug) << "<" << m_runID << "> " << "read header finished\n";
         on_read_header(requestHandler, ec, bytes_transferred);
     });
 }
@@ -64,7 +64,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     if (is_unknown_http_method(*requestHandler_sp)) {
         // read until finished
-        logger(Level::debug) << "Method unknown\n";
+        logger(Level::debug) << "<" << m_runID << "> " << "Method unknown\n";
         return answer(generate_result_packet(http::status::bad_request,
                                              "Unknown HTTP-method", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
@@ -73,29 +73,17 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     // Request path must be absolute and not contain "..".
     if (is_illegal_request_target(*requestHandler_sp)) {
         // read until finished
-        logger(Level::debug) << "Illegal request\n";
+        logger(Level::debug) << "<" << m_runID << "> " << "Illegal request\n";
         return answer(generate_result_packet(http::status::bad_request,
                                              "Illegal request-target", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
     }
 
-    // See if it is a WebSocket Upgrade
-    if( websocket::is_upgrade(requestHandler_sp->get()) &&
-        requestHandler_sp->get().target() == ServerConstant::AccessPoints::websocket)
-    {
-        logger(Level::debug) << "request target is websocket upgrade\n";
-
-        // read full request
-        // if so, create a websocket_session by transferring the socket
-        auto websocketSession = std::make_shared<WebsocketSession>(std::move(m_socket), m_sessionHandler);
-        websocketSession->do_accept(requestHandler_sp->release());
-
-        return;
-    }
+    logger(Level::debug) << "<" << m_runID << "> " << "reading target: " << requestHandler_sp->get().target() << "\n";
 
     if (m_sessionHandler.isUploadFile(*requestHandler_sp)) {
 
-        logger(Level::debug) << "request target is an upload point\n";
+        logger(Level::debug) << "<" << m_runID << "> " << "request target is an upload point\n";
 
         auto name = m_sessionHandler.getName(*requestHandler_sp);
 
@@ -114,7 +102,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
             auto read_done_handler = [this, self, name, reqFile](boost::system::error_code ec,
                     std::size_t bytes_transferred) {
-                logger(Level::debug) << "finished read <" << name.unique_id << ">\n";
+                logger(Level::debug) << "<" << m_runID << "> " << "finished read <" << name.unique_id << ">\n";
                 boost::ignore_unused(bytes_transferred);
                 if (!ec) {
                     m_sessionHandler.callFileUploadHandler(*reqFile, name);
@@ -123,7 +111,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                                                   "audio/mp3"));
                 }
                 else {
-                    logger(Level::warning) << "could not reade file <" << name.filename << ">\n";
+                    logger(Level::warning) << "<" << m_runID << "> " << "could not reade file <" << name.filename << ">\n";
                 }
             };
 
@@ -133,18 +121,18 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     }
 
     if (m_sessionHandler.isRestAccesspoint(*requestHandler_sp)) {
-       // ownership goes to session handler
-        logger(Level::debug) << "request target is a REST accesspoint\n";
+        // ownership goes to session handler
+        logger(Level::debug) << "<" << m_runID << "> " << "request target is a REST accesspoint\n";
 
         auto requestString = std::make_shared < http::request_parser < http::string_body >> (std::move(*requestHandler_sp));
         auto self { shared_from_this() };
 
         // do full read
-        http::async_read(m_socket, m_buffer, *requestString.get(),
+        http::async_read(m_socket, m_buffer, *requestString,
                          [this, self, requestString](boost::system::error_code ec,
                          std::size_t bytes_transferred) {
             if (!ec) {
-                logger(Level::debug) << "finished read on target <" << requestString->get().target() << ">\n";
+                logger(Level::debug) << "<" << m_runID << "> " << "finished read on target <" << requestString->get().target() << ">\n";
                 boost::ignore_unused(ec, bytes_transferred);
 
                 // find if this is a rest request, run the handler
@@ -164,20 +152,51 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                                                   requestString->get().keep_alive()));
                 }
 
-                logger(Level::info) << "requestString use count: " << requestString.use_count() << "\n";
 
             }
         });
 
-        logger(Level::info) << "requestHandler_sp use count: " << requestHandler_sp.use_count() << "\n";
         return;
     }
 
-    logger(Level::debug) << "find the file <" << requestHandler_sp->get().target() << "> on directory\n";
+    auto requestString = std::make_shared < http::request_parser < http::string_body >> (std::move(*requestHandler_sp));
+    auto self { shared_from_this() };
 
-    handle_file_request(m_filePath, std::string(requestHandler_sp->get().target()),
-                        requestHandler_sp->get().method(), requestHandler_sp->get().version(),
-                        requestHandler_sp->get().keep_alive());
+    logger(Level::debug) << "<" << m_runID << "> " << "do full read\n";
+    http::async_read(m_socket, m_buffer, *requestString,
+                     [this, self, requestString](boost::system::error_code ec,
+                     std::size_t bytes_transferred) {
+
+        if (!ec) {
+            logger(Level::debug) << "<" << m_runID << "> " << "finished ordinary read on target <" << requestString->get().target() << ">\n";
+            boost::ignore_unused(ec, bytes_transferred);
+
+            // See if it is a WebSocket Upgrade
+            if( websocket::is_upgrade(requestString->get()) &&
+                    requestString->get().target() == ServerConstant::AccessPoints::websocket)
+            {
+                logger(Level::debug) << "<" << m_runID << "> " << "request target is websocket upgrade\n";
+
+                // read full request
+                // if so, create a websocket_session by transferring the socket
+                auto websocketSession = std::make_shared<WebsocketSession>(std::move(m_socket), m_sessionHandler);
+                websocketSession->do_accept(requestString->release());
+
+                return;
+            }
+
+            logger(Level::debug) << "<" << m_runID << "> " << "find the file <" << requestString->get().target() << "> on directory\n";
+
+            handle_file_request(m_filePath, std::string(requestString->get().target()),
+                                requestString->get().method(), requestString->get().version(),
+                                requestString->get().keep_alive());
+
+        }
+        else {
+            logger(Level::warning) << "<" << m_runID << "> " << "failed to read: "<< ec << "\n";
+        }
+    });
+
 }
 
 void Session::handle_file_request(const std::string &file_root, std::string target, http::verb method, uint32_t version, bool keep_alive) {
@@ -186,7 +205,7 @@ void Session::handle_file_request(const std::string &file_root, std::string targ
     if(target.back() == '/')
         path.append("index.html");
 
-    logger(Level::debug) << "file request on: <"<< path << ">\n";
+    logger(Level::debug) << "<" << m_runID << "> " << "file request on: <"<< path << ">\n";
 
     // read full request (should be empty, however ..)
 
@@ -231,8 +250,8 @@ void Session::handle_file_request(const std::string &file_root, std::string targ
 }
 
 
-Session::Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath)
-        : m_socket(std::move(socket)), m_sessionHandler(sessionHandler), m_filePath(std::move(filePath))
+Session::Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath, uint32_t runId)
+        : m_socket(std::move(socket)), m_sessionHandler(sessionHandler), m_filePath(std::move(filePath)), m_runID(runId)
 {
 }
 

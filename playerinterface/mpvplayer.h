@@ -28,6 +28,8 @@ class MpvPlayer : public BasePlayer
     std::string actFile;
     std::string actHumanReadable;
 
+    std::string m_actUrl;
+
     std::deque<std::string> m_expectedAnswer;
 
     std::unordered_map<std::string, std::function<void(const nlohmann::json& data)>> propertiesHandler;
@@ -58,9 +60,16 @@ public:
 
     bool startPlay(const std::string &url) final
     {
+        // just unpause if player is in playing state and paused
+        if (m_actUrl == url && m_isPlaying && m_pause) {
+            pause_toggle();
+            return true;
+        }
+
         if (m_isPlaying && !stop())
             return false;
 
+        m_actUrl = url;
         // unpause (just to be sure)
         return sendCommand({"set_property", "pause", m_pause = false}) &&
                sendCommand({"loadlist", url});

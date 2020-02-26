@@ -70,30 +70,9 @@ public:
     };
 
     std::string getHumanReadableName(const std::string& crypticID,
-                                     const std::unordered_map<std::string, PlaylistContainer>& playlist) {
+                                     const std::unordered_map<std::string, PlaylistContainer>& playlist);
 
-        auto item = std::find_if(std::begin(playlist), std::end(playlist), [&crypticID](const auto &elem) {
-            return elem.first == crypticID;
-        });
-
-        if (item != std::end(playlist))
-            return item->second.internalPlaylistName;
-
-        return "";
-    }
-
-    std::string getHumanReadableName(const std::string& crypticID) {
-
-        auto humanReadableName = getHumanReadableName(crypticID, m_playlist);
-        if (!humanReadableName.empty())
-            return humanReadableName;
-
-        humanReadableName = getHumanReadableName(crypticID, m_playlistAlbum);
-        if (!humanReadableName.empty())
-            return humanReadableName;
-
-        return "";
-    }
+    std::string getHumanReadableName(const std::string& crypticID);
 
 
     std::vector<Id3Info> findInDatabase(const std::string &what, DatabaseSearchType type);

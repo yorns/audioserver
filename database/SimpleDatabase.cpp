@@ -358,6 +358,31 @@ std::optional<Id3Info> SimpleDatabase::getEntryOnId(const std::string& id) {
     return std::nullopt;
 }
 
+std::string SimpleDatabase::getHumanReadableName(const std::string &crypticID, const std::unordered_map<std::string, SimpleDatabase::PlaylistContainer> &playlist) {
+
+    auto item = std::find_if(std::begin(playlist), std::end(playlist), [&crypticID](const auto &elem) {
+        return elem.first == crypticID;
+    });
+
+    if (item != std::end(playlist))
+        return item->second.internalPlaylistName;
+
+    return "";
+}
+
+std::string SimpleDatabase::getHumanReadableName(const std::string &crypticID) {
+
+    auto humanReadableName = getHumanReadableName(crypticID, m_playlist);
+    if (!humanReadableName.empty())
+        return humanReadableName;
+
+    humanReadableName = getHumanReadableName(crypticID, m_playlistAlbum);
+    if (!humanReadableName.empty())
+        return humanReadableName;
+
+    return "";
+}
+
 std::string SimpleDatabase::createAlbumPlaylistTmp(const std::string &album) {
 
     auto it = std::find_if(std::begin(m_playlistAlbum), std::end(m_playlistAlbum), [&album](const auto &it) {
