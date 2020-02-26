@@ -51,6 +51,7 @@
     </style>
     <script type="text/javascript">
 	var webSocket;
+        var songID;
             $(document).ready(function () {
    	function runWebsocket() {
 
@@ -71,7 +72,9 @@
 		try {
 		var msg = JSON.parse(event.data);
 			// TODO: only if song ID is new, request the name
-                var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
+		if (songID != msg.SongBroadcastMessage.songID) {
+	            songID = msg.SongBroadcastMessage.songID;
+			var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
                 $.getJSON(url).done(function (response) {
 //                    console.log('received: ' + response[0].titel);
 			if (response) {
@@ -79,8 +82,9 @@
                     $("#actCover").attr("src",response[0].cover);
 			}
                 });
-		$("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
                 getActualPlaylist();
+		}
+		$("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
 		} catch (e) {
 		  console.log("json parse failed");
 		}
