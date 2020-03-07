@@ -10,12 +10,21 @@
 #include <boost/core/ignore_unused.hpp>
 #include "common/logger.h"
 #include "common/Constants.h"
+#include "common/filesystemadditions.h"
 
 using boost::asio::local::stream_protocol;
 
 class MpvPlayer : public BasePlayer
 {
+public:
+    enum class NextPlaylistDirection {
+        next,
+        previous,
+        current,
+        stop
+    };
 
+private:
     stream_protocol::socket m_socket;
 
     std::string m_stringBuffer;
@@ -23,16 +32,15 @@ class MpvPlayer : public BasePlayer
     static constexpr std::string_view m_accessPoint {"/tmp/mpvsocket"};
     bool m_isPlaying {false};
     bool m_pause {false};
-    double actTime { 0.0 };
+    NextPlaylistDirection m_nextPlaylistDirection { NextPlaylistDirection::next };
+    float m_actTime { 0.0 };
 
-    std::string actFile;
-    std::string actHumanReadable;
+    std::string m_AudioFileName;
 
-    std::string m_actUrl;
+    std::vector<std::string>::const_iterator m_currentItemIterator { m_playlist.end() };
 
     std::deque<std::string> m_expectedAnswer;
-
-    std::unordered_map<std::string, std::function<void(const nlohmann::json& data)>> propertiesHandler;
+    std::unordered_map<std::string, std::function<void(const nlohmann::json& data)>> m_propertiesHandler;
 
     void read_handler(const boost::system::error_code& error, std::size_t bytes_transferred);
     bool sendData(std::string&& cmd);
@@ -40,13 +48,16 @@ class MpvPlayer : public BasePlayer
     void init_communication();
     void init_MpvCommandHandling();
 
+    bool doPlayFile(const std::string& uniqueId);
+    bool doPlayPreviousFileInList();
+    bool doPlayNextFileInList();
+
+    bool needsOnlyUnpause(const std::string& playlist);
+
+    bool needsStop();
+
 public:
-    explicit MpvPlayer(boost::asio::io_context& context)
-        : m_socket(context)
-    {
-        init_communication();
-        init_MpvCommandHandling();
-    }
+    MpvPlayer(boost::asio::io_context& context);
 
     MpvPlayer() = delete;
 
@@ -58,88 +69,24 @@ public:
 
     virtual ~MpvPlayer() = default;
 
-    bool startPlay(const std::string &url) final
-    {
-        // just unpause if player is in playing state and paused
-        if (m_actUrl == url && m_isPlaying && m_pause) {
-            pause_toggle();
-            return true;
-        }
+    bool startPlay(const std::vector<std::string>& list, const std::string& playlistUniqueId, const std::string& playlistName) final;
+    bool stop() final;
+    bool stopPlayerConnection() final;
 
-        if (m_isPlaying && !stop())
-            return false;
+    bool seek_forward() final;
+    bool seek_backward() final;
+    bool next_file() final;
+    bool prev_file() final;
+    bool pause_toggle() final;
 
-        m_actUrl = url;
-        // unpause (just to be sure)
-        return sendCommand({"set_property", "pause", m_pause = false}) &&
-               sendCommand({"loadlist", url});
+    bool isPlaying() final;
 
-    }
+    bool jump_to_position(int percent) final;
+    bool jump_to_fileUID(std::string& filename) final;
 
-    bool stop() final
-    {
-        logger(LoggerFramework::Level::info)<<"stopping player\n";
-        m_isPlaying = false;
-        return sendData({"stop"});
-    }
-
-    bool seek_forward() final
-    {
-        return sendCommand({"seek",ServerConstant::seekForwardSeconds});
-    }
-
-    bool seek_backward() final
-    {
-        return sendCommand({"seek",ServerConstant::seekBackwardSeconds});
-    }
-
-    bool next_file() final
-    {
-        return sendCommand({"playlist-next"});
-    }
-
-    bool prev_file() final
-    {
-        return sendCommand({"playlist-prev"});
-    }
-
-    bool pause_toggle() final
-    {
-        m_pause = !m_pause;
-        return sendCommand({"set_property", "pause", m_pause});
-    }
-
-    bool isPlaying() final
-    {
-        return m_isPlaying;
-    }
-
-    bool stopPlayerConnection() final
-    {
-        m_isPlaying = false;
-        if (m_socket.is_open()) {
-            boost::system::error_code ec;
-            m_socket.close(ec);
-            if (ec) {
-                logger(LoggerFramework::Level::warning) << "not able to close socket\n";
-                return false;
-            }
-        }
-        else {
-            return false;
-        }
-        logger(LoggerFramework::Level::debug) << "player stopped\n";
-        return true;
-    }
-
-    std::string getSong() final { return actHumanReadable; }
-    std::string getSongID() final { return actFile; }
-    uint32_t getSongPercentage() final { if (actTime > 100.0) actTime = 100.0; return static_cast<uint32_t>(actTime*100); }
-
-    void selectPlaylistsEntry(uint32_t id) final
-    {
-    boost::ignore_unused(id);
-    }
+    const std::string getSongName() const final;
+    std::string getSongID() final;
+    uint32_t getSongPercentage() final;
 
 };
 

@@ -8,6 +8,8 @@
 #include "playerinterface/mpvplayer.h"
 #include "common/repeattimer.h"
 #include "common/logger.h"
+#include "database/playlist.h"
+#include "common/Constants.h"
 
 using namespace LoggerFramework;
 using namespace std::chrono_literals;
@@ -35,7 +37,9 @@ private:
             break;
         }
         case 'p': {
-            m_player->startPlay(m_playlistFilename);
+            Database::Playlist playlist(m_playlistFilename, Database::Persistent::isTemporal);
+            playlist.read();
+            m_player->startPlay(playlist.getPlaylist(), playlist.getUniqueID(), "Bensound");
             break;
         }
         case '+': {
@@ -58,6 +62,14 @@ private:
             m_player->pause_toggle();
             break;
         }
+        case 'c': {
+            m_player->do_cycle(true);
+            break;
+        }
+        case 'x': {
+            m_player->do_shuffle(true);
+            break;
+        }
         case 's': {
             m_player->stop();
             break;
@@ -78,7 +90,7 @@ private:
 
         m_timer.setHandler([this]() {
             if (m_player->isPlaying()) {
-                auto file = m_player->getSong();
+                auto file = m_player->getSongName();
                 auto pos  = m_player->getSongPercentage();
                 std::cout << std::setw(40) << file << " "<< std::setw(6)
                           << pos/100.0 << " \t" << std::string((pos+1)/200, '#')
@@ -127,9 +139,15 @@ public:
 
 };
 
+/* please create an infrastructure like this
+mkdir -p /tmp/playertest/mp3/
+mkdir -p /tmp/playertest/playlist/
+ */
+
 int main(int argc, char* argv[])
 {
-    globalLevel = Level::warning;
+    globalLevel = Level::debug;
+    ServerConstant::base_path = ServerConstant::sv{"/tmp/playertest"};
 
     if (argc != 2) {
         std::cerr << "usage "<<argv[0] <<" <playlist file>\n";

@@ -7,15 +7,13 @@
 
 class PlaylistAccess
 {
-    SimpleDatabase& m_database;
-    std::string& m_currentPlaylist;
-    bool m_albumPlaylist  { false };
+    Database::SimpleDatabase& m_database;
 
-    std::string convertToJson(const std::vector<Id3Info> list);
+    std::string convertToJson(const std::optional<std::vector<Id3Info>> list);
 
 public:
-    PlaylistAccess(SimpleDatabase& simpleDatabase, std::string& currentPlaylist)
-        : m_database(simpleDatabase), m_currentPlaylist(currentPlaylist) {}
+    PlaylistAccess(Database::SimpleDatabase& simpleDatabase)
+        : m_database(simpleDatabase) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);
 };

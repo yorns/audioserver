@@ -3,6 +3,7 @@
 #include "common/logger.h"
 
 using namespace LoggerFramework;
+using namespace Common;
 
 bool SessionHandler::addUrlHandler(const std::string_view &path, http::verb method, PathCompare pathCompare, SessionHandler::RequestHandler &&handler)
 {

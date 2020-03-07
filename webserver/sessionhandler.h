@@ -20,9 +20,9 @@ enum class PathCompare {
 
 class SessionHandler {
 
-    using NameGeneratorFunction = std::function<const typename NameGenerator::GenerationName (void)>;
+    using NameGeneratorFunction = std::function<const typename Common::NameGenerator::GenerationName (void)>;
     using RequestHandler = std::function<std::string(const http::request_parser<http::string_body>&)>;
-    using UploadFinishedHandler = std::function<bool(const NameGenerator::GenerationName&)>;
+    using UploadFinishedHandler = std::function<bool(const Common::NameGenerator::GenerationName&)>;
 
     using FileHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, NameGeneratorFunction, UploadFinishedHandler>>;
     using StringHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, RequestHandler>>;
@@ -67,9 +67,9 @@ public:
     [[nodiscard]] bool isRestAccesspoint(const http::request_parser<http::empty_body>& requestHeader) const;
 
     std::string callHandler(http::request_parser<http::string_body>& requestHeader) const;
-    bool callFileUploadHandler(http::request_parser<http::file_body>& request, const NameGenerator::GenerationName& name) const;
+    bool callFileUploadHandler(http::request_parser<http::file_body>& request, const Common::NameGenerator::GenerationName& name) const;
 
-    NameGenerator::GenerationName getName(http::request_parser<http::empty_body>& requestHeader) const;
+    Common::NameGenerator::GenerationName getName(http::request_parser<http::empty_body>& requestHeader) const;
 
     void addWebsocketConnection(std::weak_ptr<WebsocketSession> websocketSession, const boost::asio::ip::tcp::endpoint& endpoint);
 

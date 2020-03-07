@@ -50,11 +50,22 @@ set(ID3INTERFACE
     )
 
 set(DATABASE
+    ${CMAKE_SOURCE_DIR}/database/NameType.h
+    ${CMAKE_SOURCE_DIR}/database/searchitem.h
+    ${CMAKE_SOURCE_DIR}/database/searchaction.h
+    ${CMAKE_SOURCE_DIR}/database/playlist.cpp
+    ${CMAKE_SOURCE_DIR}/database/playlist.h
+    ${CMAKE_SOURCE_DIR}/database/id3repository.cpp
+    ${CMAKE_SOURCE_DIR}/database/id3repository.h
+    ${CMAKE_SOURCE_DIR}/database/playlistcontainer.cpp
+    ${CMAKE_SOURCE_DIR}/database/playlistcontainer.h
     ${CMAKE_SOURCE_DIR}/database/SimpleDatabase.cpp
     ${CMAKE_SOURCE_DIR}/database/SimpleDatabase.h
     )
 
 set(COMMONCOMPONENTS
+    ${CMAKE_SOURCE_DIR}/common/Constants.cpp
+    ${CMAKE_SOURCE_DIR}/common/Constants.h
     ${CMAKE_SOURCE_DIR}/common/logger.h
     ${CMAKE_SOURCE_DIR}/common/logger.cpp
     ${CMAKE_SOURCE_DIR}/common/Extractor.h
@@ -66,6 +77,9 @@ set(COMMONCOMPONENTS
     ${CMAKE_SOURCE_DIR}/common/urlDecode.c
     ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
     ${CMAKE_SOURCE_DIR}/common/repeattimer.h
+    ${CMAKE_SOURCE_DIR}/common/filesystemadditions.cpp
+    ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
+    ${CMAKE_SOURCE_DIR}/common/FileType.h
     )
 
 add_executable(${PROJECT_NAME}
@@ -134,13 +148,19 @@ target_link_libraries(
 # playerCmdl
 #
 add_executable( playerCmdl ${PLAYERINTERFACE}
+    ${CMAKE_SOURCE_DIR}/common/Constants.cpp
+    ${CMAKE_SOURCE_DIR}/common/Constants.h
     ${CMAKE_SOURCE_DIR}/common/logger.cpp
     ${CMAKE_SOURCE_DIR}/common/logger.h
     ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
     ${CMAKE_SOURCE_DIR}/common/repeattimer.h
-    ${CMAKE_SOURCE_DIR}/test/PlayerCmdl.cpp
+    ${CMAKE_SOURCE_DIR}/common/filesystemadditions.cpp
+    ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
+    ${CMAKE_SOURCE_DIR}/database/playlist.cpp
+    ${CMAKE_SOURCE_DIR}/database/playlist.h
     ${CMAKE_SOURCE_DIR}/test/KeyHit.cpp
     ${CMAKE_SOURCE_DIR}/test/KeyHit.h
+    ${CMAKE_SOURCE_DIR}/test/PlayerCmdl.cpp
     )
 
 set_target_properties( playerCmdl PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

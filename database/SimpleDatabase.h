@@ -3,113 +3,165 @@
 
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include "common/Extractor.h"
 #include "common/Constants.h"
+#include "common/filesystemadditions.h"
+#include "common/NameGenerator.h"
 #include "id3tagreader/Id3Info.h"
+#include "database/playlistcontainer.h"
+#include "database/NameType.h"
+#include "common/FileType.h"
+#include "searchitem.h"
+#include "searchaction.h"
+#include "id3repository.h"
 
+namespace Database {
 
 class SimpleDatabase {
 
-    struct PlaylistContainer {
-        std::string internalPlaylistName;
-        std::vector<std::string> Playlist;
-        bool changed { false };
-
-        PlaylistContainer()
-        {}
-        PlaylistContainer(const std::string& _internalPlaylistName, bool _changed = false)
-            : internalPlaylistName(_internalPlaylistName), changed(_changed)
-        {}
-        PlaylistContainer(const std::string& _internalPlaylistName, std::vector<std::string>&& _playlist, bool _changed = false)
-            : internalPlaylistName(_internalPlaylistName), Playlist(std::move(_playlist)),changed(_changed)
-        {}
-
-    };
-
-    std::vector<Id3Info> m_simpleDatabase;
-    std::unordered_map<std::string, PlaylistContainer> m_playlist;
-    std::unordered_map<std::string, PlaylistContainer> m_playlistAlbum;
-
-    struct FileNameType {
-        std::string name;
-        std::string extension;
-    };
-    std::vector<FileNameType> getAllFilesInDir(const std::string &dirPath);
-    bool removeAllFilesInDir(const std::string& dirPath);
-
-    bool writeChangedPlaylists(const std::string &playlistDirectory,
-                               const std::unordered_map<std::string, PlaylistContainer>& playlist);
-
-    bool isPlaylist(const std::string &playlistName,
-                    const std::unordered_map<std::string, PlaylistContainer>& playlist);
-
-    std::string getNameFromHumanReadable(const std::string& humanReadablePlaylist,
-                                         const std::unordered_map<std::string, PlaylistContainer>& playlist);
-
-    bool isPlaylistID(const std::string &playlistID,
-                      const std::unordered_map<std::string, PlaylistContainer>& playlist);
-
-    std::vector<std::string> showPlaylist(const std::string& playlistName,
-                                          const std::unordered_map<std::string, PlaylistContainer>& playlist);
-
-    void emplace_back(Id3Info &&info);
-
-    std::optional<Id3Info> getEntryOnId(const std::string& id);
+    PlaylistContainer m_playlistContainer;
+    Id3Repository m_id3Repository;
 
 public:
     SimpleDatabase() = default;
 
-    enum class DatabaseSearchType {
-        unknown,
-        titel,
-        album,
-        interpret,
-        uid,
-        overall
-    };
+    void loadDatabase( ) {
+       m_id3Repository.read();
+       m_playlistContainer.readPlaylists();
+    }
 
-    std::string getHumanReadableName(const std::string& crypticID,
-                                     const std::unordered_map<std::string, PlaylistContainer>& playlist);
+    std::optional<std::vector<Id3Info>> search(const std::string &what, SearchItem item,
+                                               SearchAction action = SearchAction::exact,
+                                               Common::FileType fileType = Common::FileType::Audio) {
+        switch(fileType) {
 
-    std::string getHumanReadableName(const std::string& crypticID);
+        case Common::FileType::Audio: {
+            return m_id3Repository.search(what, item, action);
+        }
 
+        case Common::FileType::Playlist: {
+            if (action == SearchAction::alike) {
+                logger(LoggerFramework::Level::warning) << "searching playlist \"allike\" is not available\n";
+            }
+            auto uidList = m_playlistContainer.getPlaylistByName(what);
+            std::optional<std::vector<Id3Info>> list = {};
+            try {
+                for(auto& elem : uidList.value()) {
+                    auto item = m_id3Repository.search(elem, SearchItem::uid);
+                    for(auto& single : item.value())
+                        list->push_back(single);
+                }
+            } catch (std::exception& ) { return std::nullopt; }
+            return list;
+        }
 
-    std::vector<Id3Info> findInDatabase(const std::string &what, DatabaseSearchType type);
+        case Common::FileType::Covers: {
+            logger(LoggerFramework::Level::warning) << "no search for cover IDs available\n";
+            return std::nullopt;
+        }
 
-    std::vector<Id3Info> findAlbum(const std::string& what);
+        case Common::FileType::Html: {
+            logger(LoggerFramework::Level::warning) << "no search for html data available\n";
+            return std::nullopt;
+        }
 
-    void addToDatabase(const std::string& uniqueId, const std::string& cover);
-    void addToDatabase(Id3Info&& info);
+        }
+        return std::nullopt;
+    }
 
-    void loadDatabase(const std::string &mp3Directory, const std::string imgDirectory);
+    std::optional<std::string> createPlaylist(const std::string &name, Database::Persistent persistent) {
 
-    bool readPlaylist(const FileNameType& filename);
+        if (!m_playlistContainer.isUniqueName(name))
+            return std::nullopt;
 
-    bool writeChangedPlaylists();
+        const auto newPlaylistUniqueID =
+                Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Playlist),".m3u");
+        Playlist newPlaylist(newPlaylistUniqueID.unique_id, persistent);
+        newPlaylist.setName(name);
 
-    void removeTemporalPlaylists();
+        m_playlistContainer.addPlaylist(std::move(newPlaylist));
 
-    void loadAllPlaylists(const std::string &playlistDirectory);
+        return newPlaylistUniqueID.unique_id;
+    }
 
-    std::string createPlaylist(const std::string &name);
+    bool addToPlaylistName(const std::string &playlistName, std::string &&uniqueID) {
+        return m_playlistContainer.addItemToPlaylistName(playlistName, std::move(uniqueID));
+    }
 
-    std::string createAlbumPlaylistTmp(const std::string &album);
+    bool addToPlaylistUID(const std::string &playlistUniqueID, std::string&& uniqueID) {
+        return m_playlistContainer.addItemToPlaylistUID(playlistUniqueID, std::move(uniqueID));
+    }
 
-    std::string getNameFromHumanReadable(const std::string& humanReadablePlaylist);
+    bool writeChangedPlaylists() {
+        return m_playlistContainer.writeChangedPlaylists();
+    }
 
-    bool isPlaylist(const std::string &playlistName);
+    std::optional<std::string> convertPlaylist(const std::string& name, NameType nameType) {
+        return m_playlistContainer.convertName(name, nameType);
+    }
 
-    bool addToPlaylist(const std::string &playlistName, const std::string &name);
+    std::optional<const std::vector<std::string>> getPlaylistByName(const std::string& playlistName) const {
+        return m_playlistContainer.getPlaylistByName(playlistName);
+    }
 
-    bool isPlaylistID(const std::string &playlistID);
+    std::optional<const std::vector<std::string>> getPlaylistByUID(const std::string& playlistName) const {
+        return m_playlistContainer.getPlaylistByUID(playlistName);
+    }
 
-    bool addToPlaylistID(const std::string &ID, const std::string &name);
+    bool setCurrentPlaylistUniqueId(const std::string& uniqueID) {
+        return m_playlistContainer.setCurrentPlaylist(uniqueID);
+    }
 
-    std::vector<std::pair<std::string, std::string>> showAllPlaylists();
+    std::optional<const std::string> getCurrentPlaylistUniqueID() {
+        return m_playlistContainer.getCurrentPlaylistUniqueID();
+    }
 
-    std::vector<std::string> showPlaylist(const std::string& playlistName);
+    std::vector<std::pair<std::string, std::string>> getAllPlaylists() {
+        std::vector<std::pair<std::string, std::string>> list;
+
+        return m_playlistContainer.getAllPlaylists();
+    }
+
+    bool addNewAudioFileUniqueId(const std::string& uniqueID) {
+        return m_id3Repository.add(uniqueID);
+    }
+
+    typedef std::tuple<const std::vector<std::string>, const std::string, const std::string> GetAlbumPlaylistAndNamesType;
+
+    std::vector<Id3Info> getIdListOfItemsInPlaylistId(const std::string& uniqueId) {
+        std::vector<Id3Info> itemList;
+        if (auto playlistNameOpt = m_playlistContainer.getPlaylistByUID(uniqueId)) {
+            for (auto playlistItemUID : *playlistNameOpt) {
+                auto id3 = m_id3Repository.search(playlistItemUID, Database::SearchItem::uid);
+                if (id3 && id3->size() == 1) {
+                    itemList.push_back(id3->front());
+                }
+            }
+        }
+        return itemList;
+    }
+
+    GetAlbumPlaylistAndNamesType getAlbumPlaylistAndNames() {
+        if (auto playlistNameOpt = m_playlistContainer.getCurrentPlaylist()) {
+            std::string playlistUniqueId = playlistNameOpt->getUniqueID();
+            std::string playlistName = playlistNameOpt->getName();
+            std::vector<std::string> playlist = playlistNameOpt->getPlaylist();
+            logger(Level::debug) << "Album playlist found for <" << playlistUniqueId
+                                 << "> (" << playlistName << ") with " << playlist.size()
+                                 << " elements\n";
+            return {playlist, playlistUniqueId, playlistName};
+        }
+
+        return {{},"",""};
+
+    }
+
+#ifdef WITH_UNITTEST
+    bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }
+#endif
 
 };
+
+}
 
 #endif //SERVER_SIMPLEDATABASE_H

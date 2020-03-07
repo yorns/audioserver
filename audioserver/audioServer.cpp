@@ -31,30 +31,7 @@ using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 namespace http = boost::beast::http;    // from <boost/beast/http.hpp>
 using namespace LoggerFramework;
 
-std::string_view ServerConstant::base_path{"/var/audioserver"};
-
-int main(int argc, char* argv[])
-{
-    // Check command line arguments.
-    if (argc != 4 && argc != 3)
-    {
-        logger(Level::info) <<
-            "Usage:" << argv[0] << " <address> <port> [doc_root]\n" <<
-            "Example:\n" <<
-            "    "<<argv[0]<<" 0.0.0.0 8080 .\n";
-        return EXIT_FAILURE;
-    }
-    auto const address = boost::asio::ip::make_address(argv[1]);
-    auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
-    if (argc == 4)  {
-        ServerConstant::base_path = std::string_view(argv[3]);
-        logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
-    }
-
-    globalLevel = Level::info;
-
-    // The io_context is required for all I/O
-    boost::asio::io_context ioc;
+void printPaths() {
 
     // create all strings for the directories used in initialisation
     std::stringstream mp3Dir;
@@ -74,33 +51,49 @@ int main(int argc, char* argv[])
     logger(Level::info) << " playlist path : " << playlistDir.str() << "\n";
     logger(Level::info) << " html path     : " << htmlDir.str() << "\n";
 
-    SimpleDatabase database;
-    std::string currentPlaylist;
-    std::unique_ptr<BasePlayer> player;
+}
 
-    logger(Level::info) << "creating database by reading all mp3 files\n";
-    database.loadDatabase(mp3Dir.str(), coverDir.str());
+int main(int argc, char* argv[])
+{
+    // Check command line arguments.
+    if (argc != 4 && argc != 3)
+    {
+        logger(Level::info) <<
+            "Usage:" << argv[0] << " <address> <port> [doc_root]\n" <<
+            "Example:\n" <<
+            "    "<<argv[0]<<" 0.0.0.0 8080 .\n";
+        return EXIT_FAILURE;
+    }
 
-    logger(Level::info) << "remove temporal files and load all Playlists available\n";
-    database.removeTemporalPlaylists();
-    database.loadAllPlaylists(playlistDir.str());
-    if (!database.showAllPlaylists().empty())
-        currentPlaylist = database.showAllPlaylists().back().second;
+    ServerConstant::base_path = ServerConstant::sv{"/var/audioserver"};
 
-    if (currentPlaylist.empty())
-        logger(Level::info) << "no current playlist specified\n";
+    auto const address = boost::asio::ip::make_address(argv[1]);
+    auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
+    if (argc == 4)  {
+        ServerConstant::base_path = std::string_view(argv[3]);
+        logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
+    }
 
-    else logger(Level::info) << "current playlist on startup is: <"<< currentPlaylist<<">\n";
+    globalLevel = Level::debug;
 
-    logger(Level::info) << "\n";
+    printPaths();
+
+    boost::asio::io_context ioc;
+
+    Database::SimpleDatabase database;
+    database.loadDatabase();
+
     logger(Level::info) << "create player instance\n";
-
-    player.reset(new MpvPlayer(ioc));
+    auto player = std::unique_ptr<BasePlayer>(new MpvPlayer(ioc));
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
-    PlaylistAccess playlistWrapper(database, currentPlaylist);
-    PlayerAccess playerWrapper(player, currentPlaylist);
+    PlaylistAccess playlistWrapper(database);
+
+    PlayerAccess playerWrapper(player, [&database]() -> std::tuple<const std::vector<std::string>, const std::string, const std::string>{
+                                   logger(Level::debug) << "Request to get playlist and playlist names\n";
+                                   return database.getAlbumPlaylistAndNames();
+    });
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
@@ -118,34 +111,26 @@ int main(int argc, char* argv[])
         return playerWrapper.access(url);
     });
 
-    auto generateName = [&mp3Dir]() -> NameGenerator::GenerationName
+    auto generateName = []() -> Common::NameGenerator::GenerationName
     {
-        auto name = NameGenerator::create(mp3Dir.str() , ".mp3");
+        auto name = Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Audio) , ".mp3");
         logger(Level::debug) << "generating file name: " << name.filename << "\n";
         return name;
     };
 
-    auto uploadFinishHandler = [&database](const NameGenerator::GenerationName& name)-> bool
+    auto uploadFinishHandler = [&database](const Common::NameGenerator::GenerationName& name)-> bool
     {
-        logger(Level::debug) << "creating cover for: " << name.unique_id << "\n";
-        id3TagReader reader;
-        auto cover = reader.extractCover(name.unique_id);
-        if (cover) {
-            database.addToDatabase(name.unique_id, *cover);
-            return true;
-        }
-        database.addToDatabase(name.unique_id, "");
-        return true;
+        return database.addNewAudioFileUniqueId(name.unique_id);
     };
 
     sessionHandler.addUploadHandler(ServerConstant::AccessPoints::upload,
                                     generateName,
                                     uploadFinishHandler);
 
-    auto sessionCreator = [&sessionHandler, &htmlDir](tcp::socket& socket) {
+    auto sessionCreator = [&sessionHandler](tcp::socket& socket) {
         logger(Level::debug) << "--- new session created ---\n";
         static uint32_t sessionId { 0 };
-        std::string localHtmlDir{htmlDir.str()};
+        std::string localHtmlDir{ Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Html) };
         std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), sessionId++)->start();
     };
 

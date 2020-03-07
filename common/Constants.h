@@ -12,7 +12,7 @@ namespace ServerConstant {
     static constexpr auto htmlPath {sv("html")};
     static constexpr auto coverPath {sv("html/img")};
     static constexpr auto coverPathWeb {sv("img")};
-    static constexpr auto albumPlaylistDirectory {sv("tmp")};
+    static constexpr auto tmpPath {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
 
     static constexpr int seekForwardSeconds {20};
@@ -55,9 +55,13 @@ namespace ServerConstant {
         namespace Player {
             static constexpr auto next {sv("next")};
             static constexpr auto previous {sv("prev")};
+            static constexpr auto seek_forward {sv("seek_forward")};
+            static constexpr auto seek_backward {sv("seek_backward")};
             static constexpr auto play {sv("play")};
             static constexpr auto stop {sv("stop")};
             static constexpr auto pause {sv("pause")};
+            static constexpr auto shuffle {sv("shuffle")};
+            static constexpr auto repeat {sv("repeat")};
         }
     }
 

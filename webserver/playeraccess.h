@@ -8,12 +8,14 @@
 
 class PlayerAccess
 {
+    typedef std::function<std::tuple<const std::vector<std::string>, const std::string, const std::string>()> GetAlbumPlaylistAndNames;
+
     std::unique_ptr<BasePlayer>& m_player;
-    std::string& m_currentPlaylist;
+    GetAlbumPlaylistAndNames m_getAlbumPlaylistAndNames;
 
 public:
-    PlayerAccess(std::unique_ptr<BasePlayer>& player, std::string& currentPlaylist)
-        : m_player(player), m_currentPlaylist(currentPlaylist) {}
+    PlayerAccess(std::unique_ptr<BasePlayer>& player, GetAlbumPlaylistAndNames&& getAlbumPlaylistAndNames)
+        : m_player(player), m_getAlbumPlaylistAndNames(std::move(getAlbumPlaylistAndNames)) {}
 
     PlayerAccess() = delete;
 

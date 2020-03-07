@@ -98,9 +98,9 @@ private:
             return fail(ec, "accept");
 
         if (write(R"({"result": "done"})"))
-            logger(Level::info) << "websocket send hallo\n";
+            logger(Level::info) << "websocket result write successful\n";
         else
-            logger(Level::info) << "write failed\n";
+            logger(Level::info) << "websocket result write failed\n";
 
         // Read a message
         do_read();
@@ -141,13 +141,11 @@ private:
         beast::error_code ec,
         std::size_t bytes_transferred)
     {
-        boost::ignore_unused(bytes_transferred);
-
         if(ec)
             return fail(ec, "write");
 
         // Clear the buffer
-        m_writeBuffer.consume(m_writeBuffer.size());
+        m_writeBuffer.consume(bytes_transferred);
 
     }
 };

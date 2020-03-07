@@ -5,6 +5,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/lexical_cast.hpp>
 
+namespace Common {
+
 NameGenerator::GenerationName NameGenerator::create(const std::string &prefix, const std::string &suffix) {
 
     GenerationName retName;
@@ -14,4 +16,7 @@ NameGenerator::GenerationName NameGenerator::create(const std::string &prefix, c
     retName.filename = prefix + "/" + retName.unique_id + suffix;
 
     return retName;
+}
+
+
 }

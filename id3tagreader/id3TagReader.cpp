@@ -1,27 +1,30 @@
 #include "id3TagReader.h"
+#include "common/filesystemadditions.h"
 
 namespace fs = boost::filesystem;
 using namespace LoggerFramework;
+using namespace Common;
 
 std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const std::string &cover) {
 
-    std::string mp3FileName = std::string(ServerConstant::base_path) + "/" + std::string(ServerConstant::audioPath) + "/" + uniqueId + ".mp3";
-    fs::path mp3File {mp3FileName};
+    std::string mp3FileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio)
+            + "/" + uniqueId + ".mp3";
 
     Id3Info info;
 
-    if (!fs::exists(mp3File)) {
+    if (!fs::exists(mp3FileName)) {
        logger(Level::warning) << "file <"<<mp3FileName<<"> does not exist\n";
        return std::nullopt;
     }
 
-    logger(Level::debug) << "Read mp3 info from file <"<<mp3File<<">\n";
-    TagLib::FileRef f(mp3File.c_str());
+    logger(Level::debug) << "Read mp3 info from file <"<<mp3FileName<<">\n";
+    TagLib::FileRef f(mp3FileName.c_str());
 
     try {
+        fs::path mp3File {mp3FileName};
         info.uid = mp3File.stem().string();
 
-        info.titel_name = f.tag()->title().to8Bit(true);
+        info.title_name = f.tag()->title().to8Bit(true);
         info.track_no = f.tag()->track();
         info.album_name = f.tag()->album().to8Bit(true);
         info.performer_name = f.tag()->artist().to8Bit(true);
@@ -31,28 +34,33 @@ std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const 
     }
     catch(std::exception& ) {
         logger(Level::warning) << "Error reading mp3 data\n";
-        return Id3Info();
+        return std::nullopt;
     }
 
     return std::move(info);
 
 }
 
-std::optional<std::string> id3TagReader::extractCover(const std::string &uid) {
+std::string id3TagReader::unknownCover() {
+    return  std::string(ServerConstant::coverPathWeb) + "/" +
+            std::string(ServerConstant::unknownCoverFile) +
+            std::string(ServerConstant::unknownCoverExtension);
+}
+
+std::string id3TagReader::extractCover(const std::string &uid) {
 
     static const char *IdPicture = "APIC";
     TagLib::ID3v2::Tag *id3v2tag;
     TagLib::ID3v2::FrameList Frame;
 
-    std::stringstream mp3File;
-    mp3File << ServerConstant::base_path << "/" << ServerConstant::audioPath << "/" << uid << ".mp3";
+    std::string mp3File = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio) + '/' + uid + ".mp3";
 
-    TagLib::MPEG::File mpegFile(mp3File.str().c_str());
+    TagLib::MPEG::File mpegFile(mp3File.c_str());
     id3v2tag = mpegFile.ID3v2Tag();
 
     if (!id3v2tag || id3v2tag->frameListMap()[IdPicture].isEmpty()) {
         logger(Level::warning) << "id3v2 not present\n";
-        return std::nullopt;
+        return unknownCover();
     }
     // picture frame
     Frame = id3v2tag->frameListMap()[IdPicture];
@@ -86,7 +94,5 @@ std::optional<std::string> id3TagReader::extractCover(const std::string &uid) {
         }
     }
 
-    return  std::string(ServerConstant::coverPathWeb) + "/" +
-            std::string(ServerConstant::unknownCoverFile) +
-            std::string(ServerConstant::unknownCoverExtension);
+    return  unknownCover();
 }

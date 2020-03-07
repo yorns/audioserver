@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace Common {
+
 namespace NameGenerator {
 
 struct GenerationName {
@@ -11,6 +13,8 @@ struct GenerationName {
 };
 
 extern GenerationName create(const std::string& prefix, const std::string& suffix);
+
+}
 
 }
 

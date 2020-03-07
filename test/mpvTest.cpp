@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 
 #include "common/logger.h"
+#include "common/Constants.h"
 
 using namespace LoggerFramework;
 
@@ -15,6 +16,7 @@ int main(int argc, char* argv[])
     }
 
     globalLevel = Level::debug;
+    ServerConstant::base_path = ServerConstant::sv{"/tmp/playertest"};
 
     boost::asio::io_context m_context;
 

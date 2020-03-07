@@ -19,9 +19,11 @@
 
 class id3TagReader {
 
+    std::string unknownCover();
+
 public:
+    std::string extractCover(const std::string& uid);
     std::optional<Id3Info> getInfo(const std::string& uniqueId, const std::string& cover);
-    std::optional<std::string> extractCover(const std::string& uid);
 };
 
 

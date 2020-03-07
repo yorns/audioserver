@@ -5,13 +5,13 @@
 
 class DatabaseAccess
 {
-    SimpleDatabase& m_database;
+    Database::SimpleDatabase& m_database;
 
-    std::string convertToJson(const std::vector<Id3Info> list);
+    std::string convertToJson(const std::optional<std::vector<Id3Info>> list);
 
 public:
     DatabaseAccess() = delete;
-    DatabaseAccess(SimpleDatabase& simpleDatabase): m_database(simpleDatabase) {}
+    DatabaseAccess(Database::SimpleDatabase& simpleDatabase): m_database(simpleDatabase) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);
 
