@@ -18,7 +18,6 @@ class PlaylistContainer {
     std::optional<std::string> m_currentPlaylist;
 
 public:
-    PlaylistContainer() = default;
 
     void addPlaylist(Playlist&& playlist);
     bool addItemToPlaylistName(const std::string& playlistName, std::string&& audioUniqueId);

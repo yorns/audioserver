@@ -37,13 +37,18 @@ public:
 
     virtual ~BasePlayer() = default;
 
-    bool do_shuffle(bool doShuffle);
-    bool do_cycle(bool doCycle) { m_doCycle = doCycle; return true; }
+    bool doShuffle(bool shuffle);
+    bool toggleShuffle();
+    bool toogleLoop();
+    bool getLoop() const { return m_doCycle; }
+    bool getShuffle() const { return m_shuffle; }
 
-    void setPlayerEndCallBack(PlaylistEndCallback&& endfunc);
+    void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
 
-    virtual bool startPlay(const std::vector<std::string>& list, const std::string& playlistUniqueId, const std::string& playlistName) = 0;
+    virtual bool startPlay(const std::vector<std::string>& list,
+                           const std::string& playlistUniqueId,
+                           const std::string& playlistName) = 0;
     virtual bool stop() = 0;
     virtual bool stopPlayerConnection() = 0;
 
@@ -54,13 +59,14 @@ public:
     virtual bool pause_toggle() = 0;
 
     virtual bool jump_to_position(int percent) = 0;
-    virtual bool jump_to_fileUID(std::string& uniqueId) = 0;
+    virtual bool jump_to_fileUID(const std::string& uniqueId) = 0;
 
     virtual bool isPlaying() = 0;
 
     virtual const std::string getSongName() const = 0;
     virtual std::string getSongID() = 0;
     virtual uint32_t getSongPercentage() = 0;
+
 
 };
 

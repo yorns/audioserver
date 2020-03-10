@@ -75,22 +75,29 @@ std::string id3TagReader::extractCover(const std::string &uid) {
                 std::string tmp{PicFrame->mimeType().to8Bit()};
                 filetype = "." + tmp.substr(tmp.find_last_of('/')+1);
             }
-            std::stringstream coverImageName;
-            std::stringstream coverName;
 
-            coverImageName << uid << filetype;
+            std::string coverFile =
+                    FileSystemAdditions::getFullQualifiedDirectory(FileType::Covers) + '/' + uid + filetype;
 
-            coverName << ServerConstant::base_path << "/" << ServerConstant::coverPath;
-            coverName << "/" << coverImageName.str();
+            std::string coverFileRelativHtml =
+                    FileSystemAdditions::getFullQualifiedDirectory(FileType::CoversRelative) + '/' + uid + filetype;
 
-            std::ofstream of(coverName.str(), std::ios_base::out | std::ios_base::binary);
+            std::ofstream of(coverFile.c_str(), std::ios_base::out | std::ios_base::binary);
             if (of.good()) {
+                logger(Level::debug) << "writing cover file <" << coverFile << ">\n";
                 of.write(PicFrame->picture().data(), PicFrame->picture().size());
+            }
+            else {
+                logger(Level::error) << "FAILED writing cover file <" << coverFile << ">\n";
+                coverFileRelativHtml = FileSystemAdditions::getFullQualifiedDirectory(FileType::CoversRelative)
+                        + '/'
+                        + std::string(ServerConstant::unknownCoverFile)
+                        + std::string(ServerConstant::unknownCoverExtension);
             }
 
             of.close();
 
-            return std::string(ServerConstant::coverPathWeb) + "/" + coverImageName.str();
+            return coverFileRelativHtml;
         }
     }
 

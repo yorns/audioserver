@@ -82,7 +82,7 @@ public:
     bool isPlaying() final;
 
     bool jump_to_position(int percent) final;
-    bool jump_to_fileUID(std::string& filename) final;
+    bool jump_to_fileUID(const std::string& filename) final;
 
     const std::string getSongName() const final;
     std::string getSongID() final;

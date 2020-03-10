@@ -216,6 +216,7 @@ void Session::handle_file_request(const std::string &file_root, std::string targ
 
     // Handle the case where the file doesn't exist
     if(ec == boost::system::errc::no_such_file_or_directory) {
+        logger(Level::warning) << "requested file <"<< path <<" not found\n";
         return answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
     }
     // Handle an unknown error

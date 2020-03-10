@@ -63,11 +63,11 @@ private:
             break;
         }
         case 'c': {
-            m_player->do_cycle(true);
+            m_player->toogleLoop();
             break;
         }
         case 'x': {
-            m_player->do_shuffle(true);
+            m_player->toggleShuffle();
             break;
         }
         case 's': {
@@ -98,8 +98,8 @@ private:
            }
         });
 
-        m_player->setPlayerEndCallBack([](){
-            std::cout << "\nstopped\n";
+        m_player->setPlaylistEndCB([](){
+            std::cout << "\nPlaylist stopped\n";
         });
 
         m_player->setSongEndCB([this](const std::string& ){

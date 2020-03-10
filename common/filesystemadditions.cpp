@@ -77,10 +77,13 @@ std::string getFullQualifiedDirectory(FileType fileType) {
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::audioPath);
     case FileType::Playlist:
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::playlistPath);
-    case FileType::Covers:
-        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::coverPath);
     case FileType::Html:
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::htmlPath);
+    case FileType::Covers:
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::coverPath);
+    case FileType::CoversRelative:
+        return '/' + std::string(ServerConstant::coverPathWeb);
+
     }
 
     return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::tmpPath);

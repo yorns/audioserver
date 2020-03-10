@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <title>Nano Player</title>
     <link rel="stylesheet" href="css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/fontello.css" >
+    <!-- <link rel="stylesheet" href="css/fontello-codes.css" > -->
     <script src="js/jquery-3.4.1.min.js"></script>
     <script src="js/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
@@ -48,8 +50,22 @@
         .bild:hover .overlayBottom {
             height: 20%;
         }
-	    .table-row{
+	    .table-row {
            cursor:pointer;
+        }
+        .btn-gray {
+            /*  */
+            background-color: transparent;
+            color: gainsboro;
+            border:0 !important;
+            outline: none !important;;
+        }
+        .btn-black {
+            /*  */
+            background-color: transparent;
+            color: black;
+            border:0 !important;
+            outline: none !important;;
         }
     </style>
     
@@ -87,7 +103,7 @@
                             </div>
                             <div class="col-sm-9">
                                 <p id="actSong">nothing</p>
-                                <div class="progress">
+                                <div class="progress" id="progress-box">
                                     <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="songProgress" style="width:0%">
                                     </div>
                                 </div>
@@ -96,17 +112,21 @@
                     </div>
                     <div class="row" style="margin-top: 20px"></div>
                     <div class="row">
-                        <div class="col-sm-3"></div>
-                        <div class="col-sm-9">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-11">
 
                             <div id='toolbar' class="col-">
                                 <!--<div class='wrapper text-center'> -->
                                 <div class="btn-group btn-group" role="group" aria-label="Player" id="Player">
-                                    <button id="btnPlay" type="button" class="btn btn-secondary">Play</button>
-                                    <button id="btnPause" type="button" class="btn btn-secondary">Pause</button>
-                                    <button id="btnStop" type="button" class="btn btn-secondary">Stop</button>
-                                    <button id="btnNext" type="button" class="btn btn-secondary">Next</button>
-                                    <button id="btnPrevious" type="button" class="btn btn-secondary">Previous</button>
+                                    <button id="btnRepeat" class="btn-gray"><i class="icon-loop"></i></button>
+                                    <button id="btnShuffle" class="btn-gray"><i class="icon-shuffle"></i></button>
+                                    <button id="btnPlay" class="btn-black"><i class="icon-play"></i></button>
+                                    <button id="btnPause" class="btn-black"><i class="icon-pause"></i></button>
+                                    <button id="btnStop" class="btn-black"><i class="icon-stop"></i></button>
+                                    <button id="btnPrevious" class="btn-black"><i class="icon-to-start"></i></button>
+                                    <button id="btnNext" class="btn-black"><i class="icon-to-end"></i></button>
+                                    <button id="btnFastBackward" class="btn-black"><i class="icon-fast-backward"></i></button>
+                                    <button id="btnFastForward" class="btn-black"><i class="icon-fast-forward"></i></button>
                                 </div>
                                 <!--</div>-->
                             </div>

@@ -34,7 +34,24 @@ $(document).ready(function () {
                         });
                         getActualPlaylist();
                     }
+                    //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
                     $("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
+                    if (msg.SongBroadcastMessage.loop) {
+                        $("#btnRepeat").removeClass("btn-gray");
+                        $("#btnRepeat").addClass("btn-black");
+                    }
+                    else {
+                        $("#btnRepeat").removeClass("btn-black");
+                        $("#btnRepeat").addClass("btn-gray");
+                    }
+                    if (msg.SongBroadcastMessage.shuffle) {
+                        $("#btnShuffle").removeClass("btn-gray");
+                        $("#btnShuffle").addClass("btn-black");
+                    } 
+                    else {
+                        $("#btnShuffle").removeClass("btn-black");
+                        $("#btnShuffle").addClass("btn-gray");
+                    }                    
                 } catch (e) {
                     console.log("json parse failed");
                 }
@@ -49,8 +66,11 @@ $(document).ready(function () {
     }
 
     runWebsocket();
+    
     $("#act_playlist").on("click", ".table-row", function() {
-        alert($(this).attr("id"));
+        //alert($(this).attr("id"));
+        url = "/player?select=" + $(this).attr("id");
+        $.post(url, "", function(data, textStatus) {}, "json");
     });
 
     $("#createPlaylist").click(function() {
@@ -86,6 +106,32 @@ $(document).ready(function () {
         pausePlayer();
     });
 
+    $("#btnRepeat").click(function() {
+        toogleLoopPlayer();
+    });
+
+    $("#btnShuffle").click(function() {
+        toogleRandomPlayer();
+    });
+
+    $("#btnFastForward").click(function() {
+        fastForwardPlayer();
+    });
+
+    $("#btnFastBackward").click(function() {
+        fastBackwardPlayer();
+    });
+
+    $("#progress-box").click(function(e) {
+        var posX = $(this).offset().left;
+        var width = $("#progress-box").width();
+        //alert("progress "+ (e.pageX - posX)*100/width);
+        var toPosition = parseInt((e.pageX - posX)*100/width);
+            url = "/player?toPosition="+toPosition;
+            $.post(url, "", function (data, textStatus) {}, "json");
+
+    });
+
     $("#albumSearch").keyup(function() {
         //            if (console && console.log)
         var name_typed = $("#albumSearch").val();
@@ -118,6 +164,26 @@ function startPlay() {
 
 function pausePlayer() {
     url = "/player?pause=true";
+    $.post(url, "", function(data, textStatus) {}, "json");
+}
+
+function toogleLoopPlayer() {
+    url = "/player?toggleLoop=true";
+    $.post(url, "", function(data, textStatus) {}, "json");
+}
+
+function toogleRandomPlayer() {
+    url = "/player?toggleShuffle=true";
+    $.post(url, "", function(data, textStatus) {}, "json");
+}
+
+function fastForwardPlayer() {
+    url = "/player?fastForward=true";
+    $.post(url, "", function(data, textStatus) {}, "json");
+}
+
+function fastBackwardPlayer() {
+    url = "/player?fastBackward=true";
     $.post(url, "", function(data, textStatus) {}, "json");
 }
 

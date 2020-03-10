@@ -60,8 +60,12 @@ namespace ServerConstant {
             static constexpr auto play {sv("play")};
             static constexpr auto stop {sv("stop")};
             static constexpr auto pause {sv("pause")};
-            static constexpr auto shuffle {sv("shuffle")};
-            static constexpr auto repeat {sv("repeat")};
+            static constexpr auto fastForward {sv("fastForward")};
+            static constexpr auto fastBackward {sv("fastBackward")};
+            static constexpr auto toggleShuffle {sv("toggleShuffle")};
+            static constexpr auto toggleLoop {sv("toggleLoop")};
+            static constexpr auto select {sv("select")};
+            static constexpr auto toPosition {sv("toPosition")};
         }
     }
 

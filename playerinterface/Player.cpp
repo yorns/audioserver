@@ -3,7 +3,7 @@
 
 using namespace LoggerFramework;
 
-bool BasePlayer::do_shuffle(bool shuffleRequest) {
+bool BasePlayer::doShuffle(bool shuffleRequest) {
     if (shuffleRequest) {
         if (m_shuffle)
             logger(Level::debug) << "Shuffeling playlist <"<<m_PlaylistUniqueId<<"> (" << m_PlaylistName<<") again\n";
@@ -34,8 +34,17 @@ bool BasePlayer::do_shuffle(bool shuffleRequest) {
     return false;
 }
 
+bool BasePlayer::toggleShuffle() {
+    return doShuffle(!m_shuffle);
+}
 
-void BasePlayer::setPlayerEndCallBack(PlaylistEndCallback&& endfunc) {
+bool BasePlayer::toogleLoop() {
+    m_doCycle = !m_doCycle;
+    return true;
+}
+
+
+void BasePlayer::setPlaylistEndCB(PlaylistEndCallback&& endfunc) {
     m_playlistEndCallback = std::move(endfunc);
 }
 

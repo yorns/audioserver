@@ -7,6 +7,7 @@ enum class FileType {
     Audio,
     Playlist,
     Covers,
+    CoversRelative,
     Html
 };
 

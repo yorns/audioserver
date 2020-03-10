@@ -152,7 +152,7 @@ bool Id3Repository::read() {
     auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::Audio);
     auto imglist = FileSystemAdditions::getAllFilesInDir(FileType::Covers);
 
-    logger(::Level::debug) << "reading all audio files in <" << mp3Directory << ">\n";
+    logger(::Level::debug) << "reading all audio files in directory <" << mp3Directory << ">\n";
     auto getImageFileOf = [&imglist](const std::string& name) -> FileNameType {
         auto it = std::find_if(std::begin(imglist), std::end(imglist),
                                [&name](const FileNameType& fileName){ return fileName.name == name; });
@@ -170,7 +170,7 @@ bool Id3Repository::read() {
                 + std::string(ServerConstant::coverPathWeb)
                 + '/' + imgFile.name + imgFile.extension;
 
-        if (auto id3info = m_tagReader.getInfo(imgFile.name, webserverCoverPath))
+        if (auto id3info = m_tagReader.getInfo(file.name, webserverCoverPath))
             m_simpleDatabase.emplace_back(*id3info);
 
     }

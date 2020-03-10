@@ -142,10 +142,14 @@ int main(int argc, char* argv[])
       if (player && player->isPlaying()) {
           std::string songID = player->getSongID();
           uint32_t timePercent = player->getSongPercentage();
+          bool loop = player->getLoop();
+          bool shuffle = player->getShuffle();
           nlohmann::json songBroadcast;
           nlohmann::json songInfo;
           songInfo["songID"] = songID;
           songInfo["position"] = timePercent*1.0/100.0;
+          songInfo["loop"] = loop;
+          songInfo["shuffle"] = shuffle;
           songBroadcast["SongBroadcastMessage"] = songInfo;
           sessionHandler.broadcast(songBroadcast.dump());
       }

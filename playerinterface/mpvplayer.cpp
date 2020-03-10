@@ -20,10 +20,11 @@ void MpvPlayer::init_communication() {
 }
 
 void MpvPlayer::init_MpvCommandHandling() {
+
     /* set observers */
-    if ( sendData(R"({ "command": ["observe_property", 1, "percent-pos"] })") &&
-         sendData(R"({ "command": ["observe_property", 3, "metadata"] })")) {
-        logger(Level::info) << "all MPV observers established\n";
+    if ( sendCommand({"observe_property", 1, "percent-pos"}) &&
+         sendCommand({"observe_property", 2, "metadata"}) ) {
+        logger(Level::info) << "all MPV observers set up\n";
     }
 
     m_propertiesHandler["percent-pos"] = [this](const nlohmann::json& msg) {
@@ -85,11 +86,11 @@ bool MpvPlayer::startPlay(const std::vector<std::string> &list, const std::strin
 
     if (shuffelingNeeded) {
         logger(LoggerFramework::Level::debug) << "shuffeling enabled. New playlist needs shuffeling\n";
-        do_shuffle(true);
+        doShuffle(true);
     }
 
     m_currentItemIterator = m_playlist.begin();
-    m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::next;
+    m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::current;
 
     sendCommand({"set_property", "pause", m_pause = false});
 
@@ -126,7 +127,7 @@ bool MpvPlayer::doPlayNextFileInList() {
         if (m_doCycle) {
             logger(LoggerFramework::Level::debug) << "do cycle and play playlist from start again\n";
             if (m_shuffle) {
-                do_shuffle(true);
+                doShuffle(true);
             }
             m_currentItemIterator = m_playlist.begin();
             logger(LoggerFramework::Level::debug) << "Playlist <"<<m_PlaylistUniqueId<<"> ("
@@ -212,16 +213,21 @@ uint32_t MpvPlayer::getSongPercentage() { if (m_actTime > 100.0) m_actTime = 100
 
 bool MpvPlayer::jump_to_position(int percent) { return sendCommand({"seek", percent, "absolute-percent"}); }
 
-bool MpvPlayer::jump_to_fileUID(std::string &filename)
-{ auto it = std::find_if(std::begin(m_playlist), std::end(m_playlist), [&filename](const std::string& uniqueId){ return uniqueId == filename; });
+bool MpvPlayer::jump_to_fileUID(const std::string &fileId)
+{
+    auto it = std::find_if(std::begin(m_playlist),
+                           std::end(m_playlist),
+                           [&fileId](const std::string& uniqueId){ return uniqueId == fileId; });
     if (it != std::end(m_playlist)) {
+        logger(Level::info) << "change to file id <"<< fileId << ">\n";
         m_currentItemIterator = it;
         m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::current;
-        stop();
-        return true;
+        return sendCommand({"stop"});
     }
-    else
+    else {
+        logger(Level::warning) << "file <" << fileId << "> not in playlist\n";
         return false;
+    }
 }
 
 void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t bytes_transferred) {
@@ -287,9 +293,12 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
                         break;
                     }
                     case MpvPlayer::NextPlaylistDirection::current: {
-                        if (!m_isPlaying) {
+                        if (m_isPlaying) {
                             if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                            doPlayFile(*m_currentItemIterator);
+                        } {
                             m_isPlaying = true;
+                            doPlayFile(*m_currentItemIterator);
                         }
                         break;
                     }

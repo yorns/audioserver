@@ -64,7 +64,7 @@ public:
     Session(const Session& ) = delete;
     Session(Session&& ) = delete;
 
-    virtual ~Session() = default;
+    virtual ~Session() { logger(LoggerFramework::Level::info) << "<" << m_runID << "> session ended\n"; }
 
     void start();
 

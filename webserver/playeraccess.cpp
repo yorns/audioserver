@@ -42,25 +42,50 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::shuffle) {
-        if (urlInfo->value == ServerConstant::Value::_true) {
-            m_player->do_shuffle(true);
-            return R"({"result": "ok"})";
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::select) {
+        const std::string& fileUrl = urlInfo->value;
+        m_player->jump_to_fileUID(fileUrl);
+        return R"({"result": "ok"})";
+    }
+
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::toPosition) {
+        int position {0};
+        try {
+            position = std::stoi(urlInfo->value);
+        } catch (const std::exception& ex) {
+            logger(Level::warning) << "toPosition request with value <"
+                                   << urlInfo->value
+                                   << "> could not be parsed ("
+                                   << ex.what() << ")";
+            return R"({"result": "jump to position: position could not be parsed"})";
         }
-        if (urlInfo->value == ServerConstant::Value::_false) {
-            m_player->do_shuffle(false);
+        m_player->jump_to_position(position);
+        return R"({"result": "ok"})";
+    }
+
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::fastForward &&
+            urlInfo->value == ServerConstant::Value::_true) {
+        m_player->seek_forward();
+        return R"({"result": "ok"})";
+    }
+
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::fastBackward &&
+            urlInfo->value == ServerConstant::Value::_true) {
+        m_player->seek_backward();
+        return R"({"result": "ok"})";
+    }
+
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::toggleShuffle) {
+        if (urlInfo->value == ServerConstant::Value::_true) {
+            m_player->toggleShuffle();
             return R"({"result": "ok"})";
         }
         return R"({"result": "unknown value set; allowed <true|false>"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::repeat) {
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::toggleLoop) {
         if (urlInfo->value == ServerConstant::Value::_true) {
-            m_player->do_cycle(true);
-            return R"({"result": "ok"})";
-        }
-        if (urlInfo->value == ServerConstant::Value::_false) {
-            m_player->do_cycle(false);
+            m_player->toogleLoop();
             return R"({"result": "ok"})";
         }
         return R"({"result": "unknown value set; allowed <true|false>"})";
