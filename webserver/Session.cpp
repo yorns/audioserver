@@ -187,7 +187,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
             logger(Level::debug) << "<" << m_runID << "> " << "find the file <" << requestString->get().target() << "> on directory\n";
 
-            handle_file_request(m_filePath, std::string(requestString->get().target()),
+            handle_file_request(std::string(requestString->get().target()),
                                 requestString->get().method(), requestString->get().version(),
                                 requestString->get().keep_alive());
 
@@ -199,9 +199,9 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
 }
 
-void Session::handle_file_request(const std::string &file_root, std::string target, http::verb method, uint32_t version, bool keep_alive) {
+void Session::handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
 
-    std::string path = file_root + '/' + target;
+    std::string path = m_filePath + '/' + target;
     if(target.back() == '/')
         path.append("index.html");
 

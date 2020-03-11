@@ -25,11 +25,11 @@ class Session : public std::enable_shared_from_this<Session>
     boost::beast::flat_buffer m_buffer;
 
     SessionHandler& m_sessionHandler;
-    const std::string m_filePath;
+    std::string m_filePath;
 
     uint32_t m_runID {0};
 
-    void handle_file_request(const std::string& file_root, std::string target, http::verb method, uint32_t version, bool keep_alive);
+    void handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive);
 
     void returnMessage();
 

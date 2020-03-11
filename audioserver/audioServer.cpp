@@ -80,20 +80,35 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context ioc;
 
-    Database::SimpleDatabase database;
-    database.loadDatabase();
-
     logger(Level::info) << "create player instance\n";
     auto player = std::unique_ptr<BasePlayer>(new MpvPlayer(ioc));
+
+    Database::SimpleDatabase database;
+    database.loadDatabase();
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
     PlaylistAccess playlistWrapper(database);
 
-    PlayerAccess playerWrapper(player, [&database]() -> std::tuple<const std::vector<std::string>, const std::string, const std::string>{
+    player->setSongEndCB([&sessionHandler, &player](const std::string& songID){
+        boost::ignore_unused(songID);
+        logger(Level::info) << "end handler called for song ID\n";//<"<< songID << ">\n";
+        nlohmann::json songBroadcast;
+        nlohmann::json songInfo;
+        songInfo["songID"] = ""; // empty is current
+        songInfo["position"] = 0;
+        songInfo["loop"] = player->getLoop();
+        songInfo["shuffle"] = player->getShuffle();
+        songBroadcast["SongBroadcastMessage"] = songInfo;
+        sessionHandler.broadcast(songBroadcast.dump());
+    });
+
+    PlayerAccess playerWrapper(player, [&database]() -> Database::GetAlbumPlaylistAndNamesType {
                                    logger(Level::debug) << "Request to get playlist and playlist names\n";
                                    return database.getAlbumPlaylistAndNames();
     });
+
+
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
@@ -111,6 +126,8 @@ int main(int argc, char* argv[])
         return playerWrapper.access(url);
     });
 
+
+
     auto generateName = []() -> Common::NameGenerator::GenerationName
     {
         auto name = Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Audio) , ".mp3");
@@ -127,23 +144,18 @@ int main(int argc, char* argv[])
                                     generateName,
                                     uploadFinishHandler);
 
-    auto sessionCreator = [&sessionHandler](tcp::socket& socket) {
-        logger(Level::debug) << "--- new session created ---\n";
-        static uint32_t sessionId { 0 };
-        std::string localHtmlDir{ Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Html) };
-        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), sessionId++)->start();
-    };
+
 
     RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
 
-    // create a timer service to request actual song information and send them to the session handlers
-    // gues together audio player and webservers websocket
+    // create a timer service to request actual player information and send them to the session handlers
     websocketSonginfoSenderTimer.setHandler( [&player, &sessionHandler](){
       if (player && player->isPlaying()) {
           std::string songID = player->getSongID();
           uint32_t timePercent = player->getSongPercentage();
           bool loop = player->getLoop();
           bool shuffle = player->getShuffle();
+
           nlohmann::json songBroadcast;
           nlohmann::json songInfo;
           songInfo["songID"] = songID;
@@ -157,11 +169,21 @@ int main(int argc, char* argv[])
 
     websocketSonginfoSenderTimer.start();
 
+
+    auto sessionCreator = [&sessionHandler](tcp::socket&& socket) {
+        static uint32_t sessionId { 0 };
+        logger(Level::debug) << "--- new session created with ID <" << sessionId << "> ---\n";
+        std::string localHtmlDir { Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Html) };
+        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), sessionId++)->start();
+    };
+
+
     logger(Level::info) << "shared Listener creation and run\n";
     std::make_shared<Listener>(
                 ioc,
                 tcp::endpoint{address, port},
                 sessionCreator)->run();
+
 
     logger(Level::info) << "server started\n";
 

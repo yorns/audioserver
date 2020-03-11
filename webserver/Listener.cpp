@@ -6,7 +6,7 @@ using namespace LoggerFramework;
 Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
                    SessionCreatorFunction &&creator)
         : m_acceptor(ioc)
-        , m_socket(ioc)
+        , m_context(ioc)
         , m_sessionCaller (std::move(creator))
 {
     boost::system::error_code ec;
@@ -48,7 +48,7 @@ Listener::Listener(boost::asio::io_context &ioc, tcp::endpoint endpoint,
 }
 
 void Listener::run() {
-    if(! m_acceptor.is_open())
+    if(!m_acceptor.is_open())
         return;
     doAccept();
 }
@@ -57,14 +57,14 @@ void Listener::doAccept() {
 
     auto self { shared_from_this() };
 
-    m_acceptor.async_accept( m_socket,
-            [this, self](const boost::system::error_code& error)
+    m_acceptor.async_accept( m_context,
+            [this, self](const boost::system::error_code& error, tcp::socket socket)
             {
-                onAccept(error);
+                onAccept(error, std::move(socket));
             } );
 }
 
-void Listener::onAccept(boost::system::error_code ec) {
+void Listener::onAccept(boost::system::error_code ec, tcp::socket&& socket) {
 
     if(ec) {
         failPrint(ec, "accept");
@@ -72,7 +72,7 @@ void Listener::onAccept(boost::system::error_code ec) {
     }
     else {
         logger(Level::debug) << "Create the session and run it\n";
-        m_sessionCaller(m_socket);
+        m_sessionCaller(std::move(socket));
     }
 
     // Accept another connection

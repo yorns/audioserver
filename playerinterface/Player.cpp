@@ -1,5 +1,4 @@
 #include "Player.h"
-#include <regex>
 
 using namespace LoggerFramework;
 

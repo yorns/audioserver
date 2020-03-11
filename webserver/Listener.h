@@ -8,17 +8,17 @@
 
 using tcp = boost::asio::ip::tcp;
 
-using SessionCreatorFunction = std::function<void (tcp::socket&)>;
+using SessionCreatorFunction = std::function<void (tcp::socket&&)>;
 
 class Listener : public std::enable_shared_from_this<Listener>
 {
     tcp::acceptor m_acceptor;
-    tcp::socket m_socket;
+    boost::asio::io_context& m_context;
     SessionCreatorFunction m_sessionCaller;
 
     void failPrint(boost::system::error_code ec, char const *what);
     void doAccept();
-    void onAccept(boost::system::error_code ec);
+    void onAccept(boost::system::error_code ec, tcp::socket&& socket);
 
 public:
     Listener(
