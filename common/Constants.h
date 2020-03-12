@@ -12,6 +12,7 @@ namespace ServerConstant {
     static constexpr auto htmlPath {sv("html")};
     static constexpr auto coverPath {sv("html/img")};
     static constexpr auto coverPathWeb {sv("img")};
+    static constexpr auto coverPathWebAlien {sv("img_alien")};
     static constexpr auto tmpPath {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
 

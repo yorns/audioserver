@@ -5,6 +5,21 @@ namespace fs = boost::filesystem;
 using namespace LoggerFramework;
 using namespace Common;
 
+char convertUnreadable(char& i) {
+    if (65<static_cast<unsigned int>(i) && 122>i) {
+        i++;
+    }
+    return i;
+}
+
+std::string makeUnreadable(const std::string& block) {
+    std::string output { block };
+    for(auto& i : output)
+        convertUnreadable(i);
+    return output;
+}
+
+
 std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const std::string &cover) {
 
     std::string mp3FileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio)
@@ -23,11 +38,16 @@ std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const 
     try {
         fs::path mp3File {mp3FileName};
         info.uid = mp3File.stem().string();
-
+#ifdef WITH_UNREADABLE
+        info.title_name = makeUnreadable(f.tag()->title().to8Bit(true));
+        info.album_name = makeUnreadable(f.tag()->album().to8Bit(true));
+        info.performer_name = makeUnreadable(f.tag()->artist().to8Bit(true));
+#else
         info.title_name = f.tag()->title().to8Bit(true);
-        info.track_no = f.tag()->track();
         info.album_name = f.tag()->album().to8Bit(true);
         info.performer_name = f.tag()->artist().to8Bit(true);
+#endif
+        info.track_no = f.tag()->track();
         info.all_tracks_no = 0;
         info.imageFile = cover;
 

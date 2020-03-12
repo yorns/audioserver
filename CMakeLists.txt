@@ -6,7 +6,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 message("server build")
 
-
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "-O0 -g")        ## Optimize
 #    set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
@@ -15,6 +14,10 @@ endif()
 if (BOOST_DIR)
   set(BOOST_ROOT ${BOOST_DIR})
 endif (BOOST_DIR)
+
+if (WITH_UNREADABLE)
+    set(UNREADABLE 1)
+endif ()
 
 find_package( Threads REQUIRED)
 find_package( Boost 1.70.0 REQUIRED COMPONENTS filesystem system regex locale)
@@ -114,7 +117,7 @@ target_include_directories(
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
-target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW)
+target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW ${UNREADABLE})
 
 add_executable( mp3CoverExtractor ${CMAKE_SOURCE_DIR}/extractId3Cover/saveID3TagPicture.cpp ${COMMONCOMPONENTS})
 set_target_properties(mp3CoverExtractor PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

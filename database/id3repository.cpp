@@ -166,10 +166,15 @@ bool Id3Repository::read() {
         auto imgFile = getImageFileOf(file.name);
 
         // this is the webservers view
+#ifdef WITH_UNREADABLE
+        std::string webserverCoverPath = std::string("/")
+                + std::string(ServerConstant::coverPathWebAlien)
+                + '/' + imgFile.name + imgFile.extension;
+#else
         std::string webserverCoverPath = std::string("/")
                 + std::string(ServerConstant::coverPathWeb)
                 + '/' + imgFile.name + imgFile.extension;
-
+#endif
         if (auto id3info = m_tagReader.getInfo(file.name, webserverCoverPath))
             m_simpleDatabase.emplace_back(*id3info);
 
