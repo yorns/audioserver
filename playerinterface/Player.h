@@ -9,8 +9,10 @@
 #include <algorithm>
 #include <random>
 
-typedef std::function<void()> PlaylistEndCallback;
-typedef std::function<void(const std::string&)> SongEndCallback;
+using PlaylistEndCallback = std::function<void()>;
+using SongEndCallback = std::function<void(const std::string&)>;
+using OnUiChangeHandler = std::function<void( const std::string& songID, int position, bool doLoop, bool doShuffle)>;
+
 
 class BasePlayer {
 
@@ -18,6 +20,7 @@ protected:
 
     PlaylistEndCallback m_playlistEndCallback;
     SongEndCallback m_songEndCallback;
+    OnUiChangeHandler m_onUiChangeHandler;
 
     std::vector<std::string> m_playlist;
     std::vector<std::string> m_playlist_orig;
@@ -28,6 +31,9 @@ protected:
     bool m_doCycle { false };
 
     std::default_random_engine m_rng {};
+
+    void updateUi() const;
+    virtual void stopAndRestart() = 0;
 
 public:
 
@@ -61,12 +67,13 @@ public:
     virtual bool jump_to_position(int percent) = 0;
     virtual bool jump_to_fileUID(const std::string& uniqueId) = 0;
 
-    virtual bool isPlaying() = 0;
+    virtual bool isPlaying() const = 0;
 
     virtual const std::string getSongName() const = 0;
-    virtual std::string getSongID() = 0;
-    virtual uint32_t getSongPercentage() = 0;
+    virtual std::string getSongID() const = 0;
+    virtual int getSongPercentage() const = 0;
 
+    void onUiChange(OnUiChangeHandler&& onUiChangeFunc) { m_onUiChangeHandler = std::move(onUiChangeFunc); }
 
 };
 

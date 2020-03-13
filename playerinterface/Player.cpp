@@ -33,12 +33,31 @@ bool BasePlayer::doShuffle(bool shuffleRequest) {
     return false;
 }
 
+void BasePlayer::updateUi() const {
+    if (!m_onUiChangeHandler)
+        return;
+
+//    logger(Level::debug) << "update UI: <" << (isPlaying()?"playing":"not Playing") << "> : " << getSongPercentage()/100
+//                         << " loop:" << (getLoop()?"yes":"no") << " shuffle: " << (getShuffle()?"yes":"no") << "\n";
+
+    if (isPlaying())
+        m_onUiChangeHandler(getSongID(), getSongPercentage()/100, getLoop(), getShuffle());
+    else
+        m_onUiChangeHandler("", 0, getLoop(), getShuffle());
+}
+
 bool BasePlayer::toggleShuffle() {
-    return doShuffle(!m_shuffle);
+    doShuffle(!m_shuffle);
+    if (isPlaying()) {
+       stopAndRestart();
+    }
+    updateUi();
+    return true;
 }
 
 bool BasePlayer::toogleLoop() {
     m_doCycle = !m_doCycle;
+    updateUi();
     return true;
 }
 

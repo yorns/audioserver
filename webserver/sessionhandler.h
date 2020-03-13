@@ -30,6 +30,7 @@ class SessionHandler {
     FileHandlerList pathToFileHandler;
     StringHandlerList pathToStringHandler;
 
+
     std::map<boost::asio::ip::tcp::endpoint, std::weak_ptr<WebsocketSession>> m_websocketSessionList;
 
     template<class A>

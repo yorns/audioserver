@@ -90,17 +90,26 @@ int main(int argc, char* argv[])
     DatabaseAccess databaseWrapper(database);
     PlaylistAccess playlistWrapper(database);
 
-    player->setSongEndCB([&sessionHandler, &player](const std::string& songID){
-        boost::ignore_unused(songID);
-        logger(Level::info) << "end handler called for song ID\n";//<"<< songID << ">\n";
+    auto updateUI = [&sessionHandler]( const std::string& songID,
+                  int position, bool doLoop, bool doShuffle) {
+
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
-        songInfo["songID"] = ""; // empty is current
-        songInfo["position"] = 0;
-        songInfo["loop"] = player->getLoop();
-        songInfo["shuffle"] = player->getShuffle();
+        songInfo["songID"] = songID;
+        songInfo["position"] = position;
+        songInfo["loop"] = doLoop;
+        songInfo["shuffle"] = doShuffle;
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
+
+    };
+
+    player->onUiChange(updateUI);
+
+    player->setSongEndCB([&player, &updateUI](const std::string& songID){
+        boost::ignore_unused(songID);
+        updateUI("", 0, player->getLoop(), player->getShuffle());
+        logger(Level::info) << "end handler called for current song\n";
     });
 
     PlayerAccess playerWrapper(player, [&database]() -> Database::GetAlbumPlaylistAndNamesType {
@@ -149,21 +158,13 @@ int main(int argc, char* argv[])
     RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
 
     // create a timer service to request actual player information and send them to the session handlers
-    websocketSonginfoSenderTimer.setHandler( [&player, &sessionHandler](){
+    websocketSonginfoSenderTimer.setHandler( [&player, &updateUI](){
       if (player && player->isPlaying()) {
           std::string songID = player->getSongID();
-          uint32_t timePercent = player->getSongPercentage();
+          int timePercent = player->getSongPercentage()/100;
           bool loop = player->getLoop();
           bool shuffle = player->getShuffle();
-
-          nlohmann::json songBroadcast;
-          nlohmann::json songInfo;
-          songInfo["songID"] = songID;
-          songInfo["position"] = timePercent*1.0/100.0;
-          songInfo["loop"] = loop;
-          songInfo["shuffle"] = shuffle;
-          songBroadcast["SongBroadcastMessage"] = songInfo;
-          sessionHandler.broadcast(songBroadcast.dump());
+          updateUI(songID, timePercent, loop, shuffle);
       }
     });
 

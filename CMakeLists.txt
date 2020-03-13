@@ -16,7 +16,7 @@ if (BOOST_DIR)
 endif (BOOST_DIR)
 
 if (WITH_UNREADABLE)
-    set(UNREADABLE 1)
+    set(UNREADABLE WITH_UNREADABLE)
 endif ()
 
 find_package( Threads REQUIRED)

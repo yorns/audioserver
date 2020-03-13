@@ -56,6 +56,14 @@ private:
 
     bool needsStop();
 
+    void stopAndRestart() final {
+        if (needsStop()) {
+            m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::current;
+            sendCommand({"stop"});
+        }
+        m_currentItemIterator = m_playlist.begin();
+    }
+
 public:
     MpvPlayer(boost::asio::io_context& context);
 
@@ -79,14 +87,14 @@ public:
     bool prev_file() final;
     bool pause_toggle() final;
 
-    bool isPlaying() final;
+    bool isPlaying() const final;
 
     bool jump_to_position(int percent) final;
     bool jump_to_fileUID(const std::string& filename) final;
 
     const std::string getSongName() const final;
-    std::string getSongID() final;
-    uint32_t getSongPercentage() final;
+    std::string getSongID() const final;
+    int getSongPercentage() const final;
 
 };
 

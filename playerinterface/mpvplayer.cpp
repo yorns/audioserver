@@ -94,8 +94,8 @@ bool MpvPlayer::startPlay(const std::vector<std::string> &list, const std::strin
     sendCommand({"set_property", "pause", m_pause = false});
 
     if (needsStop()) {
-        return sendCommand({"stop"});
         m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::current;
+        return sendCommand({"stop"});
     }
     else {
         doPlayFile(*m_currentItemIterator);
@@ -185,7 +185,7 @@ bool MpvPlayer::pause_toggle()
     return sendCommand({"set_property", "pause", m_pause});
 }
 
-bool MpvPlayer::isPlaying()
+bool MpvPlayer::isPlaying() const
 {
     return m_isPlaying;
 }
@@ -210,9 +210,9 @@ bool MpvPlayer::stopPlayerConnection()
 
 const std::string MpvPlayer::getSongName() const { return m_AudioFileName; }
 
-std::string MpvPlayer::getSongID() { return (m_currentItemIterator != std::end(m_playlist))?*m_currentItemIterator:""; }
+std::string MpvPlayer::getSongID() const { return (m_currentItemIterator != std::end(m_playlist))?*m_currentItemIterator:""; }
 
-uint32_t MpvPlayer::getSongPercentage() { if (m_actTime > 100.0) m_actTime = 100.0; return static_cast<uint32_t>(m_actTime*100); }
+int MpvPlayer::getSongPercentage() const  { int time { static_cast<int>(m_actTime) }; if (time > 100.0) time = 100.0; return time*100; }
 
 bool MpvPlayer::jump_to_position(int percent) { return sendCommand({"seek", percent, "absolute-percent"}); }
 
@@ -231,8 +231,8 @@ bool MpvPlayer::jump_to_fileUID(const std::string &fileId)
         }
         else {
             m_currentItemIterator = it;
-            return doPlayFile(*m_currentItemIterator);
             m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::next;
+            return doPlayFile(*m_currentItemIterator);
         }
     }
     else {
@@ -352,6 +352,7 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
         //                    logger(Level::debug) << "line: "<< line << "\n";
     }
 
+    updateUi();
     boost::asio::async_read_until(m_socket, boost::asio::dynamic_string_buffer(m_stringBuffer), '\n',
                                   [this](const boost::system::error_code& error, std::size_t bytes_transferred)
     { read_handler(error, bytes_transferred); });
