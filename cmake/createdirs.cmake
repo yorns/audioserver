@@ -68,9 +68,9 @@ install ( FILES
 
   install ( FILES
          ${CMAKE_SOURCE_DIR}/html/font/fontello.svg
-         ${CMAKE_SOURCE_DIR}/html/font/fontfontello.ttf
-         ${CMAKE_SOURCE_DIR}/html/font/fontfontello.woff
-         ${CMAKE_SOURCE_DIR}/html/font/fontfontello.woff2
+         ${CMAKE_SOURCE_DIR}/html/font/fontello.ttf
+         ${CMAKE_SOURCE_DIR}/html/font/fontello.woff
+         ${CMAKE_SOURCE_DIR}/html/font/fontello.woff2
         DESTINATION ${AUDIO_HTMLFONT_DIR}
         PERMISSIONS
         OWNER_READ OWNER_WRITE
