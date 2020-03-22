@@ -80,6 +80,7 @@ install ( FILES
 
 install ( FILES
        ${CMAKE_SOURCE_DIR}/html/css/bootstrap.min.css
+       ${CMAKE_SOURCE_DIR}/html/css/fontello.css
       DESTINATION ${AUDIO_HTMLCSS_DIR}
       PERMISSIONS
       OWNER_READ OWNER_WRITE
