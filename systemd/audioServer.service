@@ -4,8 +4,7 @@ After=mpv.service
 Requires=mpv.service
 
 [Install]
-WantedBy=hostapd.service
-# WantedBy=multi-user.target
+WantedBy=wpa_supplicant.service
 
 [Service]
 ExecStart=/usr/bin/audioServer 0.0.0.0 80 /var/audioserver

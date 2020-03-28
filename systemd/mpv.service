@@ -1,10 +1,9 @@
 [Unit]
 Description=mplayer handler
-After=hostapd.service
+After=wpa_supplicant.service
 
 [Install]
-WantedBy=hostapd.service
-# WantedBy=multi-user.target
+WantedBy=wpa_supplicant.service
 
 [Service]
 ExecStart=/usr/bin/mpv --no-video --idle=yes --input-ipc-server=/tmp/mpvsocket --audio-device=alsa/default:CARD=0
