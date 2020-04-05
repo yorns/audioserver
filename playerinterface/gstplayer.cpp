@@ -1,0 +1,2 @@
+#include "gstplayer.h"
+

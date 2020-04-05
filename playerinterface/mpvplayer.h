@@ -30,14 +30,10 @@ private:
     std::string m_stringBuffer;
 
     static constexpr std::string_view m_accessPoint {"/tmp/mpvsocket"};
-    bool m_isPlaying {false};
-    bool m_pause {false};
     NextPlaylistDirection m_nextPlaylistDirection { NextPlaylistDirection::next };
     float m_actTime { 0.0 };
 
     std::string m_AudioFileName;
-
-    std::vector<std::string>::const_iterator m_currentItemIterator { m_playlist.end() };
 
     std::deque<std::string> m_expectedAnswer;
     std::unordered_map<std::string, std::function<void(const nlohmann::json& data)>> m_propertiesHandler;
@@ -48,13 +44,9 @@ private:
     void init_communication();
     void init_MpvCommandHandling();
 
-    bool doPlayFile(const std::string& uniqueId);
-    bool doPlayPreviousFileInList();
-    bool doPlayNextFileInList();
+//    virtual bool doPlayFile(const std::string& uniqueId, const std::string& prefix);
 
-    bool needsOnlyUnpause(const std::string& playlist);
-
-    bool needsStop();
+    bool doPlayFile(const std::string& uniqueId, const std::string& prefix = "file://");
 
     void stopAndRestart() final {
         if (needsStop()) {
@@ -86,8 +78,6 @@ public:
     bool next_file() final;
     bool prev_file() final;
     bool pause_toggle() final;
-
-    bool isPlaying() const final;
 
     bool jump_to_position(int percent) final;
     bool jump_to_fileUID(const std::string& filename) final;

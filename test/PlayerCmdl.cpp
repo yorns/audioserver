@@ -6,6 +6,7 @@
 #include <iomanip>
 #include "playerinterface/Player.h"
 #include "playerinterface/mpvplayer.h"
+#include "playerinterface/gstplayer.h"
 #include "common/repeattimer.h"
 #include "common/logger.h"
 #include "database/playlist.h"
@@ -19,7 +20,7 @@ class AudioPlayer
 private:
     boost::asio::io_context m_context;
     KeyHit m_keyHit;
-    std::unique_ptr<BasePlayer> m_player { new MpvPlayer(m_context) };
+    std::unique_ptr<BasePlayer> m_player { new GstPlayer(m_context) };
     RepeatTimer m_timer {m_context, 100ms};
     boost::asio::signal_set m_signals {m_context, SIGINT};
 
@@ -146,7 +147,7 @@ mkdir -p /tmp/playertest/playlist/
 
 int main(int argc, char* argv[])
 {
-    globalLevel = Level::debug;
+    globalLevel = Level::warning;
     ServerConstant::base_path = ServerConstant::sv{"/tmp/playertest"};
 
     if (argc != 2) {

@@ -14,7 +14,7 @@ bool BasePlayer::doShuffle(bool shuffleRequest) {
         m_shuffle = true;
         std::shuffle(std::begin(m_playlist), std::end(m_playlist), m_rng);
 
-        logger(LoggerFramework::Level::debug) << "Nr) /t original \t->  shuffled\n";
+        logger(LoggerFramework::Level::debug) << "Nr) /t original /t->  shuffled\n";
         for(uint32_t i{0}; i < m_playlist.size(); ++i) {
             logger(LoggerFramework::Level::debug) << i << ") /t" << m_playlist_orig[i] <<" \t-> " << m_playlist[i] << "\n";
         }
@@ -46,10 +46,63 @@ void BasePlayer::updateUi() const {
         m_onUiChangeHandler("", 0, getLoop(), getShuffle());
 }
 
+bool BasePlayer::needsOnlyUnpause(const std::string &playlist){
+    return m_PlaylistUniqueId == playlist && m_isPlaying && m_pause;
+}
+
+bool BasePlayer::needsStop() {
+    return m_isPlaying ;
+}
+
+bool BasePlayer::calculatePreviousFileInList() {
+    if (m_currentItemIterator == m_playlist.end() || m_isPlaying == false)
+        return false;
+
+    if (m_currentItemIterator != m_playlist.begin())
+    {
+        m_currentItemIterator--;
+    }
+    else
+        return true; // keep current audio file
+
+    return true;
+}
+
+bool BasePlayer::calculateNextFileInList() {
+    if (m_currentItemIterator == m_playlist.end() || !m_isPlaying) {
+        logger(LoggerFramework::Level::debug) << "player not in playing mode\n";
+        return false;
+    }
+
+    if (++m_currentItemIterator == m_playlist.end())
+    {
+        logger(LoggerFramework::Level::debug) << "Playlist <"<<m_PlaylistUniqueId<<"> (" << m_PlaylistName << ") ends\n";
+        if (m_doCycle) {
+            logger(LoggerFramework::Level::debug) << "do cycle and play playlist from start again\n";
+            if (m_shuffle) {
+                doShuffle(true);
+            }
+            m_currentItemIterator = m_playlist.begin();
+            logger(LoggerFramework::Level::debug) << "Playlist <"<<m_PlaylistUniqueId<<"> ("
+                                                  << m_PlaylistName << ") playing first sond <"
+                                                  << *m_currentItemIterator << ">\n";
+            return  true;
+        }
+
+        return false;
+    }
+    else {
+        logger(LoggerFramework::Level::debug) << "Playlist <"<<m_PlaylistUniqueId<<"> ("
+                                              << m_PlaylistName << ") playing next song <"
+                                              << *m_currentItemIterator << ">\n";
+        return true;
+    }
+}
+
 bool BasePlayer::toggleShuffle() {
     doShuffle(!m_shuffle);
     if (isPlaying()) {
-       stopAndRestart();
+        stopAndRestart();
     }
     updateUi();
     return true;

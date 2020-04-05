@@ -27,13 +27,25 @@ protected:
     std::string m_PlaylistUniqueId;
     std::string m_PlaylistName;
 
-    bool m_shuffle { false };
-    bool m_doCycle { false };
+    std::vector<std::string>::const_iterator m_currentItemIterator { m_playlist.end() };
+
+    bool m_shuffle   { false };
+    bool m_doCycle   { false };
+    bool m_isPlaying { false };
+    bool m_pause     { false };
 
     std::default_random_engine m_rng {};
 
+//    virtual bool doPlayFile(const std::string& uniqueId, const std::string& prefix);
     void updateUi() const;
     virtual void stopAndRestart() = 0;
+
+    bool needsOnlyUnpause(const std::string &playlist);
+    bool needsStop();
+    bool isPause() const { return m_pause; }
+
+    bool calculatePreviousFileInList();
+    bool calculateNextFileInList();
 
 public:
 
@@ -67,7 +79,7 @@ public:
     virtual bool jump_to_position(int percent) = 0;
     virtual bool jump_to_fileUID(const std::string& uniqueId) = 0;
 
-    virtual bool isPlaying() const = 0;
+    bool isPlaying() const { return m_isPlaying; }
 
     virtual const std::string getSongName() const = 0;
     virtual std::string getSongID() const = 0;

@@ -27,11 +27,15 @@ include(FindPkgConfig)
 
 pkg_search_module(TagLib REQUIRED taglib)
 
+pkg_check_modules(GST REQUIRED gstreamer-1.0)
+
 set(PLAYERINTERFACE
     ${CMAKE_SOURCE_DIR}/playerinterface/Player.h
     ${CMAKE_SOURCE_DIR}/playerinterface/Player.cpp
     ${CMAKE_SOURCE_DIR}/playerinterface/mpvplayer.h
     ${CMAKE_SOURCE_DIR}/playerinterface/mpvplayer.cpp
+    ${CMAKE_SOURCE_DIR}/playerinterface/gstplayer.h
+    ${CMAKE_SOURCE_DIR}/playerinterface/gstplayer.cpp
     )
 
 set(WEBSERVER
@@ -104,13 +108,15 @@ target_link_libraries(${PROJECT_NAME}
         Threads::Threads
         ${Boost_LIBRARIES}
         ${TagLib_LIBRARIES}
+        ${GST_LIBRARIES}
 )
 
 target_include_directories(
 	${PROJECT_NAME}
 	PUBLIC
         ${CMAKE_SOURCE_DIR}
-	${Boost_INCLUDE_DIRS}
+        ${GST_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
         ${TagLib_INCLUDE_DIRS}
 )
 
@@ -179,11 +185,13 @@ target_include_directories(
         PUBLIC
         ${CMAKE_SOURCE_DIR}
         ${Boost_INCLUDE_DIRS}
+        ${GST_INCLUDE_DIRS}
 )
 target_link_libraries(
         playerCmdl
         Threads::Threads
         ${Boost_LIBRARIES}
+        ${GST_LIBRARIES}
 )
 
 #
@@ -245,6 +253,29 @@ target_include_directories(
 )
 target_link_libraries(
         mpvTest
+        ${Boost_LIBRARIES}
+        Threads::Threads
+)
+
+#
+# gstreamer Test
+#
+add_executable( gstTest
+    ${COMMONCOMPONENTS}
+    ${CMAKE_SOURCE_DIR}/test/gstTest.cpp
+    )
+set_target_properties( gstTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_compile_options( gstTest PUBLIC -O0 -g)
+target_include_directories(
+        gstTest
+        PUBLIC
+        ${GST_INCLUDE_DIRS}
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
+)
+target_link_libraries(
+        gstTest
+        ${GST_LIBRARIES}
         ${Boost_LIBRARIES}
         Threads::Threads
 )

@@ -82,7 +82,7 @@ bool Playlist::read()
 {
     std::string fullFilename = FileSystemAdditions::getFullQualifiedDirectory(FileType::Playlist)+ '/' + getUniqueID() + ".m3u";
 
-    std::cerr << "reading playlist file <"<<fullFilename<<">\n";
+    logger(LoggerFramework::Level::debug) << "reading playlist file <"<<fullFilename<<">\n";
 
     std::ifstream stream(fullFilename);
 
@@ -106,7 +106,7 @@ bool Playlist::read()
         }
     }
 
-    std::cerr << "playlist name: "<<getUniqueID()<<"\n";
+    logger(LoggerFramework::Level::debug) << "playlist name: "<<getUniqueID()<<"\n";
 
     while (stream.good() && std::getline(stream, line)) {
         filesys::path fullName(line);
