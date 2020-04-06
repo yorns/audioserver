@@ -72,6 +72,8 @@ class GstPlayer  : public BasePlayer
 
           break;
       }
+      default:
+          break;
       }
 
       /* We want to keep receiving messages */
@@ -163,6 +165,9 @@ public:
     bool startPlay(const std::vector<std::string>& list,
                            const std::string& playlistUniqueId,
                    const std::string& playlistName) final {
+
+        boost::ignore_unused(playlistUniqueId);
+        boost::ignore_unused(playlistName);
 
         if (list.empty())
             return false;
@@ -299,13 +304,12 @@ public:
             }
             m_currentItemIterator = it;
             doPlayFile(*m_currentItemIterator);
-
         }
         else {
             logger(LoggerFramework::Level::warning) << "file <" << fileId << "> not in playlist\n";
             return false;
         }
-
+        return true;
     }
 
     const std::string getSongName() const final { return m_songName; }

@@ -23,6 +23,7 @@
 #include "webserver/playlistaccess.h"
 #include "webserver/playeraccess.h"
 #include "playerinterface/mpvplayer.h"
+#include "playerinterface/gstplayer.h"
 #include "database/SimpleDatabase.h"
 #include "id3tagreader/id3TagReader.h"
 
@@ -80,8 +81,9 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context ioc;
 
-    logger(Level::info) << "create player instance\n";
-    auto player = std::unique_ptr<BasePlayer>(new MpvPlayer(ioc));
+    logger(Level::info) << "create player instance for";
+
+    auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
 
     Database::SimpleDatabase database;
     database.loadDatabase();
