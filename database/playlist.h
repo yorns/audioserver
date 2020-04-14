@@ -11,12 +11,18 @@ namespace Database {
 
 enum class Changed {
     isChanged,
-    isUnchanged
+    isUnchanged,
+    isConst
 };
 
 enum class Persistent {
     isTemporal,
     isPermanent
+};
+
+enum class ReadType {
+    isM3u,
+    isJson
 };
 
 class Playlist {
@@ -25,16 +31,19 @@ class Playlist {
     std::vector<std::string> m_playlist;
     Changed m_changed { Changed::isUnchanged };
     Persistent m_persistent { Persistent::isPermanent };
+    ReadType m_readType { ReadType::isM3u };
 
 public:
 
     Playlist() = delete;
 
     Playlist(const std::string& uniqueID,
+             ReadType readType = ReadType::isM3u,
              Persistent persistent = Persistent::isPermanent,
              Changed changed = Changed::isUnchanged);
 
     Playlist(const std::string& uniqueID, std::vector<std::string>&& playlist,
+             ReadType readType = ReadType::isM3u,
              Persistent persistent = Persistent::isPermanent,
              Changed changed = Changed::isChanged);
 
@@ -54,7 +63,8 @@ public:
     bool addToList(std::string&& audioUID);
     bool delFromList(const std::string& audioUID);
 
-    bool read();
+    bool readM3u();
+    bool readJson();
     bool write();
 
 };

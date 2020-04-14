@@ -94,7 +94,9 @@ std::vector<Id3Info> id3TagReader::readStreamInfo(const std::string& filename) {
         std::ifstream streamInfoFile(filename.c_str());
         nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
 
-        for (auto elem : streamInfo) {
+        auto items = streamInfo.at("Items");
+
+        for (auto elem : items) {
             Id3Info info;
             info.uid = elem.at("Id");
             info.title_name = elem.at("Title");

@@ -1,8 +1,12 @@
 /*jslint devel: true */
 var webSocket;
 var songID;
+var name_typed;
+
 $(document).ready(function () {
 
+    name_typed = "";
+    
     function runWebsocket() {
 
         if ("WebSocket" in window) {
@@ -134,15 +138,14 @@ $(document).ready(function () {
 
     $("#albumSearch").keyup(function() {
         //            if (console && console.log)
-        var name_typed = $("#albumSearch").val();
+        name_typed = $("#albumSearch").val();
         console.log("request: " + name_typed);
-        // alert("keypressed:"+$("#albumSearch").val());
         getAlbumList(name_typed);
     });
 
     readPlaylist();
     getActualPlaylist();
-    getAlbumList("");
+    getAlbumList(name_typed);
     $('#albumSearch').val("");
     
     $('#ex1').slider({
@@ -203,7 +206,7 @@ function albumSelect(album) {
             stopPlayer();
             readPlaylist();
             getActualPlaylist();
-            getAlbumList("");
+            getAlbumList(name_typed);
             startPlay();
         }
 
@@ -314,7 +317,7 @@ function uploadFile() {
 
         client.onload = function(e) {
             $('.progress-bar').css("width", "100%");
-            getAlbumList("");
+            getAlbumList(name_typed);
             // mark transfered file as copied
         };
 

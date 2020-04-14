@@ -27,7 +27,7 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
 
     logger(Level::debug) << "database access - parameter:"<<urlInfo->parameter<<" value:"<<urlInfo->value<<"\n";
     if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
-        auto infoList = m_database.search(urlInfo->value,Database::SearchItem::album, Database::SearchAction::alike, Common::FileType::Audio);
+        auto infoList = m_database.search(urlInfo->value, Database::SearchItem::album, Database::SearchAction::alike, Common::FileType::Audio);
         return convertToJson(infoList);
     }
 

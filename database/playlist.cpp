@@ -3,6 +3,7 @@
 #include "common/Constants.h"
 #include <boost/filesystem.hpp>
 #include "common/filesystemadditions.h"
+#include <nlohmann/json.hpp>
 
 using namespace Database;
 using namespace LoggerFramework;
@@ -45,15 +46,16 @@ bool Playlist::delFromList(const std::string &audioUID) {
     return false;
 }
 
-Playlist::Playlist(const std::string &_internalPlaylistName, Persistent persistent, Changed changed)
+Playlist::Playlist(const std::string &_internalPlaylistName, ReadType readType, Persistent persistent, Changed changed)
     : m_uniqueID(_internalPlaylistName),
       m_changed(changed),
-      m_persistent(persistent)
+      m_persistent(persistent),
+      m_readType(readType)
 {}
 
-Playlist::Playlist(const std::string &_internalPlaylistName, std::vector<std::string> &&playlist, Persistent persistent, Changed changed)
+Playlist::Playlist(const std::string &_internalPlaylistName, std::vector<std::string> &&playlist, ReadType readType, Persistent persistent, Changed changed)
     : m_uniqueID(_internalPlaylistName), m_playlist(std::move(playlist)),
-      m_changed(changed), m_persistent(persistent)
+      m_changed(changed), m_persistent(persistent), m_readType(readType)
 {}
 
 Changed Playlist::changed() const
@@ -76,9 +78,36 @@ void Playlist::setPersistent(const Persistent &persistent)
     m_persistent = persistent;
 }
 
+bool Playlist::readJson()
+{
+    std::string filename(Common::FileSystemAdditions::getFullQualifiedDirectory(FileType::Stream)+ "/" + m_uniqueID + ".json");
+    std::vector<std::string> playlist;
+    std::string playlistName;
 
+    try {
+        std::ifstream streamInfoFile(filename.c_str());
+        nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
+        playlistName = streamInfo.at("Name");
+        auto items = streamInfo.at("Items");
+        for (auto elem : items) {
+            playlist.emplace_back(elem.at("Id"));
+        }
 
-bool Playlist::read()
+    } catch (std::exception& ex) {
+        logger(Level::warning) << "failed to read file: " << filename << ": " << ex.what() << "\n";
+        playlist.clear();
+    }
+
+    if (playlist.size() > 0) {
+        logger(LoggerFramework::Level::debug) << "stream playlist: <"<<playlist.size()<<" elements read\n";
+        m_playlist = std::move(playlist);
+        m_humanReadableName = playlistName;
+        return true;
+    }
+    return false;
+}
+
+bool Playlist::readM3u()
 {
     std::string fullFilename = FileSystemAdditions::getFullQualifiedDirectory(FileType::Playlist)+ '/' + getUniqueID() + ".m3u";
 

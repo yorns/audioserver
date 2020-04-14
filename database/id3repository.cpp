@@ -45,6 +45,7 @@ std::vector<Id3Info> Id3Repository::findAlbum(const std::string &what) {
         });
 
     }
+
     return findData;
 }
 

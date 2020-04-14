@@ -114,17 +114,35 @@ bool PlaylistContainer::readPlaylists() {
     auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::Playlist);
 
     for (auto file : fileList) {
+        logger(Level::debug) << "reading m3u playlist <"<<file.name<<">\n";
         std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Playlist) + '/';
         fileName += file.name + file.extension;
         if (file.extension == ".m3u") {
-            Playlist playlist(file.name, Persistent::isPermanent, Changed::isUnchanged);
-            if (playlist.read()) {
+            Playlist playlist(file.name, ReadType::isM3u, Persistent::isPermanent, Changed::isUnchanged);
+            if (playlist.readM3u()) {
                 m_playlists.emplace_back(playlist);
             }
             else
                 logger(Level::warning) << "reading file <"<<file.name+file.extension <<"> failed\n";
         }
     }
+
+    auto streamList = FileSystemAdditions::getAllFilesInDir(FileType::Stream);
+
+    for (auto file : streamList) {
+        logger(Level::debug) << "reading json playlist <"<<file.name<<">\n";
+        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Stream) + '/';
+        fileName += file.name + file.extension;
+        if (file.extension == ".json") {
+            Playlist playlist(file.name, ReadType::isJson, Persistent::isPermanent, Changed::isConst);
+            if (playlist.readJson()) {
+                m_playlists.emplace_back(playlist);
+            }
+            else
+                logger(Level::warning) << "reading file <"<<file.name+file.extension <<"> failed\n";
+        }
+    }
+
 
     return true;
 }

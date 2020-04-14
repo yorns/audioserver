@@ -38,8 +38,8 @@ private:
             break;
         }
         case 'p': {
-            Database::Playlist playlist(m_playlistFilename, Database::Persistent::isTemporal);
-            playlist.read();
+            Database::Playlist playlist(m_playlistFilename, Database::ReadType::isM3u, Database::Persistent::isTemporal);
+            playlist.readM3u();
             //m_player->startPlay(playlist.getUniqueIdPlaylist(), playlist.getUniqueID(), "");
             break;
         }

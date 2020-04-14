@@ -10,7 +10,29 @@ std::optional<std::vector<Id3Info> > Database::SimpleDatabase::search(const std:
     switch(fileType) {
 
     case Common::FileType::Audio: {
-        return m_id3Repository.search(what, item, action);
+        auto itemList = m_id3Repository.search(what, item, action);
+
+        // TODO: bad, identifier for album search should be different
+        if (action == SearchAction::alike && itemList) {
+            // replace album cover if available
+            auto coverFileList = Common::FileSystemAdditions::getAllFilesInDir(Common::FileType::Covers);
+            auto playlist = getAllPlaylists();
+            std::for_each(std::begin(*itemList), std::end(*itemList), [this, &coverFileList](Id3Info& info) {
+                logger(Level::info) << "try to find an alternative image for " << info.album_name << "\n";
+                auto playlist = convertPlaylist(info.album_name, NameType::realName);
+                if (playlist)
+                    logger(Level::debug) << "album <" << info.album_name << "> has id " << *playlist << "\n";
+                auto it = std::find_if(std::cbegin(coverFileList), std::cend(coverFileList), [&playlist](const Common::FileNameType& file)
+                { return playlist && file.name == *playlist; });
+                if (it != std::cend(coverFileList)) {
+                    info.imageFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative)
+                            + "/" + it->name + it->extension;
+                    logger(Level::info) << "replace image for album <" << info.album_name << "> -> " << info.imageFile << "\n";
+                }
+            });
+        }
+
+        return itemList;
     }
 
     case Common::FileType::Playlist: {
@@ -55,7 +77,7 @@ std::optional<std::string> Database::SimpleDatabase::createPlaylist(const std::s
 
     const auto newPlaylistUniqueID =
             Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Playlist),".m3u");
-    Playlist newPlaylist(newPlaylistUniqueID.unique_id, persistent);
+    Playlist newPlaylist(newPlaylistUniqueID.unique_id, ReadType::isM3u, persistent);
     newPlaylist.setName(name);
 
     m_playlistContainer.addPlaylist(std::move(newPlaylist));
