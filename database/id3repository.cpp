@@ -145,11 +145,23 @@ std::optional<std::vector<Id3Info> > Id3Repository::search(const std::string &wh
     return findData;
 }
 
+std::optional<Id3Info> Id3Repository::getId3InfoByUid(const std::string &uniqueId) const {
+    auto it = std::find_if(std::begin(m_simpleDatabase),
+                           std::end(m_simpleDatabase),
+                           [&uniqueId](const Id3Info& info) { return info.uid == uniqueId; });
+
+    if (it==std::end(m_simpleDatabase))
+        return std::nullopt;
+    else
+        return *it;
+}
+
 bool Id3Repository::read() {
 
     auto mp3Directory = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio);
 
     auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::Audio);
+    auto streamlist = FileSystemAdditions::getAllFilesInDir(FileType::Stream);
     auto imglist = FileSystemAdditions::getAllFilesInDir(FileType::Covers);
 
     logger(::Level::debug) << "reading all audio files in directory <" << mp3Directory << ">\n";
@@ -178,6 +190,25 @@ bool Id3Repository::read() {
         if (auto id3info = m_tagReader.getInfo(file.name, webserverCoverPath))
             m_simpleDatabase.emplace_back(*id3info);
 
+    }
+
+    for (auto& file : streamlist) {
+        auto id3infoList = m_tagReader.getStreamInfo(file.name);
+        if (!id3infoList.empty()) {
+            for(auto& elem : id3infoList) {
+
+                auto imgFile = getImageFileOf(elem.uid);
+
+                // this is the webservers view
+                std::string webserverCoverPath = std::string("/")
+                        + std::string(ServerConstant::coverPathWeb)
+                        + '/' + imgFile.name + imgFile.extension;
+
+                elem.imageFile = webserverCoverPath;
+
+                m_simpleDatabase.emplace_back(std::move(elem));
+            }
+        }
     }
 
     return true;

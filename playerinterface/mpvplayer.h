@@ -44,9 +44,7 @@ private:
     void init_communication();
     void init_MpvCommandHandling();
 
-//    virtual bool doPlayFile(const std::string& uniqueId, const std::string& prefix);
-
-    bool doPlayFile(const std::string& uniqueId, const std::string& prefix = "file://");
+    bool doPlayFile(const Common::PlaylistItem& playlistItem);
 
     void stopAndRestart() final {
         if (needsStop()) {
@@ -69,7 +67,7 @@ public:
 
     virtual ~MpvPlayer() = default;
 
-    bool startPlay(const std::vector<std::string>& list, const std::string& playlistUniqueId, const std::string& playlistName) final;
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) final;
     bool stop() final;
     bool stopPlayerConnection() final;
 

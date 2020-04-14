@@ -8,6 +8,7 @@ namespace ServerConstant {
     extern sv base_path;
 
     static constexpr auto audioPath {sv("mp3")};
+    static constexpr auto streamInfoPath {sv("stream")};
     static constexpr auto playlistPath {sv("playlist")};
     static constexpr auto htmlPath {sv("html")};
     static constexpr auto coverPath {sv("html/img")};

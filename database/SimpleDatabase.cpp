@@ -1,5 +1,5 @@
 #include "SimpleDatabase.h"
-
+#include "common/generalPlaylist.h"
 
 void Database::SimpleDatabase::loadDatabase() {
     m_id3Repository.read();
@@ -40,6 +40,10 @@ std::optional<std::vector<Id3Info> > Database::SimpleDatabase::search(const std:
         return std::nullopt;
     }
 
+    case Common::FileType::Stream: {
+        logger(LoggerFramework::Level::warning) << "TODO: no search for Streams available\n";
+        return std::nullopt;
+    }
     }
     return std::nullopt;
 }
@@ -114,17 +118,30 @@ std::vector<Id3Info> Database::SimpleDatabase::getIdListOfItemsInPlaylistId(cons
     return itemList;
 }
 
-Database::GetAlbumPlaylistAndNamesType Database::SimpleDatabase::getAlbumPlaylistAndNames() {
+Common::AlbumPlaylistAndNames Database::SimpleDatabase::getAlbumPlaylistAndNames() {
+
+    Common::AlbumPlaylistAndNames albumPlaylistAndNames;
+
     if (auto playlistNameOpt = m_playlistContainer.getCurrentPlaylist()) {
-        std::string playlistUniqueId = playlistNameOpt->getUniqueID();
-        std::string playlistName = playlistNameOpt->getName();
-        std::vector<std::string> playlist = playlistNameOpt->getPlaylist();
-        logger(Level::debug) << "Album playlist found for <" << playlistUniqueId
-                             << "> (" << playlistName << ") with " << playlist.size()
-                             << " elements\n";
-        return {playlist, playlistUniqueId, playlistName};
+        albumPlaylistAndNames.m_playlistUniqueId = playlistNameOpt->getUniqueID();
+        albumPlaylistAndNames.m_playlistName = playlistNameOpt->getName();
+        const std::vector<std::string> uniqueIdPlaylist = playlistNameOpt->getUniqueIdPlaylist();
+        for (auto& uniqueId : uniqueIdPlaylist) {
+            auto item = m_id3Repository.getId3InfoByUid(uniqueId);
+            if (item) {
+                Common::PlaylistItem playlistItem;
+                playlistItem.m_url = item->url;
+                playlistItem.m_uniqueId = uniqueId;
+                albumPlaylistAndNames.m_playlist.emplace_back(playlistItem);
+            }
+        }
+
+        logger(Level::debug) << "Album playlist found for <" << albumPlaylistAndNames.m_playlistUniqueId
+                             << "> (" << albumPlaylistAndNames.m_playlistName << ") with "
+                             << albumPlaylistAndNames.m_playlist.size() << " elements\n";
+
     }
 
-    return {{},"",""};
+    return albumPlaylistAndNames;
 
 }

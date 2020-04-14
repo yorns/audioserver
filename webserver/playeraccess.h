@@ -8,7 +8,7 @@
 
 class PlayerAccess
 {
-    typedef std::function<std::tuple<const std::vector<std::string>, const std::string, const std::string>()> GetAlbumPlaylistAndNames;
+    typedef std::function<Common::AlbumPlaylistAndNames()> GetAlbumPlaylistAndNames;
 
     std::unique_ptr<BasePlayer>& m_player;
     GetAlbumPlaylistAndNames m_getAlbumPlaylistAndNames;

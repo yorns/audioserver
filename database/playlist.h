@@ -50,7 +50,7 @@ public:
     void setName(const std::string& name) { m_humanReadableName = name; setChanged(Changed::isChanged); }
     std::string getName() const;
 
-    const std::vector<std::string>& getPlaylist() const;
+    const std::vector<std::string>& getUniqueIdPlaylist() const;
     bool addToList(std::string&& audioUID);
     bool delFromList(const std::string& audioUID);
 

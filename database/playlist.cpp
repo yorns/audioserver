@@ -15,7 +15,7 @@ std::string Playlist::getUniqueID() const
     return m_uniqueID;
 }
 
-const std::vector<std::string> &Playlist::getPlaylist() const
+const std::vector<std::string> &Playlist::getUniqueIdPlaylist() const
 {
     return m_playlist;
 }
@@ -98,10 +98,16 @@ bool Playlist::read()
             setName(line.substr(2));
         } else {
             filesys::path fullName(line);
-            if (!fullName.stem().empty()) {
-                std::string audioUniqueID { fullName.stem().string() };
-                addToList(std::move(audioUniqueID));
-                logger(LoggerFramework::Level::debug) << "  reading: <" << fullName.stem() << ">\n";
+            std::string audioUniqueID { fullName.stem().string() };
+            if (!audioUniqueID.empty()) {
+                if (audioUniqueID.find("https://",0) == std::string::npos) {
+                    addToList(std::move(audioUniqueID));
+                    logger(LoggerFramework::Level::debug) << "  reading: <" << fullName.stem() << ">\n";
+                }
+                else {
+                    // create uniqueID
+                    // add uniqueId and url to list
+                }
             }
         }
     }
@@ -138,7 +144,7 @@ bool Playlist::write()
         if (ofs.good()) {
             ofs << "# " << getName() << "\n";
 
-            for (const auto &entry : getPlaylist()) {
+            for (const auto &entry : getUniqueIdPlaylist()) {
                 ofs << "../" << ServerConstant::audioPath << "/" << entry << ".mp3\n";
             }
             success = true;

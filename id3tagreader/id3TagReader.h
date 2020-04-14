@@ -20,10 +20,12 @@
 class id3TagReader {
 
     std::string unknownCover();
+    std::vector<Id3Info> readStreamInfo(const std::string& filename);
 
 public:
     std::string extractCover(const std::string& uid);
     std::optional<Id3Info> getInfo(const std::string& uniqueId, const std::string& cover);
+    std::vector<Id3Info> getStreamInfo(const std::string& uniqueId);
 };
 
 

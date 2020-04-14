@@ -41,8 +41,8 @@ void MpvPlayer::init_MpvCommandHandling() {
     };
 }
 
-bool MpvPlayer::doPlayFile(const std::string &uniqueId, const std::string& ) {
-    std::string filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Audio) + '/' + uniqueId + ".mp3";
+bool MpvPlayer::doPlayFile(const Common::PlaylistItem& playlistItem) {
+    std::string filename = playlistItem.m_url;
     logger(LoggerFramework::Level::debug) << "Send Command to play file <"<<filename<<">\n";
     m_isPlaying = true;
     return sendCommand({"loadfile", filename});
@@ -56,24 +56,24 @@ MpvPlayer::MpvPlayer(boost::asio::io_context &context)
     init_MpvCommandHandling();
 }
 
-bool MpvPlayer::startPlay(const std::vector<std::string> &list, const std::string &playlistUniqueId, const std::string &playlistName)
+bool MpvPlayer::startPlay(const Common::AlbumPlaylistAndNames &list)
 {
 
     // just unpause if player is in playing state and paused
-    if (needsOnlyUnpause(playlistUniqueId))
+    if (needsOnlyUnpause(list.m_playlistUniqueId))
         return pause_toggle();
 
-    m_PlaylistName = playlistName;
-    m_PlaylistUniqueId = playlistUniqueId;
+    m_PlaylistName = list.m_playlistName;
+    m_PlaylistUniqueId = list.m_playlistUniqueId;
     m_playlist_orig.clear();
-    m_playlist_orig.insert(std::begin(m_playlist_orig), std::cbegin(list), std::cend(list));
+    m_playlist_orig.insert(std::begin(m_playlist_orig), std::cbegin(list.m_playlist), std::cend(list.m_playlist));
     m_playlist.clear();
     m_playlist.insert(std::begin(m_playlist), std::cbegin(m_playlist_orig), std::cend(m_playlist_orig));
     bool shuffelingNeeded = m_shuffle;
     m_shuffle = false;
 
     if (m_playlist.empty()) {
-        logger(LoggerFramework::Level::warning) << "playlist <"<<playlistUniqueId<<"> (" << playlistName <<") is empty\n";
+        logger(LoggerFramework::Level::warning) << "playlist <"<<list.m_playlistUniqueId<<"> (" << list.m_playlistName <<") is empty\n";
         return false;
     }
 
@@ -155,7 +155,7 @@ bool MpvPlayer::stopPlayerConnection()
 
 const std::string MpvPlayer::getSongName() const { return m_AudioFileName; }
 
-std::string MpvPlayer::getSongID() const { return (m_currentItemIterator != std::end(m_playlist))?*m_currentItemIterator:""; }
+std::string MpvPlayer::getSongID() const { return (m_currentItemIterator != std::end(m_playlist))?m_currentItemIterator->m_uniqueId:""; }
 
 int MpvPlayer::getSongPercentage() const  { int time { static_cast<int>(m_actTime) }; if (time > 100.0) time = 100.0; return time*100; }
 
@@ -165,11 +165,11 @@ bool MpvPlayer::jump_to_fileUID(const std::string &fileId)
 {
     auto it = std::find_if(std::begin(m_playlist),
                            std::end(m_playlist),
-                           [&fileId](const std::string& uniqueId){ return uniqueId == fileId; });
+                           [&fileId](const auto& playlistItem){ return playlistItem.m_uniqueId == fileId; });
     if (it != std::end(m_playlist)) {
-        logger(Level::info) << "change to file id from <" << *it << "> to <"<< fileId << ">\n";
+        logger(Level::info) << "change to file id from <" << it->m_uniqueId << "> to <"<< fileId << ">\n";
         if (m_isPlaying) {
-            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
             m_currentItemIterator = it;
             m_nextPlaylistDirection = MpvPlayer::NextPlaylistDirection::current;
             return sendCommand({"stop"});
@@ -209,17 +209,17 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
                 }
             }
             else if (event == "end-file") {
-                logger(Level::debug) << "End file event found on <" << *m_currentItemIterator << ">.\n";
+                logger(Level::debug) << "End file event found on <" << m_currentItemIterator->m_uniqueId << ">.\n";
                     switch (m_nextPlaylistDirection) {
                     case MpvPlayer::NextPlaylistDirection::next: {
                         if (calculateNextFileInList()) {
-                            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
                             doPlayFile(*m_currentItemIterator);
                         }
                         else {
                             if (m_isPlaying) {
                             logger(Level::debug) << "no next file given, playlist ended\n";
-                            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
                             if (m_playlistEndCallback) m_playlistEndCallback();
                             m_isPlaying = false;
                             m_currentItemIterator = m_playlist.end();
@@ -231,13 +231,13 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
                     }
                     case MpvPlayer::NextPlaylistDirection::previous: {
                         if (calculatePreviousFileInList()) {
-                            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
                             doPlayFile(*m_currentItemIterator);
                         }
                         else {
                             if (m_isPlaying) {
                             logger(Level::debug) << "no previous file given, playlist ended\n";
-                            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
                             if (m_playlistEndCallback) m_playlistEndCallback();
                             m_isPlaying = false;
                             m_currentItemIterator = m_playlist.end();
@@ -254,7 +254,7 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
                     }
                     case MpvPlayer::NextPlaylistDirection::stop: {
                         if (m_isPlaying) {
-                            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
                             if (m_playlistEndCallback) m_playlistEndCallback();
                             m_isPlaying = false;
                             m_currentItemIterator = m_playlist.end();

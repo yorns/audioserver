@@ -14,10 +14,9 @@
 #include "searchitem.h"
 #include "searchaction.h"
 #include "id3repository.h"
+#include "common/generalPlaylist.h"
 
 namespace Database {
-
-typedef std::tuple<const std::vector<std::string>, const std::string, const std::string> GetAlbumPlaylistAndNamesType;
 
 class SimpleDatabase {
 
@@ -39,7 +38,7 @@ public:
     bool addNewAudioFileUniqueId(const std::string& uniqueID);
 
     std::optional<const std::vector<std::string>> getPlaylistByName(const std::string& playlistName) const;
-    std::optional<const std::vector<std::string>> getPlaylistByUID(const std::string& playlistName) const;
+    std::optional<const std::vector<std::string>> getPlaylistByUID(const std::string& playlistUniqueId) const;
 
     bool setCurrentPlaylistUniqueId(const std::string& uniqueID);
     std::optional<const std::string> getCurrentPlaylistUniqueID();
@@ -48,7 +47,7 @@ public:
 
     std::optional<std::string> convertPlaylist(const std::string& name, NameType nameType);
     std::vector<Id3Info> getIdListOfItemsInPlaylistId(const std::string& uniqueId);
-    GetAlbumPlaylistAndNamesType getAlbumPlaylistAndNames();
+    Common::AlbumPlaylistAndNames getAlbumPlaylistAndNames();
 
 #ifdef WITH_UNITTEST
     bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }

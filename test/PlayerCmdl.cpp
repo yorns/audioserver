@@ -40,7 +40,7 @@ private:
         case 'p': {
             Database::Playlist playlist(m_playlistFilename, Database::Persistent::isTemporal);
             playlist.read();
-            m_player->startPlay(playlist.getPlaylist(), playlist.getUniqueID(), "Bensound");
+            //m_player->startPlay(playlist.getUniqueIdPlaylist(), playlist.getUniqueID(), "");
             break;
         }
         case '+': {

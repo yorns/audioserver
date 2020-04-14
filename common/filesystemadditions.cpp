@@ -75,6 +75,8 @@ std::string getFullQualifiedDirectory(FileType fileType) {
     switch (fileType) {
     case FileType::Audio:
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::audioPath);
+    case FileType::Stream:
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::streamInfoPath);
     case FileType::Playlist:
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::playlistPath);
     case FileType::Html:

@@ -34,6 +34,8 @@ public:
     std::optional<std::vector<Id3Info>> search(const std::string &what, SearchItem item,
                                                SearchAction action = SearchAction::exact);
 
+    std::optional<Id3Info> getId3InfoByUid(const std::string& uniqueId) const;
+
     bool read();
 
 #ifdef WITH_UNITTEST

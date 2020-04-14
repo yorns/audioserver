@@ -134,7 +134,7 @@ std::optional<const std::vector<std::string>> PlaylistContainer::getPlaylistByNa
                            [playlistName](const Playlist& elem) { return elem.getName() == playlistName; });
 
     if (it != std::end(m_playlists)) {
-        return it->getPlaylist();
+        return it->getUniqueIdPlaylist();
     }
     return std::nullopt;
 
@@ -145,7 +145,7 @@ std::optional<const std::vector<std::string>> PlaylistContainer::getPlaylistByUI
                            [uid](const Playlist& elem) { return elem.getUniqueID() == uid; });
 
     if (it != std::end(m_playlists)) {
-        return it->getPlaylist();
+        return it->getUniqueIdPlaylist();
     }
     return std::nullopt;
 }

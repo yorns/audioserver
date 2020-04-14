@@ -34,7 +34,7 @@ class GstPlayer  : public BasePlayer
           break;
         case GST_MESSAGE_EOS: {
           logger(LoggerFramework::Level::debug) << "End-Of-Stream reached.\n";
-          if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+          if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
           if (calculateNextFileInList())
               doPlayFile(*m_currentItemIterator);
           break;
@@ -87,17 +87,18 @@ class GstPlayer  : public BasePlayer
 
 protected:
 
-    bool doPlayFile(const std::string& uniqueId, const std::string& prefix = "file://") {
-        std::string filename = prefix + Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Audio) + '/' + uniqueId + ".mp3";
+    bool doPlayFile(const Common::PlaylistItem& playlistItem) {
 
-        logger(LoggerFramework::Level::info) << "\nplaying "<<uniqueId<<" > "<<filename<<">\n";
+        logger(LoggerFramework::Level::info) << "\nplaying "<<playlistItem.m_uniqueId<<" ("<<playlistItem.m_url<<")\n";
         auto ret = gst_element_set_state (m_playbin.get(), GST_STATE_READY);
         if (ret == GST_STATE_CHANGE_FAILURE) {
             logger(LoggerFramework::Level::warning) "Unable to set the pipeline to the stop state.\n";
             return false;
         }
 
-        g_object_set (m_playbin.get(), "uri", filename.c_str(), NULL);
+        logger(LoggerFramework::Level::debug) << "playing <" << playlistItem.m_url << ">\n";
+
+        g_object_set (m_playbin.get(), "uri", playlistItem.m_url.c_str(), NULL);
 
         ret = gst_element_set_state (m_playbin.get(), GST_STATE_PLAYING);
         if (ret == GST_STATE_CHANGE_FAILURE) {
@@ -126,7 +127,7 @@ public:
                 });
 
         if (!m_playbin) {
-          std::cerr << "Not all elements could be created.\n";
+          logger(LoggerFramework::Level::error) << "playbin could not be created\n";
           return;
         }
 
@@ -135,7 +136,7 @@ public:
         });
 
         if (!m_gstBus) {
-          std::cerr << "Not all elements could be created.\n";
+          logger(LoggerFramework::Level::error) << "gstreamer buss could not be created\n";
           return;
         }
 
@@ -162,18 +163,25 @@ public:
     }
 
 
-    bool startPlay(const std::vector<std::string>& list,
-                           const std::string& playlistUniqueId,
-                   const std::string& playlistName) final {
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) final {
 
-        boost::ignore_unused(playlistUniqueId);
-        boost::ignore_unused(playlistName);
+        boost::ignore_unused(albumPlaylistAndNames.m_playlistUniqueId);
+        boost::ignore_unused(albumPlaylistAndNames.m_playlistName);
 
-        if (list.empty())
+        if (needsOnlyUnpause(albumPlaylistAndNames.m_playlistUniqueId)) {
+            logger(LoggerFramework::Level::debug) << "unpause playlist <" << albumPlaylistAndNames.m_playlistName <<">\n";
+            auto ret = gst_element_set_state (m_playbin.get(), GST_STATE_PLAYING);
+            if (ret == GST_STATE_CHANGE_FAILURE) {
+                logger(LoggerFramework::Level::warning) "Unable to set the pipeline to the playing state.\n";
+                return false;
+            }
+        }
+
+        if (albumPlaylistAndNames.m_playlist.empty())
             return false;
 
-        m_playlist = list;
-        m_playlist_orig = list;
+        m_playlist = albumPlaylistAndNames.m_playlist;
+        m_playlist_orig = albumPlaylistAndNames.m_playlist;
         m_currentItemIterator = m_playlist.begin();
 
         return doPlayFile(*m_currentItemIterator);
@@ -210,7 +218,7 @@ public:
             if (!gst_element_seek (m_playbin.get(), 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
                                    GST_SEEK_TYPE_SET, pos,
                                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE)) {
-                logger(LoggerFramework::Level::warning) << "Seek failed!\n";
+                logger(LoggerFramework::Level::warning) << "Seek forwad failed\n";
                 return false;
             }
             else
@@ -231,12 +239,12 @@ public:
             if (!gst_element_seek (m_playbin.get(), 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
                                    GST_SEEK_TYPE_SET, pos,
                                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE)) {
-                logger(LoggerFramework::Level::warning) << "Seek failed!\n";
+                logger(LoggerFramework::Level::warning) << "seek backward failed\n";
             }
             else
                 return true;
         }
-        logger(LoggerFramework::Level::debug) << "seeking forward failed\n";
+        logger(LoggerFramework::Level::debug) << "seeking backward failed\n";
         return false;
     }
 
@@ -244,7 +252,7 @@ public:
         if (!isPlaying()) return false;
         logger(LoggerFramework::Level::debug) << "play next audio file\n";
         if (calculateNextFileInList()) {
-            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+            if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
             return doPlayFile(*m_currentItemIterator);
         }
         return false;
@@ -252,8 +260,9 @@ public:
     bool prev_file()  final {
         if (!isPlaying()) return false;
         logger(LoggerFramework::Level::debug) << "play previous audio file\n";
+        auto lastUniqueId = m_currentItemIterator->m_uniqueId;
         if (calculatePreviousFileInList()) {
-            if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+            if (m_songEndCallback) m_songEndCallback(lastUniqueId);
             return doPlayFile(*m_currentItemIterator);
         }
         return false;
@@ -296,11 +305,11 @@ public:
     bool jump_to_fileUID(const std::string& fileId)  final {
         auto it = std::find_if(std::begin(m_playlist),
                                std::end(m_playlist),
-                               [&fileId](const std::string& uniqueId){ return uniqueId == fileId; });
+                               [&fileId](const auto& playlistItem){ return playlistItem.m_uniqueId == fileId; });
         if (it != std::end(m_playlist)) {
-            logger(LoggerFramework::Level::info) << "change to file id from <" << *it << "> to <"<< fileId << ">\n";
+            logger(LoggerFramework::Level::info) << "change to file id from <" << it->m_uniqueId << "> to <"<< fileId << ">\n";
             if (m_isPlaying) {
-                if (m_songEndCallback) m_songEndCallback(*m_currentItemIterator);
+                if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
             }
             m_currentItemIterator = it;
             doPlayFile(*m_currentItemIterator);
@@ -313,7 +322,7 @@ public:
     }
 
     const std::string getSongName() const final { return m_songName; }
-    std::string getSongID() const final { return ""; }
+    std::string getSongID() const final { return m_currentItemIterator->m_uniqueId; }
 
     int getSongPercentage() const final {
         gint64 pos, len;

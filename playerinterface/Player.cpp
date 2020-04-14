@@ -16,13 +16,13 @@ bool BasePlayer::doShuffle(bool shuffleRequest) {
 
         logger(LoggerFramework::Level::debug) << "Nr) /t original /t->  shuffled\n";
         for(uint32_t i{0}; i < m_playlist.size(); ++i) {
-            logger(LoggerFramework::Level::debug) << i << ") /t" << m_playlist_orig[i] <<" \t-> " << m_playlist[i] << "\n";
+            logger(LoggerFramework::Level::debug) << i << ") /t" << m_playlist_orig[i].m_uniqueId <<" \t-> " << m_playlist[i].m_uniqueId << "\n";
         }
 
         return true;
     }
     else if (!shuffleRequest && m_shuffle) {
-        logger(Level::debug) << "Reset Shuffling for playlist <"<<m_PlaylistUniqueId<<"> (" << m_PlaylistName<<")\n";
+        logger(Level::debug) << "Reset Shuffling for playlist <" << m_PlaylistUniqueId << "> (" << m_PlaylistName << ")\n";
         m_shuffle = false;
         m_playlist.clear();
         m_playlist.insert(std::begin(m_playlist), std::cbegin(m_playlist_orig), std::cend(m_playlist_orig));
@@ -36,9 +36,6 @@ bool BasePlayer::doShuffle(bool shuffleRequest) {
 void BasePlayer::updateUi() const {
     if (!m_onUiChangeHandler)
         return;
-
-//    logger(Level::debug) << "update UI: <" << (isPlaying()?"playing":"not Playing") << "> : " << getSongPercentage()/100
-//                         << " loop:" << (getLoop()?"yes":"no") << " shuffle: " << (getShuffle()?"yes":"no") << "\n";
 
     if (isPlaying())
         m_onUiChangeHandler(getSongID(), getSongPercentage()/100, getLoop(), getShuffle());
@@ -85,7 +82,7 @@ bool BasePlayer::calculateNextFileInList() {
             m_currentItemIterator = m_playlist.begin();
             logger(LoggerFramework::Level::debug) << "Playlist <"<<m_PlaylistUniqueId<<"> ("
                                                   << m_PlaylistName << ") playing first sond <"
-                                                  << *m_currentItemIterator << ">\n";
+                                                  << m_currentItemIterator->m_uniqueId << ">\n";
             return  true;
         }
 
@@ -94,7 +91,7 @@ bool BasePlayer::calculateNextFileInList() {
     else {
         logger(LoggerFramework::Level::debug) << "Playlist <"<<m_PlaylistUniqueId<<"> ("
                                               << m_PlaylistName << ") playing next song <"
-                                              << *m_currentItemIterator << ">\n";
+                                              << m_currentItemIterator->m_uniqueId << ">\n";
         return true;
     }
 }

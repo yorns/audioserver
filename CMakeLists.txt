@@ -93,6 +93,7 @@ set(COMMONCOMPONENTS
     ${CMAKE_SOURCE_DIR}/common/filesystemadditions.cpp
     ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
     ${CMAKE_SOURCE_DIR}/common/FileType.h
+    ${CMAKE_SOURCE_DIR}/common/generalPlaylist.h
     )
 
 add_executable(${PROJECT_NAME}
@@ -142,6 +143,25 @@ target_link_libraries(
         ${Boost_LIBRARIES}
         ${TagLib_LIBRARIES}
 )
+
+add_executable( uniqueNameGenerator ${CMAKE_SOURCE_DIR}/test/uniqueNameGenerator.cpp ${COMMONCOMPONENTS})
+set_target_properties(uniqueNameGenerator PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+
+target_include_directories(
+        uniqueNameGenerator
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
+        ${TagLib_INCLUDE_DIRS}
+)
+
+target_link_libraries(
+        uniqueNameGenerator
+        Threads::Threads
+        ${Boost_LIBRARIES}
+        ${TagLib_LIBRARIES}
+)
+
 
 add_executable( databaseTest ${DATABASE} ${ID3INTERFACE} ${COMMONCOMPONENTS} test/databaseTest.cpp)
 set_target_properties( databaseTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

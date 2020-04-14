@@ -12,10 +12,13 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
         logger(Level::info) << "Play request\n";
 
-        const auto [playlist, playlistUniqueId, playlistName] = m_getAlbumPlaylistAndNames();
+        auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
 
-        m_player->startPlay(playlist, playlistUniqueId, playlistName);
-        return R"({"result": "ok"})";
+        if (m_player->startPlay(albumPlaylistAndNames))
+          return R"({"result": "ok"})";
+        else
+            return R"({"result": "cannot find playlist"})";
+
     }
 
     if (urlInfo->parameter == ServerConstant::Parameter::Player::next &&

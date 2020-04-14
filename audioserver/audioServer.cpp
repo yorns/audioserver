@@ -16,6 +16,7 @@
 #include "common/mime_type.h"
 #include "common/Extractor.h"
 #include "common/logger.h"
+#include "common/generalPlaylist.h"
 #include "common/repeattimer.h"
 #include "webserver/Listener.h"
 #include "webserver/Session.h"
@@ -114,7 +115,7 @@ int main(int argc, char* argv[])
         logger(Level::info) << "end handler called for current song\n";
     });
 
-    PlayerAccess playerWrapper(player, [&database]() -> Database::GetAlbumPlaylistAndNamesType {
+    PlayerAccess playerWrapper(player, [&database]() -> Common::AlbumPlaylistAndNames {
                                    logger(Level::debug) << "Request to get playlist and playlist names\n";
                                    return database.getAlbumPlaylistAndNames();
     });

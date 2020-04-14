@@ -15,7 +15,7 @@ public:
     uint32_t track_no {0};
     uint32_t all_tracks_no {0};
     std::string imageFile;
-    bool isStream { false };
+    std::string url;
 
     bool operator==(const Id3Info& info) const {
         return album_name == info.album_name &&

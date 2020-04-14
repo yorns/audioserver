@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 #include "common/logger.h"
+#include "common/generalPlaylist.h"
 #include <algorithm>
 #include <random>
 
@@ -22,12 +23,12 @@ protected:
     SongEndCallback m_songEndCallback;
     OnUiChangeHandler m_onUiChangeHandler;
 
-    std::vector<std::string> m_playlist;
-    std::vector<std::string> m_playlist_orig;
+    std::vector<Common::PlaylistItem> m_playlist;
+    std::vector<Common::PlaylistItem> m_playlist_orig;
     std::string m_PlaylistUniqueId;
     std::string m_PlaylistName;
 
-    std::vector<std::string>::const_iterator m_currentItemIterator { m_playlist.end() };
+    std::vector<Common::PlaylistItem>::const_iterator m_currentItemIterator { m_playlist.end() };
 
     bool m_shuffle   { false };
     bool m_doCycle   { false };
@@ -36,7 +37,6 @@ protected:
 
     std::default_random_engine m_rng {};
 
-//    virtual bool doPlayFile(const std::string& uniqueId, const std::string& prefix);
     void updateUi() const;
     virtual void stopAndRestart() = 0;
 
@@ -64,9 +64,7 @@ public:
     void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
 
-    virtual bool startPlay(const std::vector<std::string>& list,
-                           const std::string& playlistUniqueId,
-                           const std::string& playlistName) = 0;
+    virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) = 0;
     virtual bool stop() = 0;
     virtual bool stopPlayerConnection() = 0;
 
