@@ -5,7 +5,7 @@ namespace Common {
 
 enum class FileType {
     Audio,
-    Stream,
+    PlaylistJson,
     Playlist,
     Covers,
     CoversRelative,

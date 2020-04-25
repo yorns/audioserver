@@ -1,6 +1,7 @@
 #ifndef SERVER_CONSTANTS_H
 #define SERVER_CONSTANTS_H
 
+#include <string_view>
 #include <boost/beast.hpp>
 
 namespace ServerConstant {
