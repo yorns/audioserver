@@ -216,7 +216,22 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
 
     // Handle the case where the file doesn't exist
     if(ec == boost::system::errc::no_such_file_or_directory) {
-        logger(Level::warning) << "requested file <"<< path <<" not found\n";
+        auto virtualData = m_sessionHandler.getVirtualFileData(target);
+        if ( virtualData && method == http::verb::get) {
+            logger(Level::debug) << "virtual file found as <"<<target<<">\n";
+            // Cache the size since we need it after the move
+            auto const size = virtualData->size();
+            http::response<http::vector_body<char>> res {
+                std::piecewise_construct,
+                        std::make_tuple(std::move(*virtualData)),
+                        std::make_tuple(http::status::ok, version)};
+            res.set(http::field::content_type, mime_type(path));
+            res.content_length(size);
+            res.keep_alive(keep_alive);
+            return answer(std::move(res));
+        }
+
+        logger(Level::warning) << "requested regular file <"<< path <<"> not found\n";
         return answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
     }
     // Handle an unknown error

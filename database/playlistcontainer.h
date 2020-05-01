@@ -8,12 +8,15 @@
 #include <cctype>
 #include "common/logger.h"
 #include "common/Constants.h"
+#include "common/albumlist.h"
 #include "playlist.h"
 #include "NameType.h"
+#include "searchaction.h"
 
 namespace Database {
 
 class PlaylistContainer {
+
     std::vector<Playlist> m_playlists;
     std::optional<std::string> m_currentPlaylist;
 
@@ -26,7 +29,10 @@ public:
     bool removePlaylistUID(const std::string& playlistUniqueId);
     bool removePlaylistName(const std::string& playlistName);
 
-    bool readPlaylists();
+    bool readPlaylistsM3U();
+    bool readPlaylistsJson();
+    bool insertAlbumPlaylists(const std::vector<Common::AlbumListEntry>& albumList);
+
     bool writeChangedPlaylists();
 
     std::optional<std::string> convertName(const std::string& name, NameType nametype);
@@ -42,7 +48,12 @@ public:
 
     bool isUniqueName(const std::string& name);
 
+    bool insertAlbumPlaylist();
+
     std::vector<std::pair<std::string, std::string>> getAllPlaylists();
+
+    std::vector<Playlist> searchPlaylists(const std::string& what, SearchAction action = SearchAction::exact);
+
 
 };
 

@@ -6,10 +6,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 message("server build")
 
-#if(CMAKE_COMPILER_IS_GNUCXX)
-#    set(CMAKE_CXX_FLAGS "-O0 -g")        ## Optimize
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "-O0 -g")        ## Optimize
 #    set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
-#endif()
+endif()
 
 if (BOOST_DIR)
   set(BOOST_ROOT ${BOOST_DIR})
@@ -94,6 +94,11 @@ set(COMMONCOMPONENTS
     ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
     ${CMAKE_SOURCE_DIR}/common/FileType.h
     ${CMAKE_SOURCE_DIR}/common/generalPlaylist.h
+    ${CMAKE_SOURCE_DIR}/common/stringmanipulator.cpp
+    ${CMAKE_SOURCE_DIR}/common/stringmanipulator.h
+    ${CMAKE_SOURCE_DIR}/common/albumlist.h
+    ${CMAKE_SOURCE_DIR}/common/hash.cpp
+    ${CMAKE_SOURCE_DIR}/common/hash.h
     )
 
 add_executable(${PROJECT_NAME}
@@ -191,6 +196,8 @@ add_executable( playerCmdl ${PLAYERINTERFACE}
     ${CMAKE_SOURCE_DIR}/common/repeattimer.h
     ${CMAKE_SOURCE_DIR}/common/filesystemadditions.cpp
     ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
+    ${CMAKE_SOURCE_DIR}/common/stringmanipulator.cpp
+    ${CMAKE_SOURCE_DIR}/common/stringmanipulator.h
     ${CMAKE_SOURCE_DIR}/database/playlist.cpp
     ${CMAKE_SOURCE_DIR}/database/playlist.h
     ${CMAKE_SOURCE_DIR}/test/KeyHit.cpp

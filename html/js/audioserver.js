@@ -143,7 +143,6 @@ $(document).ready(function () {
         getAlbumList(name_typed);
     });
 
-    readPlaylist();
     getActualPlaylist();
     getAlbumList(name_typed);
     $('#albumSearch').val("");
@@ -191,12 +190,12 @@ function fastBackwardPlayer() {
 }
 
 
-function albumSelect(album) {
+function albumSelect(albumId) {
     if (console && console.log)
-        console.log("albumSelect:" + album);
+        console.log("albumSelect:" + albumId);
     // open overlay / new page
     // create playlist with all album titles
-    var url = "/playlist?createAlbumList=" + encodeURIComponent(album);
+    var url = "/playlist?change=" + encodeURIComponent(albumId);
     if (console && console.log)
         console.log("request: " + url);
     $.getJSON(url).done(function(response) {
@@ -204,8 +203,8 @@ function albumSelect(album) {
             alert(response.result);
         } else {
             stopPlayer();
-            readPlaylist();
-            getActualPlaylist();
+//            readPlaylist();
+//            getActualPlaylist();
             getAlbumList(name_typed);
             startPlay();
         }
@@ -221,13 +220,13 @@ function getAlbumList(searchString) {
     var url = "/database?albumList=" + searchString;
     $.getJSON(url).done(function(response) {
         $('#cover').empty();
-        var trHTML = '<div class="container"> <div class="row mt-5 justify-content-center" id="myimg">';
+        var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         $.each(response, function(i, item) {
             trHTML += `
                         <div class="card card-custom mx-2 mb-3"> 
-                        <img class="card-img-top" style="width: 240px" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                        <img class="card-img-top" style="width: 28em" src="${item.cover}" alt="${item.album}" id="${item.uid}">
                         <div class="card-body">
-                          <h5 class="card-title" style="width: 200px">${item.album}</h5>
+                          <h5 class="card-title" style="width: 11em">${item.album}</h5>
                           <p class="card-text">${item.performer}</p>
                         </div>
                         </div>`
@@ -235,35 +234,9 @@ function getAlbumList(searchString) {
         trHTML += '</div>';
         $('#cover').append(trHTML);
         $("#myimg div img").on("click", function() {
-            albumSelect($(this).attr("alt"));
+            albumSelect($(this).attr("id"));
         }); //??
     })
-}
-
-function readPlaylist() {
-    var url = "/playlist?showLists=true";
-    $.getJSON(url).done(function(response) {
-        var items = '';
-        $.each(response.playlists, function(i, item) {
-            var text = item.playlist;
-            items += '<a class="dropdown-item" href="#">' + decodeURIComponent(text) + '</a>';
-        });
-
-        $("#demolist").html(items);
-        $('#actPlaylistName').text(decodeURIComponent(response.actualPlaylist));
-
-        //alert(response.actualPlaylist);
-
-        $('#demolist a').on('click', function() {
-            var txt = encodeURIComponent($(this).text());
-            var url = "/playlist?change=" + txt;
-            $.getJSON(url).done(function(response) {
-                getActualPlaylist();
-                //alert(txt);
-                $('#actPlaylistName').html(txt);
-            });
-        });
-    });
 }
 
 function getActualPlaylist() {

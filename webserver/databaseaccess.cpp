@@ -15,7 +15,10 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
             jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.performer_name;
             jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
             jentry[std::string(ServerConstant::Parameter::Database::titel)] = item.title_name;
-            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.imageFile;
+            std::string relativCoverPath =
+                    Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
+                    "/" + item.uid + item.fileExtension;
+            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
             jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
             json.push_back(jentry);
         }
@@ -23,30 +26,54 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
     return json.dump(2);
 }
 
+std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>& list) {
+
+    nlohmann::json json;
+
+    try {
+        for(auto item : list) {
+            nlohmann::json jentry;
+            jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.getUniqueID();
+            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
+            jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.getPerformer();
+            std::string relativCoverPath = item.getCover();
+            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
+            json.push_back(jentry);
+        }
+
+    } catch (const nlohmann::json::exception& ex) {
+        logger(Level::error) << "conversion to json failed: " << ex.what();
+    }
+
+    logger(Level::debug) << "generated json: "<<json.dump(2)<<"\n";
+    return json.dump();
+}
+
 std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
     logger(Level::debug) << "database access - parameter:"<<urlInfo->parameter<<" value:"<<urlInfo->value<<"\n";
     if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
-        auto infoList = m_database.search(urlInfo->value, Database::SearchItem::album, Database::SearchAction::alike, Common::FileType::Audio);
+        // get all albums and sort/reduce
+        auto infoList = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::alike);
+
         return convertToJson(infoList);
     }
 
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::overall )
-        return convertToJson(m_database.search(urlInfo->value, Database::SearchItem::overall));
+        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::overall, Database::SearchAction::exact));
 
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::interpret )
-        return convertToJson(m_database.search(urlInfo->value, Database::SearchItem::interpret));
+        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::interpret, Database::SearchAction::exact));
 
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::titel )
-        return convertToJson(m_database.search(urlInfo->value, Database::SearchItem::titel));
+        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::titel, Database::SearchAction::exact));
 
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::album )
-        return convertToJson(m_database.search(urlInfo->value, Database::SearchItem::album));
+        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::album, Database::SearchAction::exact));
 
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::uid ){
-        auto uidData = m_database.search(urlInfo->value, Database::SearchItem::uid);
-        if (uidData)
-            logger(Level::debug) << "uid found <"<<uidData->size()<<"> elements\n";
+        auto uidData = m_database.searchAudioItems(urlInfo->value, Database::SearchItem::uid , Database::SearchAction::uniqueId);
+        logger(Level::debug) << "uid found <"<<uidData.size()<<"> elements\n";
         return convertToJson(uidData);
     }
 

@@ -5,11 +5,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-
-#include <boost/beast.hpp>
-#include <boost/asio.hpp>
-#include <boost/config.hpp>
-#include <boost/filesystem.hpp>
+#include <optional>
 
 #include "nlohmann/json.hpp"
 
@@ -76,6 +72,8 @@ int main(int argc, char* argv[])
         logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
     }
 
+    std::setlocale(LC_ALL, "de_DE.UTF-8");
+
     globalLevel = Level::debug;
 
     printPaths();
@@ -132,13 +130,24 @@ int main(int argc, char* argv[])
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return playlistWrapper.access(url);
     });
+
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::player, http::verb::post, PathCompare::exact,
                                  [&playerWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return playerWrapper.access(url);
     });
 
+    sessionHandler.addVirtualFileHandler([&databaseWrapper](const std::string_view& _target) -> std::optional<std::vector<char>> {
+        // split target
+        auto target = utility::urlConvert(std::string(_target));
+        logger(Level::debug) << "virtual file request for <"<<target<<">\n";
 
+        if (target.substr(0,5) == "/img/") {
+            return databaseWrapper.getVirtualFile(target);
+        }
+//        else
+        return std::nullopt;
+    });
 
     auto generateName = []() -> Common::NameGenerator::GenerationName
     {

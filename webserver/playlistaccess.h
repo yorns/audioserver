@@ -4,12 +4,14 @@
 #include <string>
 
 #include "database/SimpleDatabase.h"
+#include "database/playlist.h"
 
 class PlaylistAccess
 {
     Database::SimpleDatabase& m_database;
 
     std::string convertToJson(const std::optional<std::vector<Id3Info>> list);
+    std::string convertToJson(const std::vector<Database::Playlist> list);
 
 public:
     PlaylistAccess(Database::SimpleDatabase& simpleDatabase)

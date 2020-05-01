@@ -4,6 +4,7 @@
 
 #include "common/filesystemadditions.h"
 #include "common/logger.h"
+#include "common/NameGenerator.h"
 
 using namespace Database;
 using namespace Common;
@@ -109,7 +110,7 @@ std::optional<std::string> PlaylistContainer::convertName(const std::string &nam
     return std::nullopt;
 }
 
-bool PlaylistContainer::readPlaylists() {
+bool PlaylistContainer::readPlaylistsM3U() {
 
     auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::Playlist);
 
@@ -127,11 +128,15 @@ bool PlaylistContainer::readPlaylists() {
         }
     }
 
-    auto streamList = FileSystemAdditions::getAllFilesInDir(FileType::Stream);
+    return true;
+}
+
+bool PlaylistContainer::readPlaylistsJson() {
+    auto streamList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistJson);
 
     for (auto file : streamList) {
         logger(Level::debug) << "reading json playlist <"<<file.name<<">\n";
-        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Stream) + '/';
+        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistJson) + '/';
         fileName += file.name + file.extension;
         if (file.extension == ".json") {
             Playlist playlist(file.name, ReadType::isJson, Persistent::isPermanent, Changed::isConst);
@@ -143,6 +148,22 @@ bool PlaylistContainer::readPlaylists() {
         }
     }
 
+    return true;
+}
+
+bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &albumList) {
+
+    for(auto& elem : albumList) {
+        auto uniqueID = NameGenerator::create("", "");
+        Playlist playlist(uniqueID.unique_id, ReadType::isM3u, Persistent::isTemporal);
+        playlist.setName(elem.m_name);
+        playlist.setPerformer(elem.m_performer);
+        playlist.setCover(elem.m_coverId, elem.m_coverExtension);
+        for(auto& uid : elem.m_playlist) {
+            playlist.addToList(std::string(std::get<std::string>(uid)));
+        }
+        m_playlists.emplace_back(playlist);
+    }
 
     return true;
 }
@@ -215,4 +236,53 @@ std::vector<std::pair<std::string, std::string> > PlaylistContainer::getAllPlayl
         list.push_back(std::make_pair(elem.getName(), elem.getUniqueID()));
     }
     return list;
+}
+
+std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what, SearchAction action) {
+
+    std::vector<Playlist> playlist;
+
+    switch(action) {
+    case SearchAction::exact: {
+        logger(Level::debug) << "exact seaching for string <" << what << ">\n";
+        for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
+            if (playlistItem->getName().find(what) != std::string::npos) {
+                playlist.push_back(*playlistItem);
+            }
+        }
+        break;
+    }
+    case SearchAction::alike: {
+        auto whatList = Common::extractWhatList(what);
+
+        std::string seperator;
+        std::stringstream tmp;
+        for(auto whatElem : whatList) {
+            tmp << seperator << whatElem;
+            seperator = ", ";
+        }
+        logger(Level::debug) << "alike seaching for string <" << what << "> (" << tmp.str() << ")\n";
+
+        for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
+            bool found {true};
+            for(auto whatElem : whatList) {
+                if (playlistItem->getName().find(whatElem) == std::string::npos) {
+                    found = false;
+                    break;
+                }
+            }
+            if (found)
+                playlist.push_back(*playlistItem);
+        }
+        break;
+    }
+    case SearchAction::uniqueId : {
+        auto playlist_it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&what](const Playlist& playlist){ return playlist.getUniqueID() == what; });
+        if (playlist_it != std::end(m_playlists))
+            playlist.push_back(*playlist_it);
+        break;
+    }
+    }
+    logger(Level::debug) << "searchPlaylist size <"<<playlist.size()<<">\n";
+    return playlist;
 }

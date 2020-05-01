@@ -1,61 +1,41 @@
 #include "id3repository.h"
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
+#include "common/albumlist.h"
 
 using namespace Database;
 using namespace LoggerFramework;
 using namespace Common;
 
-std::vector<Id3Info> Id3Repository::findAlbum(const std::string &what) {
-    // this only carries album name and picture ID
-
-    std::vector<Id3Info> findData;
-
-    auto isnew = [&findData](const std::string &albumName) -> bool {
-        return std::find_if(std::begin(findData), std::end(findData),
-                            [&albumName](const Id3Info &info) {
-            return info.album_name == albumName;
-        })
-                == findData.end();
-    };
-
-    std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
-                  [&what, &findData, &isnew](const Id3Info &info) {
-        if (info.album_name.find(what) != std::string::npos)
-            if (isnew(info.album_name)) {
-                Id3Info _info {info};
-                _info.title_name = "";
-                _info.all_tracks_no = 0;
-                _info.track_no = 0;
-                findData.emplace_back(_info);
-            }
-    });
-
-    if (!what.empty()) {
-        std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
-                      [&what, &findData, &isnew](const Id3Info &info) {
-            if (info.performer_name.find(what) != std::string::npos)
-                if (isnew(info.album_name)) {
-                    Id3Info _info {info};
-                    _info.title_name = "";
-                    _info.all_tracks_no = 0;
-                    _info.track_no = 0;
-                    findData.emplace_back(_info);
-                }
-        });
-
-    }
-
-    return findData;
-}
 
 bool Id3Repository::add(const std::string &uniqueID) {
-    std::string coverName = m_tagReader.extractCover(uniqueID);
-    auto audioItem = m_tagReader.getInfo(uniqueID, coverName);
+
+    auto audioItem = m_tagReader.extractId3Info(uniqueID);
+
     if (audioItem) {
         logger(Level::debug) << "adding audio file <" << uniqueID
-                             << "> Title: "<<audioItem->title_name << " to database\n";
-        m_simpleDatabase.emplace_back(std::move(*audioItem));
+                             << "> Title: "<<audioItem->info.title_name << " to database\n";
+        auto uid = audioItem->info.uid;
+        m_simpleDatabase.emplace_back(std::move(audioItem->info));
+        if (audioItem->pictureAvailable) {
+
+            logger(Level::debug) << "add cover to database\n";
+            auto coverIt = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
+                                        [&audioItem](const CoverElement& elem){ return elem.hash == audioItem->hash; });
+
+            if (coverIt == std::end(m_simpleCoverDatabase)) {
+                logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << audioItem->hash << ")\n";
+                CoverElement coverElem;
+                coverElem.insertNewUid(std::move(uid));
+                coverElem.hash = audioItem->hash;
+                coverElem.rawData = std::move(audioItem->data);
+                m_simpleCoverDatabase.emplace_back(coverElem);
+            }
+            else {
+                logger(Level::debug) << "    -----  cover known (0x"<< std::hex << audioItem->hash << ")\n";
+                coverIt->insertNewUid(std::move(uid));
+            }
+        }
         return true;
     }
     logger(Level::warning)<< "adding file id <" << uniqueID << "> failed\n";
@@ -109,41 +89,84 @@ std::vector<std::tuple<Id3Info, std::vector<std::string> > > Id3Repository::find
     return dublicateList;
 }
 
-std::optional<std::vector<Id3Info> > Id3Repository::search(const std::string &what, SearchItem item, SearchAction action) {
+std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem item, SearchAction action) {
 
-    std::optional<std::vector<Id3Info>> findData;
+    std::vector<Id3Info> findData;
 
-    if (action == SearchAction::alike) {
-        findData = findAlbum(what);
-    }
-    else {
-
-        findData = std::vector<Id3Info>{};
-
-        if (item == SearchItem::uid) {
-            std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
-                          [&what, &findData](const Id3Info &info) {
-                if (info.uid == what)
-                    findData->push_back(info);
-            });
-        }
-
+    if (action == SearchAction::uniqueId) {
         std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
-                      [&what, &findData, item](const Id3Info &info) {
-            if (((item == SearchItem::titel || item == SearchItem::overall) &&
-                 (info.title_name.find(what) != std::string::npos)) ||
-                    ((item == SearchItem::album || item == SearchItem::overall) &&
-                     (info.album_name.find(what) != std::string::npos)) ||
-                    ((item == SearchItem::interpret || item == SearchItem::overall) &&
-                     (info.performer_name.find(what) != std::string::npos)))
-                findData->push_back(info);
+                      [&what, &findData](const Id3Info &info) {
+            if (info.uid == what)
+                findData.push_back(info);
         });
     }
+    else {
+        auto whatList = Common::extractWhatList(what);
 
-    if (findData->size() == 0)
-        return std::nullopt;
+        std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
+                      [&whatList, &what, &findData, item, action](const Id3Info &info) {
+            if (action == SearchAction::alike) {
+                if ( info.isAlike(whatList) ) {
+                    findData.push_back(info);
+                }
+            }
+            else {
 
+                if (((item == SearchItem::titel || item == SearchItem::overall) &&
+                     (info.title_name.find(what) != std::string::npos)) ||
+                        ((item == SearchItem::album || item == SearchItem::overall) &&
+                         (info.album_name.find(what) != std::string::npos)) ||
+                        ((item == SearchItem::interpret || item == SearchItem::overall) &&
+                         (info.performer_name.find(what) != std::string::npos)))
+                    findData.push_back(info);
+            }
+        });
+    }
     return findData;
+}
+
+std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
+    std::vector<AlbumListEntry> albumList;
+
+    for(auto it {std::cbegin(m_simpleDatabase)}; it != std::cend(m_simpleDatabase); ++it) {
+
+        auto albumIt = std::find_if(std::begin(albumList), std::end(albumList), [&it](const AlbumListEntry& albumListEntry)
+        { return albumListEntry.m_name == it->album_name; });
+
+        if (albumIt == std::cend(albumList)) {
+            AlbumListEntry entry;
+            entry.m_name = it->album_name;
+            entry.m_performer = it->performer_name;
+            if (!it->fileExtension.empty()) {
+                entry.m_coverExtension = it->fileExtension;
+                entry.m_coverId = it->uid;
+            } else {
+                entry.m_coverExtension = ServerConstant::unknownCoverExtension;
+                entry.m_coverId = ServerConstant::unknownCoverFile;
+            }
+            entry.m_playlist.push_back(std::make_tuple(it->uid, it->track_no));
+            albumList.emplace_back(entry);
+        }
+        else {
+            if (it->performer_name != albumIt->m_performer)
+                albumIt->m_performer = "multiple performer";
+            if (albumIt->m_coverId == ServerConstant::unknownCoverFile && !it->fileExtension.empty()) {
+                albumIt->m_coverExtension = it->fileExtension;
+                albumIt->m_coverId = it->uid;
+            }
+
+            albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->track_no));
+        }
+    }
+    logger(Level::info) << "extracted <"<<albumList.size()<<"> album playlists\n";
+    for (auto& i : albumList) {
+        logger(Level::debug) << "  - <"<<i.m_name<<">\n";
+
+        std::sort(std::begin(i.m_playlist), std::end(i.m_playlist), [](const auto& t1, const auto& t2){ return std::get<uint32_t>(t1) < std::get<uint32_t>(t2); });
+
+    }
+
+    return albumList;
 }
 
 std::optional<Id3Info> Id3Repository::getId3InfoByUid(const std::string &uniqueId) const {
@@ -162,51 +185,17 @@ bool Id3Repository::read() {
     auto mp3Directory = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio);
 
     auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::Audio);
-    auto streamlist = FileSystemAdditions::getAllFilesInDir(FileType::Stream);
-    auto imglist = FileSystemAdditions::getAllFilesInDir(FileType::Covers);
-
-    logger(::Level::debug) << "reading all audio files in directory <" << mp3Directory << ">\n";
-    auto getImageFileOf = [&imglist](const std::string& name) -> FileNameType {
-        auto it = std::find_if(std::begin(imglist), std::end(imglist),
-                               [&name](const FileNameType& fileName){ return fileName.name == name; });
-        if (it != imglist.end())
-            return *it;
-        return {std::string(ServerConstant::unknownCoverFile),std::string(ServerConstant::unknownCoverExtension)};
-    };
+    auto streamlist = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistJson);
 
     for (auto& file : filelist) {
-        logger(::Level::debug) << "reading audio file <"<<file.name<<file.extension<<"\n";
-        auto imgFile = getImageFileOf(file.name);
-
-        // this is the webservers view
-#ifdef WITH_UNREADABLE
-        std::string webserverCoverPath = std::string("/")
-                + std::string(ServerConstant::coverPathWebAlien)
-                + '/' + imgFile.name + imgFile.extension;
-#else
-        std::string webserverCoverPath = std::string("/")
-                + std::string(ServerConstant::coverPathWeb)
-                + '/' + imgFile.name + imgFile.extension;
-#endif
-        if (auto id3info = m_tagReader.getInfo(file.name, webserverCoverPath))
-            m_simpleDatabase.emplace_back(*id3info);
-
+        logger(::Level::debug) << "reading audio file <"<<file.name<<file.extension<<">\n";
+        add(file.name);
     }
 
     for (auto& file : streamlist) {
         auto id3infoList = m_tagReader.getStreamInfo(file.name);
         if (!id3infoList.empty()) {
             for(auto& elem : id3infoList) {
-
-                auto imgFile = getImageFileOf(elem.uid);
-
-                // this is the webservers view
-                std::string webserverCoverPath = std::string("/")
-                        + std::string(ServerConstant::coverPathWeb)
-                        + '/' + imgFile.name + imgFile.extension;
-
-                elem.imageFile = webserverCoverPath;
-
                 m_simpleDatabase.emplace_back(std::move(elem));
             }
         }

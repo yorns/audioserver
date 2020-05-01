@@ -1,6 +1,7 @@
 #include "id3TagReader.h"
 #include "common/filesystemadditions.h"
 #include "nlohmann/json.hpp"
+#include "common/hash.h"
 
 namespace fs = boost::filesystem;
 using namespace LoggerFramework;
@@ -21,48 +22,49 @@ std::string makeUnreadable(const std::string& block) {
 }
 
 
-std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const std::string &cover) {
+//std::optional<Id3Info> id3TagReader::getInfo(const std::string &uniqueId, const std::string &cover) {
 
-    std::string mp3FileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio)
-            + "/" + uniqueId + ".mp3";
+//    std::string mp3FileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio)
+//            + "/" + uniqueId + ".mp3";
 
-    Id3Info info;
+//    Id3Info info;
 
-    if (fs::exists(mp3FileName)) {
+//    if (fs::exists(mp3FileName)) {
 
-        logger(Level::debug) << "Read mp3 info from file <"<<mp3FileName<<">\n";
-        TagLib::FileRef f(mp3FileName.c_str());
+//        logger(Level::debug) << "Read mp3 info from file <"<<mp3FileName<<">\n";
+//        TagLib::FileRef f(mp3FileName.c_str());
 
-        try {
-            fs::path mp3File {mp3FileName};
-            info.uid = mp3File.stem().string();
-#ifdef WITH_UNREADABLE
-            info.title_name = makeUnreadable(f.tag()->title().to8Bit(true));
-            info.album_name = makeUnreadable(f.tag()->album().to8Bit(true));
-            info.performer_name = makeUnreadable(f.tag()->artist().to8Bit(true));
-#else
-            info.title_name = f.tag()->title().to8Bit(true);
-            info.album_name = f.tag()->album().to8Bit(true);
-            info.performer_name = f.tag()->artist().to8Bit(true);
-#endif
-            info.track_no = f.tag()->track();
-            info.all_tracks_no = 0;
-            info.url = "file://" + mp3FileName;
-            info.imageFile = cover;
+//        try {
+//            fs::path mp3File {mp3FileName};
+//            info.uid = mp3File.stem().string();
+//#ifdef WITH_UNREADABLE
+//            info.title_name = makeUnreadable(f.tag()->title().to8Bit(true));
+//            info.album_name = makeUnreadable(f.tag()->album().to8Bit(true));
+//            info.performer_name = makeUnreadable(f.tag()->artist().to8Bit(true));
+//#else
+//            info.title_name = f.tag()->title().to8Bit(true);
+//            info.album_name = f.tag()->album().to8Bit(true);
+//            info.performer_name = f.tag()->artist().to8Bit(true);
+//#endif
+//            info.track_no = f.tag()->track();
+//            info.all_tracks_no = 0;
+//            info.url = "file://" + mp3FileName;
+//            info.imageFile = cover;
 
-        }
-        catch(std::exception& ) {
-            logger(Level::warning) << "Error reading mp3 data\n";
-            return std::nullopt;
-        }
+//        }
+//        catch(std::exception& ) {
+//            logger(Level::warning) << "Error reading mp3 data\n";
+//            return std::nullopt;
+//        }
 
-    }
-    return std::move(info);
-}
+//    }
+//    info.finishEntry();
+//    return std::move(info);
+//}
 
 std::vector<Id3Info> id3TagReader::getStreamInfo(const std::string &uniqueId) {
 
-    std::string streamFileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Stream)
+    std::string streamFileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistJson)
             + "/" + uniqueId + ".json";
 
     std::vector<Id3Info> infoList;
@@ -74,9 +76,6 @@ std::vector<Id3Info> id3TagReader::getStreamInfo(const std::string &uniqueId) {
         /* read json information for stream */
         infoList = readStreamInfo(streamFileName);
 
-        for(auto& elem : infoList) {
-            elem.imageFile = unknownCover();
-        }
         return infoList;
     }
 
@@ -105,6 +104,7 @@ std::vector<Id3Info> id3TagReader::readStreamInfo(const std::string& filename) {
             info.track_no = elem.at("TrackNo");
             info.all_tracks_no = elem.at("AllTrackNo");
             info.url = elem.at("Url");
+            info.finishEntry();
             logger(LoggerFramework::Level::debug) << "reading <" << info.uid << "> <"<<info.title_name<<">\n";
             infoList.emplace_back(std::move(info));
         }
@@ -123,59 +123,69 @@ std::string id3TagReader::unknownCover() {
             std::string(ServerConstant::unknownCoverExtension);
 }
 
-std::string id3TagReader::extractCover(const std::string &uid) {
 
-    static const char *IdPicture = "APIC";
+
+std::optional<FullId3Information> id3TagReader::extractId3Info(const std::string &uid) {
+
+    static const auto idPicture = "APIC";
+
     TagLib::ID3v2::Tag *id3v2tag;
     TagLib::ID3v2::FrameList Frame;
 
     std::string mp3File = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio) + '/' + uid + ".mp3";
 
+    logger(Level::debug) << "extracting data from file <"<<mp3File<<">\n";
     TagLib::MPEG::File mpegFile(mp3File.c_str());
     id3v2tag = mpegFile.ID3v2Tag();
 
-    if (!id3v2tag || id3v2tag->frameListMap()[IdPicture].isEmpty()) {
-        logger(Level::warning) << "id3v2 not present\n";
-        return unknownCover();
-    }
-    // picture frame
-    Frame = id3v2tag->frameListMap()[IdPicture];
+    Id3Info info;
+    info.uid = uid;
 
-    for (auto &it : Frame) {
-        auto PicFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame *>(it);
+    info.title_name = id3v2tag->title().to8Bit(true);
+    info.performer_name = id3v2tag->artist().to8Bit(true);
+    info.album_name = id3v2tag->album().to8Bit(true);
+    info.track_no = id3v2tag->track();
+    info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+                            // TRCK (Track number/Position in set): 14/14
+    info.url = "file://" + mp3File;
+    info.finishEntry();     // help search by adding strings on lowercase
 
-        if (PicFrame->picture().size() > 0) {
+    FullId3Information fullId3Info;
+    fullId3Info.info = std::move(info);
 
-            std::string filetype(".jpg");
-            if (!PicFrame->mimeType().isEmpty()) {
-                std::string tmp{PicFrame->mimeType().to8Bit()};
-                filetype = "." + tmp.substr(tmp.find_last_of('/')+1);
+    if (!id3v2tag->frameListMap()[idPicture].isEmpty()) {
+
+        TagLib::ID3v2::FrameList Frame = id3v2tag->frameListMap()[idPicture];
+
+        auto frameTagPicture = Frame.front();
+        if (frameTagPicture && frameTagPicture->size() > 0) {
+            auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frameTagPicture);
+            if (picFrame) {
+                std::string filetype(".jpg");
+                if (!picFrame->mimeType().isEmpty()) {
+                    std::string tmp{picFrame->mimeType().to8Bit()};
+                    fullId3Info.info.fileExtension = "." + tmp.substr(tmp.find_last_of('/')+1);
+                }
+
+                // generate entry for cover Table
+                std::vector<char> coverData;
+                coverData.resize(picFrame->picture().size());
+
+                std::copy_n(picFrame->picture().data(), picFrame->picture().size(), coverData.begin());
+
+                auto hash = Common::genHash(coverData);
+
+                fullId3Info.data = std::move(coverData);
+                fullId3Info.hash = hash;
+                fullId3Info.pictureAvailable = true;
+
+                logger(Level::debug) << "image found for <"<<fullId3Info.info.album_name<<">\n";
             }
-
-            std::string coverFile =
-                    FileSystemAdditions::getFullQualifiedDirectory(FileType::Covers) + '/' + uid + filetype;
-
-            std::string coverFileRelativHtml =
-                    FileSystemAdditions::getFullQualifiedDirectory(FileType::CoversRelative) + '/' + uid + filetype;
-
-            std::ofstream of(coverFile.c_str(), std::ios_base::out | std::ios_base::binary);
-            if (of.good()) {
-                logger(Level::debug) << "writing cover file <" << coverFile << ">\n";
-                of.write(PicFrame->picture().data(), PicFrame->picture().size());
-            }
-            else {
-                logger(Level::error) << "FAILED writing cover file <" << coverFile << ">\n";
-                coverFileRelativHtml = FileSystemAdditions::getFullQualifiedDirectory(FileType::CoversRelative)
-                        + '/'
-                        + std::string(ServerConstant::unknownCoverFile)
-                        + std::string(ServerConstant::unknownCoverExtension);
-            }
-
-            of.close();
-
-            return coverFileRelativHtml;
         }
     }
 
-    return  unknownCover();
+    if (!fullId3Info.pictureAvailable)
+        logger(Level::debug) << "image NOT found for <"<<fullId3Info.info.album_name<<">\n";
+
+    return std::move(fullId3Info);
 }

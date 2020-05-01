@@ -18,11 +18,36 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
                 jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.performer_name;
                 jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
                 jentry[std::string(ServerConstant::Parameter::Database::titel)] = item.title_name;
-                jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.imageFile;
+                std::string relativCoverPath =
+                        Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
+                        "/" + item.uid + item.fileExtension;
+                jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
                 jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
                 json.push_back(jentry);
             }
         }
+    } catch (const nlohmann::json::exception& ex) {
+        logger(Level::error) << "conversion to json failed: " << ex.what();
+        return "[]";
+    }
+
+    return json.dump();
+}
+
+std::string PlaylistAccess::convertToJson(const std::vector<Database::Playlist> list) {
+
+    nlohmann::json json;
+
+    try {
+        for(auto item : list) {
+            nlohmann::json jentry;
+            jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.getUniqueID();
+            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
+            jentry[std::string(ServerConstant::Parameter::Database::interpret)] = ""; // item.getPerformer();
+            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.getCover();
+            json.push_back(jentry);
+        }
+
     } catch (const nlohmann::json::exception& ex) {
         logger(Level::error) << "conversion to json failed: " << ex.what();
     }
@@ -30,9 +55,10 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
     return json.dump();
 }
 
+
 std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    logger(Level::debug) << "player request: <"<<urlInfo->parameter<<"> with value <"<<urlInfo->value<<">\n";
+    logger(Level::debug) << "playlist request: <"<<urlInfo->parameter<<"> with value <"<<urlInfo->value<<">\n";
 
     if (urlInfo->parameter == ServerConstant::Command::create) {
         auto ID = m_database.createPlaylist(urlInfo->value, Database::Persistent::isPermanent);
@@ -47,59 +73,24 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         }
     }
 
-    if (urlInfo->parameter == ServerConstant::Command::createAlbumList) {
-        auto ID = m_database.createPlaylist(urlInfo->value, Database::Persistent::isTemporal);
-        if (ID && !ID->empty()) {
-            logger(Level::info) << "created album playlist with name <" << *ID << "> "<<"-> " << urlInfo->value << " \n";
-            m_database.setCurrentPlaylistUniqueId(*ID);
-            m_database.writeChangedPlaylists();
-            auto playlistFiles = m_database.search(urlInfo->value, Database::SearchItem::album);
-            if (playlistFiles) {
-                std::sort(std::begin(*playlistFiles), std::end(*playlistFiles), [](const Id3Info& info1, const Id3Info& info2){ return info1.track_no < info2.track_no; });
-                logger(Level::warning) << "playlist:\n";
-                for (auto playlistFile : *playlistFiles) {
-                    std::string uniqueId { playlistFile.uid };
-                    m_database.addToPlaylistUID(*ID, std::move(uniqueId));
-                    logger(Level::debug) << "adding <"<< playlistFile.uid <<"> ("<< playlistFile.title_name << ")\n";
-                }
-            }
-            else {
-                logger(Level::warning) << "Playlist <" << *ID <<"> (" << urlInfo->value <<") not found\n";
-            }
-
-            return R"({"result": "ok"})";
-        } else {
-            logger(Level::warning) << "create album playlist with unique name <" << urlInfo->value << "> failed, name is not new - loading existing one\n";
-            auto UID = m_database.convertPlaylist(urlInfo->value, Database::NameType::realName);
-            if (UID) {
-                if (m_database.setCurrentPlaylistUniqueId(*UID)) {
-                   return R"({"result": "ok"})";
-                }
-            }
-            return R"({"result": "playlist not found"})";
-        }
+    if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
+        auto list = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::alike);
+        return convertToJson(list);
     }
 
 
     /* change to new playlist */
     if (urlInfo->parameter == ServerConstant::Command::change) {
 
-        if (m_database.search(urlInfo->value,
-                              Database::SearchItem::unknown,
-                              Database::SearchAction::exact,
-                              Common::FileType::Playlist)) {
-            logger(Level::info) << "changed to playlist with name <" << urlInfo->value << ">\n";
-            if (auto playlistName = m_database.convertPlaylist(urlInfo->value, Database::NameType::uniqueID)) {
-                logger(Level::debug) << "current playlist is <" << *playlistName << ">\n";
-                m_database.setCurrentPlaylistUniqueId(*playlistName);
-            }
-            else
-                logger(Level::error) << "cannot get playlist uid for name <"<<urlInfo->value<<">\n";
-            return R"({"result": "ok"})";
-        } else {
-            logger(Level::warning) << "playlist with name <" << urlInfo->value << "> not found\n";
+        auto playlistList = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::uniqueId);
+
+        if (playlistList.size() != 1) {
+            logger(Level::warning) << "playlist with uniqueId <" << urlInfo->value << "> not found\n";
             return R"({"result": "playlist not found"})";
         }
+
+        m_database.setCurrentPlaylistUniqueId(playlistList[0].getUniqueID());
+        return R"({"result": "ok"})";
     }
 
     if (urlInfo->parameter == ServerConstant::Command::add) {

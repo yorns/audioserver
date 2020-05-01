@@ -2,9 +2,16 @@
 #define SERVER_ID3INFO_H
 
 #include <string>
+#include <vector>
+#include <sstream>
 #include <cstdint>
+#include "common/stringmanipulator.h"
 
 class Id3Info {
+
+    std::string albumName_lower;
+    std::string titleName_lower;
+    std::string performerName_lower;
 
 public:
 
@@ -14,7 +21,9 @@ public:
     std::string performer_name;
     uint32_t track_no {0};
     uint32_t all_tracks_no {0};
-    std::string imageFile;
+    uint32_t genreId;
+
+    std::string fileExtension;
     std::string url;
 
     bool operator==(const Id3Info& info) const {
@@ -31,8 +40,24 @@ public:
     Id3Info(const Id3Info& info) = default;
     Id3Info(Id3Info&& info) = default;
 
+    bool finishEntry() {
+        albumName_lower = Common::str_tolower(album_name);
+        performerName_lower = Common::str_tolower(performer_name);
+        titleName_lower = Common::str_tolower(title_name);
+        return true;
+    }
+
     Id3Info& operator=(const Id3Info& info) = default;
     Id3Info& operator=(Id3Info&& info) = default;
+
+    bool isAlike(const std::vector<std::string>& whatList) const {
+        for (auto& part : whatList) {
+            if (albumName_lower.find(part) || performerName_lower.find(part) || performer_name.find(part)) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 

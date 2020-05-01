@@ -46,10 +46,10 @@ public:
 }
 
 extern LoggerFramework::Logger<std::ostream> logger_intern;
-#define logger(l) logger_intern(l) << __FILE__ << ":" << __LINE__ << " # "
+#define logger(l) logger_intern(l) << std::dec << __FILE__ << ":" << __LINE__ << " # "
 
 extern std::fstream loggerFile;
 extern LoggerFramework::Logger<std::fstream> file_logger_intern;
-#define fileLog(l) file_logger_intern(l) << __FILE__ << ":" << __LINE__ << " # "
+#define fileLog(l) file_logger_intern(l) << std::dec << __FILE__ << ":" << __LINE__ << " # "
 
 #endif // LOGGER_H

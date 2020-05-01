@@ -23,6 +23,7 @@ class SessionHandler {
     using NameGeneratorFunction = std::function<const typename Common::NameGenerator::GenerationName (void)>;
     using RequestHandler = std::function<std::string(const http::request_parser<http::string_body>&)>;
     using UploadFinishedHandler = std::function<bool(const Common::NameGenerator::GenerationName&)>;
+    using VirtualFileHandler = std::function<std::optional<std::vector<char>>(const std::string_view&)>;
 
     using FileHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, NameGeneratorFunction, UploadFinishedHandler>>;
     using StringHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, RequestHandler>>;
@@ -57,18 +58,23 @@ class SessionHandler {
         return handlerIt;
     }
 
-
+    VirtualFileHandler m_virtualFileHandler;
 
 public:
 
     bool addUrlHandler(const std::string_view& path, http::verb method, PathCompare pathCompare, RequestHandler&& handler);
     bool addUploadHandler(const std::string_view& path, NameGeneratorFunction&& handler, UploadFinishedHandler&& finishHandler);
+    bool addVirtualFileHandler(VirtualFileHandler&& handler) { m_virtualFileHandler = std::move(handler); return true; }
 
     [[nodiscard]] bool isUploadFile(const http::request_parser<http::empty_body>& requestHeader) const;
     [[nodiscard]] bool isRestAccesspoint(const http::request_parser<http::empty_body>& requestHeader) const;
+    [[nodiscard]] std::optional<std::vector<char>> getVirtualFileData(const std::string_view& target) const {
+        return m_virtualFileHandler(target); // only delegation
+    }
 
     std::string callHandler(http::request_parser<http::string_body>& requestHeader) const;
     bool callFileUploadHandler(http::request_parser<http::file_body>& request, const Common::NameGenerator::GenerationName& name) const;
+
 
     Common::NameGenerator::GenerationName getName(http::request_parser<http::empty_body>& requestHeader) const;
 

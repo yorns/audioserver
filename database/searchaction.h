@@ -5,7 +5,8 @@ namespace Database {
 
 enum class SearchAction {
     exact,
-    alike
+    alike,
+    uniqueId
 };
 
 }

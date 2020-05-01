@@ -91,47 +91,47 @@ void test_id3_repository() {
     addToDatabase("Album2", "title2", "naba");
 
     {
-        auto album = database.search("Album1", Database::SearchItem::album);
+        auto album = database.searchAudioItems("Album1", Database::SearchItem::album, SearchAction::exact);
 
-        assert (album);
-        assert (album->size() == 3);
-        assert ((*album)[0].title_name == "title1");
-        assert ((*album)[1].title_name == "title2");
-        assert ((*album)[2].title_name == "title3");
+        assert (album.size());
+        assert (album.size() == 3);
+        assert (album[0].title_name == "title1");
+        assert (album[1].title_name == "title2");
+        assert (album[2].title_name == "title3");
     }
     {
-        auto album = database.search("Album2", Database::SearchItem::album);
+        auto album = database.searchAudioItems("Album2", Database::SearchItem::album, SearchAction::exact);
 
-        assert(album);
-        assert (album->size() == 2);
-        assert ((*album)[0].title_name == "title1");
-        assert ((*album)[1].title_name == "title2");
+        assert(album.size());
+        assert (album.size() == 2);
+        assert (album[0].title_name == "title1");
+        assert (album[1].title_name == "title2");
     }
     {
-        auto album = database.search("Blbum1", Database::SearchItem::album);
+        auto album = database.searchAudioItems("Blbum1", Database::SearchItem::album, SearchAction::exact);
 
-        assert (album);
-        assert (album->size() == 3);
-        assert ((*album)[0].performer_name == "nubu");
-        assert ((*album)[1].performer_name == "nabu");
-        assert ((*album)[2].performer_name == "nuba");
+        assert (album.size());
+        assert (album.size() == 3);
+        assert (album[0].performer_name == "nubu");
+        assert (album[1].performer_name == "nabu");
+        assert (album[2].performer_name == "nuba");
     }
     {
-        auto album = database.search("1", Database::SearchItem::album);
+        auto album = database.searchAudioItems("1", Database::SearchItem::album, SearchAction::exact);
 
-        assert (album);
-        assert (album->size() == 6);
-        assert ((*album)[0].title_name == "title1");
-        assert ((*album)[1].title_name == "title2");
-        assert ((*album)[2].title_name == "title3");
-        assert ((*album)[3].performer_name == "nubu");
-        assert ((*album)[4].performer_name == "nabu");
-        assert ((*album)[5].performer_name == "nuba");
+        assert (album.size());
+        assert (album.size() == 6);
+        assert (album[0].title_name == "title1");
+        assert (album[1].title_name == "title2");
+        assert (album[2].title_name == "title3");
+        assert (album[3].performer_name == "nubu");
+        assert (album[4].performer_name == "nabu");
+        assert (album[5].performer_name == "nuba");
     }
     {
-        auto small2 = database.search("1", Database::SearchItem::album, Database::SearchAction::alike);
-        assert (small2);
-        assert (small2->size() == 2);
+        auto small2 = database.searchAudioItems("1", Database::SearchItem::album, Database::SearchAction::alike);
+        assert (small2.size());
+        assert (small2.size() == 2);
     }
 
 //    auto small2 = database.findAlbum("lbum");

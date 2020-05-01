@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <variant>
 #include "common/Extractor.h"
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
@@ -28,11 +29,14 @@ public:
     void loadDatabase();
     bool writeChangedPlaylists();
 
-    std::optional<std::vector<Id3Info>> search(const std::string &what, SearchItem item,
-                                               SearchAction action = SearchAction::exact,
-                                               Common::FileType fileType = Common::FileType::Audio);
+    std::vector<Id3Info> searchAudioItems(const std::string &what, SearchItem item, SearchAction action);
 
+    std::vector<Playlist> searchPlaylistItems(const std::string &what, SearchAction action = SearchAction::exact) {
+        return  m_playlistContainer.searchPlaylists(what, action);
+    }
+    
     std::optional<std::string> createPlaylist(const std::string &name, Database::Persistent persistent);
+
     bool addToPlaylistName(const std::string &playlistName, std::string &&uniqueID);
     bool addToPlaylistUID(const std::string &playlistUniqueID, std::string&& uniqueID);
     bool addNewAudioFileUniqueId(const std::string& uniqueID);
@@ -48,6 +52,17 @@ public:
     std::optional<std::string> convertPlaylist(const std::string& name, NameType nameType);
     std::vector<Id3Info> getIdListOfItemsInPlaylistId(const std::string& uniqueId);
     Common::AlbumPlaylistAndNames getAlbumPlaylistAndNames();
+
+    std::optional<std::vector<char>> getCover(const std::string& coverUid) {
+        auto& coverElement = m_id3Repository.getCover(coverUid);
+        if (coverElement.rawData.size()>0) {
+            logger(LoggerFramework::Level::debug) << "found cover for cover id <" << coverUid << "> in database\n";
+            return coverElement.rawData;
+        }
+        else
+            logger(LoggerFramework::Level::debug) << "NO cover in database found for cover id <" << coverUid << ">\n";
+        return std::nullopt;
+    }
 
 #ifdef WITH_UNITTEST
     bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }
