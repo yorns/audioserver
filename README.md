@@ -50,9 +50,34 @@ if no config file is given. The server tries to open the one at /etc/audioserver
 audioServer ${HOME}/audioConfig/audioserver.json
 ```
 
+# audioServer setup
+
+### configuration file
+
+```
+{
+        "IpAddress": "0.0.0.0",
+        "Port": "8080",
+        "BasePath": "/usr/local/var/audioserver",
+        "LogLevel": "debug"
+
+}
+```
+
+Within this file, you can configure the following information:
+
+* **IpaAddress** (or better, interface) the server should listen to.
+* **Port** to listen. The connection is not secure and therefor http, so using 443 does not provide any security (the audioserver should only be used in secure home nets, not on the internet)
+* **Base** path to find all relevant information for the webpage or the audio information. This must fit your installation path, defined by the system (**${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/**)
+* **LogLevel** what information should be logged to e.g. systemd logging
+  * debug
+  * info
+  * warning
+  * error
+
 ### setup audio data
 
-all mp3 files must be placed into the directory **${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/audioMp3** , what is CMAKE_INSTALL_LOCALSTATEDIR is set to /usr/local/var on an host system. raspberry pi yocto environment sets this directory /var/.
+The mp3 audio files, you want to manage with the audioServer must be placed into the directory **${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/audioMp3** , what is CMAKE_INSTALL_LOCALSTATEDIR is set to /usr/local/var on an host system. raspberry pi yocto environment sets this directory /var/.
 
 To identify the files, the must have a unique name. The name itself is not important for the later handling.
 
