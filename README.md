@@ -114,3 +114,17 @@ Most information are understandable. The image is set from png or jpeg from the 
 
 So if you want to add an image here, use an online image base 64 converter and just put the output here. It is that easy.
 
+If you do not what the auto Album Creator be used on this file, set **AlbumCreation** to false. In that case, you need to create your own playlist.
+
+# How does it work
+
+This is more internal information, you can skip this paragraph if you do not want to read deep details.
+
+### Reading in all information
+
+There are four sources of information to be read by the audioserver during startup:
+
+* The **mp3** files: All files are read and the id3Tags (title, album, performer and genre) are bound together and are placed into a database. The unique ID is defined by the file name (As there could not be an identical file names within one directory). The cover is read and is not directly placed into a database. A hash value is created and is used to identify if this image is unique or can be represented by another identical cover (Mostly within one album.)
+* The **json** files. This files are in Json format and own more or less the same information as given by the id3 tags of the mp3 files. The Url must of course be reachable (but can be available over the internet. The Image Format must be specified by the file extension and must then be given just in a binary format (but converted in base64)
+* The m3u playlist files. This files can be read even directly by a player. It does only support a list of files with relative path and a beginning of **# <playlist name>**
+ 
