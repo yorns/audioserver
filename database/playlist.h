@@ -89,7 +89,7 @@ public:
     bool delFromList(const std::string& audioUID);
 
     bool readM3u();
-    bool readJson();
+    bool readJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert);
     bool insertAlbumList();
     bool write();
 

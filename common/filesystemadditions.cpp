@@ -73,12 +73,14 @@ bool removeFile(FileType fileType, const std::string& uniqueID)
 
 std::string getFullQualifiedDirectory(FileType fileType) {
     switch (fileType) {
-    case FileType::Audio:
-        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::audioPath);
+    case FileType::AudioMp3:
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::audioPathMp3);
+    case FileType::AudioJson:
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::audioPathJson);
     case FileType::PlaylistJson:
-        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::streamInfoPath);
-    case FileType::Playlist:
-        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::playlistPath);
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::playlistPathJson);
+    case FileType::PlaylistM3u:
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::playlistPathM3u);
     case FileType::Html:
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::htmlPath);
     case FileType::Covers:

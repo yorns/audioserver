@@ -22,6 +22,7 @@ public:
     uint32_t track_no {0};
     uint32_t all_tracks_no {0};
     uint32_t genreId;
+    bool albumCreation { true };
 
     std::string fileExtension;
     std::string url;

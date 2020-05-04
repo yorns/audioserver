@@ -4,6 +4,8 @@
 #include <boost/filesystem.hpp>
 #include "common/filesystemadditions.h"
 #include <nlohmann/json.hpp>
+#include "common/base64.h"
+#include "common/hash.h"
 
 using namespace Database;
 using namespace LoggerFramework;
@@ -87,17 +89,23 @@ void Playlist::setPersistent(const Persistent &persistent)
     m_persistent = persistent;
 }
 
-bool Playlist::readJson()
+bool Playlist::readJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert)
 {
     std::string filename(Common::FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistJson)+ "/" + m_item.m_uniqueId + ".json");
     std::vector<std::string> playlist;
     std::string playlistName;
+    std::string performerName;
+    std::string extension;
+    std::vector<char> coverData;
 
     try {
         std::ifstream streamInfoFile(filename.c_str());
         nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
         playlistName = streamInfo.at("Name");
+        performerName = streamInfo.at("Performer");
+        extension = streamInfo.at("Extension");
         auto items = streamInfo.at("Items");
+        coverData = utility::base64_decode(streamInfo.at("Image"));
         for (auto elem : items) {
             playlist.emplace_back(elem.at("Id"));
         }
@@ -108,9 +116,13 @@ bool Playlist::readJson()
     }
 
     if (playlist.size() > 0) {
-        logger(LoggerFramework::Level::debug) << "stream playlist: <"<<playlist.size()<<" elements read\n";
+        logger(LoggerFramework::Level::debug) << "stream playlist: <"<<playlist.size()<<"> elements read\n";
+        auto hash = Common::genHash(coverData);
+        coverInsert(m_item.m_uniqueId, std::move(coverData), hash);
+        setCover(m_item.m_uniqueId, extension);
         m_playlist = std::move(playlist);
-        setName(playlistName);
+        setName(std::move(playlistName));
+        setPerformer(std::move(performerName));
         return true;
     }
     return false;
@@ -118,7 +130,7 @@ bool Playlist::readJson()
 
 bool Playlist::readM3u()
 {
-    std::string fullFilename = FileSystemAdditions::getFullQualifiedDirectory(FileType::Playlist)+ '/' + getUniqueID() + ".m3u";
+    std::string fullFilename = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u)+ '/' + getUniqueID() + ".m3u";
 
     logger(LoggerFramework::Level::debug) << "reading playlist file <"<<fullFilename<<">\n";
 
@@ -174,7 +186,7 @@ bool Playlist::write()
                                               << "> realname <" << getName() << ">"
                                               << " - try write ... \n";
 
-        std::string filename = FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Playlist)
+        std::string filename = FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u)
                 + "/" + getUniqueID() + ".m3u";
 
         std::ofstream ofs ( filename, std::ios_base::out );
@@ -183,7 +195,7 @@ bool Playlist::write()
             ofs << "# " << getName() << "\n";
 
             for (const auto &entry : getUniqueIdPlaylist()) {
-                ofs << "../" << ServerConstant::audioPath << "/" << entry << ".mp3\n";
+                ofs << "../" << ServerConstant::audioPathMp3 << "/" << entry << ".mp3\n";
             }
             success = true;
             logger(LoggerFramework::Level::debug) << " done \n";
@@ -211,44 +223,3 @@ std::string Playlist::getCover() const
     return m_coverName;
 }
 
-//bool Playlist::rereadCover() {
-//    if (m_coverType == CoverType::onPlaylistId) {
-//        return false;
-//    }
-
-//    if (m_coverType == CoverType::onPlaylistItem || m_coverType == CoverType::none) {
-//        auto coverList = Common::FileSystemAdditions::getAllFilesInDir(Common::FileType::Covers);
-
-//        auto coverFile = std::find_if(std::begin(coverList), std::end(coverList),
-//                                      [this](const Common::FileNameType& file){ return file.name.find(m_item.m_uniqueId) != std::string::npos; });
-
-//        if ( coverFile != std::end(coverList)) {
-//            m_item.m_cover = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/" +
-//                    coverFile->name + coverFile->extension;
-//            m_coverType = CoverType::onPlaylistId;
-//            return true;
-//        }
-//    }
-
-//    if (m_coverType == CoverType::none) {
-//        auto coverList = Common::FileSystemAdditions::getAllFilesInDir(Common::FileType::Covers);
-
-//        for (auto& item : m_playlist) {
-//            auto coverFile = std::find_if(std::begin(coverList), std::end(coverList),
-//                                          [&item](const Common::FileNameType& file){ return file.name.find(item) != std::string::npos; });
-
-//            if ( coverFile != std::end(coverList)) {
-//                m_item.m_cover = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/" +
-//                        coverFile->name + coverFile->extension;
-//                m_coverType = CoverType::onPlaylistItem;
-//                return true;
-//            }
-//        }
-
-//    }
-
-//    m_item.m_cover = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/" +
-//            std::string(ServerConstant::unknownCoverFile) + std::string(ServerConstant::unknownCoverExtension);
-
-//    return true;
-//}

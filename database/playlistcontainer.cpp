@@ -47,7 +47,7 @@ bool PlaylistContainer::removePlaylistUID(const std::string &playlistUniqueId) {
 
     if (it != std::end(m_playlists) ) {
         m_playlists.erase(it);
-        return FileSystemAdditions::removeFile(FileType::Playlist, playlistUniqueId);
+        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, playlistUniqueId);
     }
     return false;
 }
@@ -60,7 +60,7 @@ bool PlaylistContainer::removePlaylistName(const std::string &playlistName) {
     if (it != std::end(m_playlists) ) {
         auto playlistUniqueId { it->getUniqueID() };
         m_playlists.erase(it);
-        return FileSystemAdditions::removeFile(FileType::Playlist, playlistUniqueId);
+        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, playlistUniqueId);
     }
     return false;
 }
@@ -112,11 +112,11 @@ std::optional<std::string> PlaylistContainer::convertName(const std::string &nam
 
 bool PlaylistContainer::readPlaylistsM3U() {
 
-    auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::Playlist);
+    auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistM3u);
 
     for (auto file : fileList) {
         logger(Level::debug) << "reading m3u playlist <"<<file.name<<">\n";
-        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::Playlist) + '/';
+        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u) + '/';
         fileName += file.name + file.extension;
         if (file.extension == ".m3u") {
             Playlist playlist(file.name, ReadType::isM3u, Persistent::isPermanent, Changed::isUnchanged);
@@ -131,7 +131,7 @@ bool PlaylistContainer::readPlaylistsM3U() {
     return true;
 }
 
-bool PlaylistContainer::readPlaylistsJson() {
+bool PlaylistContainer::readPlaylistsJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert) {
     auto streamList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistJson);
 
     for (auto file : streamList) {
@@ -140,7 +140,7 @@ bool PlaylistContainer::readPlaylistsJson() {
         fileName += file.name + file.extension;
         if (file.extension == ".json") {
             Playlist playlist(file.name, ReadType::isJson, Persistent::isPermanent, Changed::isConst);
-            if (playlist.readJson()) {
+            if (playlist.readJson(std::move(coverInsert))) {
                 m_playlists.emplace_back(playlist);
             }
             else

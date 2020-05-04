@@ -6,6 +6,8 @@
 #include <optional>
 #include <algorithm>
 #include <cctype>
+#include <functional>
+
 #include "common/logger.h"
 #include "common/Constants.h"
 #include "common/albumlist.h"
@@ -30,7 +32,7 @@ public:
     bool removePlaylistName(const std::string& playlistName);
 
     bool readPlaylistsM3U();
-    bool readPlaylistsJson();
+    bool readPlaylistsJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert);
     bool insertAlbumPlaylists(const std::vector<Common::AlbumListEntry>& albumList);
 
     bool writeChangedPlaylists();

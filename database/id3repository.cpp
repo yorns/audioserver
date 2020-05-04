@@ -7,38 +7,42 @@ using namespace Database;
 using namespace LoggerFramework;
 using namespace Common;
 
+bool Id3Repository::addCover(std::string uid, std::vector<char>&& data, std::size_t hash) {
 
-bool Id3Repository::add(const std::string &uniqueID) {
+    logger(Level::debug) << "add cover to database\n";
+    auto coverIt = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
+                                [&hash](const CoverElement& elem){ return elem.hash == hash; });
 
-    auto audioItem = m_tagReader.extractId3Info(uniqueID);
+    if (coverIt == std::end(m_simpleCoverDatabase)) {
+        logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << hash << ")\n";
+        CoverElement coverElem;
+        coverElem.insertNewUid(std::move(uid));
+        coverElem.hash = hash;
+        coverElem.rawData = std::move(data);
+        m_simpleCoverDatabase.emplace_back(coverElem);
+    }
+    else {
+        logger(Level::debug) << "    -----  cover known (0x"<< std::hex << hash << ")\n";
+        coverIt->insertNewUid(std::move(uid));
+    }
+
+    return false;
+}
+
+bool Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
 
     if (audioItem) {
+        std::string uniqueID = audioItem->info.uid;
         logger(Level::debug) << "adding audio file <" << uniqueID
-                             << "> Title: "<<audioItem->info.title_name << " to database\n";
-        auto uid = audioItem->info.uid;
+                             << "> ("<<audioItem->info.title_name <<"/" << audioItem->info.album_name << ") to database\n";
         m_simpleDatabase.emplace_back(std::move(audioItem->info));
         if (audioItem->pictureAvailable) {
-
-            logger(Level::debug) << "add cover to database\n";
-            auto coverIt = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
-                                        [&audioItem](const CoverElement& elem){ return elem.hash == audioItem->hash; });
-
-            if (coverIt == std::end(m_simpleCoverDatabase)) {
-                logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << audioItem->hash << ")\n";
-                CoverElement coverElem;
-                coverElem.insertNewUid(std::move(uid));
-                coverElem.hash = audioItem->hash;
-                coverElem.rawData = std::move(audioItem->data);
-                m_simpleCoverDatabase.emplace_back(coverElem);
-            }
-            else {
-                logger(Level::debug) << "    -----  cover known (0x"<< std::hex << audioItem->hash << ")\n";
-                coverIt->insertNewUid(std::move(uid));
-            }
+            if (addCover(uniqueID, std::move(audioItem->data), audioItem->hash))
+                logger(Level::debug) << "added audioItem <" << uniqueID << ">\n";
         }
         return true;
     }
-    logger(Level::warning)<< "adding file id <" << uniqueID << "> failed\n";
+
     return false;
 }
 
@@ -130,6 +134,8 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
 
     for(auto it {std::cbegin(m_simpleDatabase)}; it != std::cend(m_simpleDatabase); ++it) {
 
+        if (it->albumCreation) {
+
         auto albumIt = std::find_if(std::begin(albumList), std::end(albumList), [&it](const AlbumListEntry& albumListEntry)
         { return albumListEntry.m_name == it->album_name; });
 
@@ -157,6 +163,7 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
 
             albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->track_no));
         }
+        }
     }
     logger(Level::info) << "extracted <"<<albumList.size()<<"> album playlists\n";
     for (auto& i : albumList) {
@@ -182,23 +189,17 @@ std::optional<Id3Info> Id3Repository::getId3InfoByUid(const std::string &uniqueI
 
 bool Id3Repository::read() {
 
-    auto mp3Directory = FileSystemAdditions::getFullQualifiedDirectory(FileType::Audio);
-
-    auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::Audio);
-    auto streamlist = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistJson);
+    auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::AudioMp3);
+    auto jsonList = FileSystemAdditions::getAllFilesInDir(FileType::AudioJson);
 
     for (auto& file : filelist) {
-        logger(::Level::debug) << "reading audio file <"<<file.name<<file.extension<<">\n";
-        add(file.name);
+        logger(::Level::debug) << "list of id3 files - reading audio file <"<<file.name<<file.extension<<">\n";
+        add(m_tagReader.extractId3Info(file.name));
     }
 
-    for (auto& file : streamlist) {
-        auto id3infoList = m_tagReader.getStreamInfo(file.name);
-        if (!id3infoList.empty()) {
-            for(auto& elem : id3infoList) {
-                m_simpleDatabase.emplace_back(std::move(elem));
-            }
-        }
+    for (auto& file : jsonList) {
+        logger(::Level::debug) << "list of json files - reading audio file <"<<file.name<<file.extension<<">\n";
+        add(m_tagReader.readJsonAudioInfo(file.name));
     }
 
     return true;

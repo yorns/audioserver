@@ -8,9 +8,10 @@ namespace ServerConstant {
     using sv = std::string_view;
     extern sv base_path;
 
-    static constexpr auto audioPath {sv("mp3")};
-    static constexpr auto streamInfoPath {sv("stream")};
-    static constexpr auto playlistPath {sv("playlist")};
+    static constexpr auto audioPathMp3 {sv("audioMp3")};
+    static constexpr auto audioPathJson {sv("audioJson")};
+    static constexpr auto playlistPathJson {sv("playlistJson")};
+    static constexpr auto playlistPathM3u {sv("playlistM3u")};
     static constexpr auto htmlPath {sv("html")};
     static constexpr auto coverPath {sv("html/img")};
     static constexpr auto coverPathWeb {sv("img")};

@@ -8,7 +8,7 @@ void SimpleDatabase::loadDatabase() {
 
     m_id3Repository.read();
     m_playlistContainer.readPlaylistsM3U();
-    m_playlistContainer.readPlaylistsJson();
+    m_playlistContainer.readPlaylistsJson([this](std::string uid, std::vector<char>&& data, std::size_t hash){ m_id3Repository.addCover(uid, std::move(data), hash); });
     m_playlistContainer.insertAlbumPlaylists(m_id3Repository.extractAlbumList());
 
 }
@@ -24,7 +24,7 @@ std::optional<std::string> SimpleDatabase::createPlaylist(const std::string &nam
         return std::nullopt;
 
     const auto newPlaylistUniqueID =
-            Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Playlist),".m3u");
+            Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u),".m3u");
     Playlist newPlaylist(newPlaylistUniqueID.unique_id, ReadType::isM3u, persistent);
     newPlaylist.setName(name);
 

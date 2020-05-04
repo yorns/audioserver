@@ -4,9 +4,10 @@
 namespace Common {
 
 enum class FileType {
-    Audio,
+    AudioMp3,
+    AudioJson,
     PlaylistJson,
-    Playlist,
+    PlaylistM3u,
     Covers,
     CoversRelative,
     Html

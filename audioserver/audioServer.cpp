@@ -7,6 +7,7 @@
 #include <vector>
 #include <optional>
 
+#include <boost/lexical_cast.hpp>
 #include "nlohmann/json.hpp"
 
 #include "common/mime_type.h"
@@ -38,9 +39,9 @@ void printPaths() {
     std::stringstream playerLogDir;
     std::stringstream htmlDir;
 
-    mp3Dir << ServerConstant::base_path << "/" << ServerConstant::audioPath;
+    mp3Dir << ServerConstant::base_path << "/" << ServerConstant::audioPathMp3;
     coverDir << ServerConstant::base_path << "/" << ServerConstant::coverPath;
-    playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPath;
+    playlistDir << ServerConstant::base_path << "/" << ServerConstant::playlistPathM3u;
     htmlDir << ServerConstant::base_path << "/" << ServerConstant::htmlPath;
 
     logger(Level::info) << "path: \n";
@@ -51,30 +52,84 @@ void printPaths() {
 
 }
 
+struct Config {
+    std::string m_address;
+    std::string m_port;
+    std::string m_basePath;
+
+    LoggerFramework::Level m_logLevel;
+};
+
+std::optional<Config> readConfig(std::string configFile) {
+    Config config;
+
+    std::ifstream ifs(configFile);
+    nlohmann::json configData = nlohmann::json::parse(ifs);
+
+    std::string debugLogLevel;
+
+    try {
+    config.m_address = configData["IpAddress"];
+    config.m_port = configData["Port"];
+    config.m_basePath = configData["BasePath"];
+    debugLogLevel = configData["LogLevel"];
+
+    config.m_logLevel = LoggerFramework::Level::debug;
+    if (debugLogLevel == "info") {
+        config.m_logLevel = LoggerFramework::Level::info;
+    }
+    else if (debugLogLevel == "warning") {
+        config.m_logLevel = LoggerFramework::Level::warning;
+    }
+    else if (debugLogLevel == "error") {
+        config.m_logLevel = LoggerFramework::Level::error;
+    }
+
+    } catch (std::exception& ex) {
+        std::cerr << "cannot read config <"<<ex.what()<<"\n";
+        return std::nullopt;
+    }
+
+    return std::move(config);
+}
+
+int helpOutput(const char* command) {
+    logger(Level::info) <<
+        "Usage:" << command << " [config file name]\n" <<
+        "Example:\n" <<
+        "    "<< command <<" /my/path/config.json\n";
+    return EXIT_FAILURE;
+}
+
 int main(int argc, char* argv[])
 {
+    std::string configFileName {"/etc/audioserver.json"};
     // Check command line arguments.
-    if (argc != 4 && argc != 3)
+    if (argc > 2)
     {
-        logger(Level::info) <<
-            "Usage:" << argv[0] << " <address> <port> [doc_root]\n" <<
-            "Example:\n" <<
-            "    "<<argv[0]<<" 0.0.0.0 8080 .\n";
+        return helpOutput(argv[0]);
+    }
+    else if ( argc == 2) {
+        configFileName = argv[1];
+    }
+
+    auto config = readConfig(configFileName);
+
+    if (!config) {
+        std::cerr << "cannot read config file <" << configFileName << ">\n";
         return EXIT_FAILURE;
     }
 
-    ServerConstant::base_path = ServerConstant::sv{"/var/audioserver"};
+    ServerConstant::base_path = ServerConstant::sv{ config->m_basePath };
 
-    auto const address = boost::asio::ip::make_address(argv[1]);
-    auto const port = static_cast<unsigned short>(std::atoi(argv[2]));
-    if (argc == 4)  {
-        ServerConstant::base_path = std::string_view(argv[3]);
-        logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
-    }
+    auto const address = boost::asio::ip::make_address(config->m_address);
+    auto const port = boost::lexical_cast<unsigned short>(config->m_port.c_str());
+    ServerConstant::base_path = std::string_view(config->m_basePath);
+    logger(Level::info) << "setting base path to <"<<ServerConstant::base_path<<">\n";
 
     std::setlocale(LC_ALL, "de_DE.UTF-8");
 
-    globalLevel = Level::debug;
+    globalLevel = config->m_logLevel;
 
     printPaths();
 
@@ -151,7 +206,7 @@ int main(int argc, char* argv[])
 
     auto generateName = []() -> Common::NameGenerator::GenerationName
     {
-        auto name = Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Audio) , ".mp3");
+        auto name = Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::AudioMp3) , ".mp3");
         logger(Level::debug) << "generating file name: " << name.filename << "\n";
         return name;
     };

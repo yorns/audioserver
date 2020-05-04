@@ -14,6 +14,11 @@ using namespace LoggerFramework;
 
 namespace Database {
 
+enum class AddType {
+    Id3,
+    json
+};
+
 struct CoverElement {
     std::vector<std::string> uidListForCover;
     std::vector<char> rawData;
@@ -40,9 +45,15 @@ class Id3Repository
 
     const CoverElement emptyElement;
 
+    bool add(std::optional<FullId3Information>&& audioItem);
+
 public:
 
-    bool add(const std::string& uniqueID);
+    bool addCover(std::string uid, std::vector<char>&& data, std::size_t hash);
+
+    bool add(const std::string& uid) {
+        return add(m_tagReader.readJsonAudioInfo(uid));
+    }
     bool remove(const std::string& uniqueID);
 
     void clear() {
