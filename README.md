@@ -92,7 +92,7 @@ All these information are important, to setup the library and the (first) cover 
 
 ### setup stream data
 
-all stream information must be placed into the directory *${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/audioJson** , what is CMAKE_INSTALL_LOCALSTATEDIR is set to /usr/local/var on an host system. raspberry pi yocto environment sets this directory /var/.
+All stream information must be placed into the directory *${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/audioJson** , what is CMAKE_INSTALL_LOCALSTATEDIR is set to /usr/local/var on an host system. raspberry pi yocto environment sets this directory /var/.
 
 A stream is defined in the following form:
 ```
@@ -115,6 +115,51 @@ Most information are understandable. The image is set from png or jpeg from the 
 So if you want to add an image here, use an online image base 64 converter and just put the output here. It is that easy.
 
 If you do not what the auto Album Creator be used on this file, set **AlbumCreation** to false. In that case, you need to create your own playlist.
+
+### setup m3u playlists
+
+All m3u playlist information must be placed into the directory *${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/playlistM3u** , what is CMAKE_INSTALL_LOCALSTATEDIR is set to /usr/local/var on an host system. raspberry pi yocto environment sets this directory /var/.
+
+The playlist file is very simple. It can be used with any other player as well. It looks like this:
+```
+../mp3/d90eaf0f-2b7f-49b1-b2aa-7acb2f526aa2.mp3
+../mp3/537e54d9-1c15-4819-8b4d-76e0b7ad39d7.mp3
+../mp3/8ff9c77a-c704-4866-bcba-a111285f608c.mp3
+../mp3/d01d53f1-2389-4c31-b3aa-8204c6429f2f.mp3
+../mp3/325c319a-79f6-43fb-84a8-f59fecb5fb73.mp3
+../mp3/2bff96d6-1172-4274-b75d-aa40b7acc0ac.mp3
+../mp3/5025b416-92f9-4121-9f75-88a1c47da7f7.mp3
+```
+
+However, it is not strictly necessary to use the relative path as the audio files will be identified by their unique name.
+
+### setup json playlists
+
+as the m3u playlists are not flexible in some points, there is another format to define playlists in json:
+
+They look something similar to the json file specification for a singel url:
+```
+{
+    "Name": "WDR",
+    "Performer" : "Wdr Stream",
+    "Extension" : ".png",
+    "Items" : [
+    { "Id" : "Einslive" },
+    { "Id" : "WDR2_Ruhrgebiet" },
+    { "Id" : "WDR2_Münsterland" },
+    { "Id" : "WDR2_RheinRuhr" },
+    { "Id" : "WDR2_Aachen" },
+    { "Id" : "WDR2_Ostwestfalen" },
+    { "Id" : "WDR2_Bergisches" },
+    { "Id" : "WDR2_Rheinland" },
+	   { "Id" : "WDR2_Südwestfalen" }
+    ] ,
+    "Image": "iVBORw0KGgoAAAANSUhEUgAAAyAAAAEECAYAAADQ0lBhAAAABmJL
+    []
+    4p8AAAAASUVORK5CYII="
+ }
+```
+The **Items** list is just a list of unique identifiers (i.e. names) of mp3s or streams. The cover of this entry is identical as described above. (Image type must be specified by the extension and the image binary data must be place as base64)
 
 # How does it work
 
