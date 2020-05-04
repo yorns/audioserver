@@ -76,11 +76,11 @@ A stream is defined in the following form:
     "Album": "WDR Stream",
     "Performer": "Einslive",
     "Extension": ".png",
-	   "AlbumCreation": false,
+    "AlbumCreation": false,
     "TrackNo": 0,
     "AllTrackNo": 24,
     "Url": "http://wdr-1live-live.icecast.wdr.de/wdr/1live/live/mp3/128/stream.mp3",
-	   "Image": "iVBORw0KGgoAAAANSUhEUgAAAK8AAACvCAYAAACLko51AAAABGdBTUEAALGPC/xhBQAAAA
+    "Image": "iVBORw0KGgoAAAANSUhEUgAAAK8AAACvCAYAAACLko51AAAABGdBTUEAALGPC/xhBQAAAA
     []
     AAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAABJRU5ErkJggg=="
 }
