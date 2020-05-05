@@ -195,9 +195,21 @@ Accesspoints are described below
 
 * Start playing a playlist **/player?play=true** 
 The playlist must be defined before.
+* select a playlist be its unique ID **/player/select=\<uniqueID\>**
 * Play next item in playlist **/player?next=true**
 * Play previous item in playlist **/player?previous=true**
 * Stop playing **/player/stop=true**
 * Pause playing **/player/pause=true**
-* select a playlist be its unique ID **/player/select=\<uniqueID\>**
-* jumpt to a (percentage) position within the item that is actually played (not working for live streams) **/player?toPosition=\<percentagePosition\> 
+* jumpt to a (percentage) position within the item that is actually played (not working for live streams) **/player?toPosition=\<percentagePosition\>**
+* fast forward (20 Sec) **/player/fastForward=true**
+* fast backward (20 Sec) **/player/fastBackward=true**
+* toogle Shuffle **/player/toggleShuffle=true**
+* toggle Looping **/player/toggleLoop=true**
+
+Feedback for the action (e.g. if a toogle was successsfull) is given through the websocket interface. This will keep all states within the Player and the UI does not care for this.
+
+
+## Web Socket API
+
+The websocket accesspoint is **/dynamic**. Here are messages send for regular updates:
+
