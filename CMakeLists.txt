@@ -200,6 +200,8 @@ add_executable( playerCmdl ${PLAYERINTERFACE}
     ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
     ${CMAKE_SOURCE_DIR}/common/stringmanipulator.cpp
     ${CMAKE_SOURCE_DIR}/common/stringmanipulator.h
+    ${CMAKE_SOURCE_DIR}/common/base64.cpp
+    ${CMAKE_SOURCE_DIR}/common/base64.h
     ${CMAKE_SOURCE_DIR}/database/playlist.cpp
     ${CMAKE_SOURCE_DIR}/database/playlist.h
     ${CMAKE_SOURCE_DIR}/test/KeyHit.cpp

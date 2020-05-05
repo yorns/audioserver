@@ -21,6 +21,7 @@ public:
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);
 
+    std::string restAPIDefinition();
 
 };
 

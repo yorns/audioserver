@@ -18,6 +18,9 @@ public:
         : m_database(simpleDatabase) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);
+
+    std::string restAPIDefinition();
+
 };
 
 #endif // PLAYLISTACCESS_H

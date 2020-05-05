@@ -33,7 +33,7 @@ bool Session::is_unknown_http_method(http::request_parser<http::empty_body>& req
 bool Session::is_illegal_request_target(http::request_parser<http::empty_body>& req) const {
     return req.get().target().empty() ||
             req.get().target()[0] != '/' ||
-            req.get().target().find("..") != std::string_view::npos;
+            req.get().target().find("/../") != std::string_view::npos;
 }
 
 http::response<http::string_body> Session::generate_result_packet(http::status status, std::string_view why,

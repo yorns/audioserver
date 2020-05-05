@@ -173,13 +173,12 @@ int main(int argc, char* argv[])
                                    return database.getAlbumPlaylistAndNames();
     });
 
-
-
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return databaseWrapper.access(url);
     });
+
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::playlist, http::verb::get, PathCompare::exact,
                                  [&playlistWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
@@ -252,6 +251,8 @@ int main(int argc, char* argv[])
                 tcp::endpoint{address, port},
                 sessionCreator)->run();
 
+
+    logger(Level::info) << "Rest Accesspoints:\n" << sessionHandler.generateRESTInterfaceDocumentation();
 
     logger(Level::info) << "server started\n";
 

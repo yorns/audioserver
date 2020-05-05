@@ -25,12 +25,12 @@ class SessionHandler {
     using UploadFinishedHandler = std::function<bool(const Common::NameGenerator::GenerationName&)>;
     using VirtualFileHandler = std::function<std::optional<std::vector<char>>(const std::string_view&)>;
 
+    using StringHandlerElement = std::tuple<std::string_view, http::verb, PathCompare, RequestHandler>;
     using FileHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, NameGeneratorFunction, UploadFinishedHandler>>;
-    using StringHandlerList = std::vector<std::tuple<std::string_view, http::verb, PathCompare, RequestHandler>>;
+    using StringHandlerList = std::vector<StringHandlerElement>;
 
     FileHandlerList pathToFileHandler;
     StringHandlerList pathToStringHandler;
-
 
     std::map<boost::asio::ip::tcp::endpoint, std::weak_ptr<WebsocketSession>> m_websocketSessionList;
 
@@ -75,6 +75,19 @@ public:
     std::string callHandler(http::request_parser<http::string_body>& requestHeader) const;
     bool callFileUploadHandler(http::request_parser<http::file_body>& request, const Common::NameGenerator::GenerationName& name) const;
 
+    std::string generateRESTInterfaceDocumentation() {
+        std::stringstream stream;
+
+        std::for_each(std::cbegin(pathToStringHandler), std::cend(pathToStringHandler),
+                      [&stream](auto& elem){
+            auto entryPoint = std::get<std::string_view>(elem);
+            stream << entryPoint << std::endl;
+            // jump into handler
+            // std::get<RequestHandler>(elem).getRestInfo();
+        });
+
+        return stream.str();
+    }
 
     Common::NameGenerator::GenerationName getName(http::request_parser<http::empty_body>& requestHeader) const;
 

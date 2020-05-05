@@ -32,6 +32,8 @@ public:
         return std::nullopt;
     }
 
+    std::string restAPIDefinition();
+
 };
 
 #endif // DATABASEACCESS_H
