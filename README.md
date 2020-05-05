@@ -165,6 +165,11 @@ The **Items** list is just a list of unique identifiers (i.e. names) of mp3s or 
 
 This is more internal information, you can skip this paragraph if you do not want to read deep details.
 
+These are the main building blocks:
+
+![Audio Server Construction](https://github.com/yorns/images/blob/master/AudioServer.png?raw=true)
+
+
 ### Reading in all information
 
 There are four sources of information to be read by the audioserver during startup:
