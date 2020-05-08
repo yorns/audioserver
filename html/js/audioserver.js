@@ -1,6 +1,7 @@
 /*jslint devel: true */
 var webSocket;
-var songID;
+var songID = "";
+var playlistID = "";
 var name_typed;
 
 $(document).ready(function () {
@@ -25,8 +26,9 @@ $(document).ready(function () {
             webSocket.onmessage = function (event) {
                 try {
                     var msg = JSON.parse(event.data);
+                    console.log('received: ' + event.data);
                     // TODO: only if song ID is new, request the name
-                    if (songID != msg.SongBroadcastMessage.songID) {
+                    if (songID != msg.SongBroadcastMessage.songID && msg.SongBroadcastMessage.songID != "") {
                         songID = msg.SongBroadcastMessage.songID;
                         var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
                         $.getJSON(url).done(function(response) {
@@ -38,6 +40,21 @@ $(document).ready(function () {
                         });
                         getActualPlaylist();
                     }
+                    if (playlistID != msg.SongBroadcastMessage.playlistID && msg.SongBroadcastMessage.playlistID != ""
+                       && !msg.SongBroadcastMessage.playing) {
+                        playlistID = msg.SongBroadcastMessage.playlistID;
+                        var url = "/database?uid=" + playlistID;
+                            console.log('<0> request for playlist: ', url);
+                            $.getJSON(url).done(function(response) {
+                            if (response) {
+                                console.log('<2> received for playlist request: ', response);
+                                $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>");
+                                $("#actCover").attr("src", response[0].cover);
+                            }
+                        });
+                        getActualPlaylist();
+                    }
+                    
                     //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
                     $("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
                     if (msg.SongBroadcastMessage.loop) {
@@ -72,9 +89,9 @@ $(document).ready(function () {
     runWebsocket();
     
     $("#act_playlist").on("click", ".table-row", function() {
-        //alert($(this).attr("id"));
         url = "/player?select=" + $(this).attr("id");
         $.post(url, "", function(data, textStatus) {}, "json");
+        
     });
 
     $("#createPlaylist").click(function() {
@@ -147,11 +164,6 @@ $(document).ready(function () {
     getAlbumList(name_typed);
     $('#albumSearch').val("");
     
-    $('#ex1').slider({
-	formatter: function(value) {
-		return 'Current value: ' + value;
-	}
-});
 });
 
 function stopPlayer() {
@@ -191,29 +203,24 @@ function fastBackwardPlayer() {
 
 
 function albumSelect(albumId) {
-    if (console && console.log)
+    if (console && console.log) {
         console.log("albumSelect:" + albumId);
+    }
+    
+    stopPlayer();
+
     // open overlay / new page
     // create playlist with all album titles
     var url = "/playlist?change=" + encodeURIComponent(albumId);
     if (console && console.log)
         console.log("request: " + url);
-    $.getJSON(url).done(function(response) {
-        if (response.result != "ok") {
-            alert(response.result);
-        } else {
-            stopPlayer();
-//            readPlaylist();
-//            getActualPlaylist();
-            getAlbumList(name_typed);
-            startPlay();
-        }
-
-    });
-
-    // show playlist with image
-    // show player
-
+        $.getJSON(url).done(function(response) {
+            if (response.result != "ok") {
+                alert(response.result);
+            } else {
+                $('#myModal').modal('show'); 
+            }
+        });
 }
 
 function getAlbumList(searchString) {
@@ -223,10 +230,10 @@ function getAlbumList(searchString) {
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         $.each(response, function(i, item) {
             trHTML += `
-                        <div class="card card-custom mx-2 mb-3"> 
-                        <img class="card-img-top" style="width: 28em" src="${item.cover}" alt="${item.album}" id="${item.uid}">
-                        <div class="card-body">
-                          <h5 class="card-title" style="width: 11em">${item.album}</h5>
+                        <div class="card card-custom mx-2 mb-3 style="width: 18rem;""> 
+                        <img class="card-img-top" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                        <div class="card-body" >
+                          <h5 class="card-title">${item.album}</h5>
                           <p class="card-text">${item.performer}</p>
                         </div>
                         </div>`
@@ -241,12 +248,16 @@ function getAlbumList(searchString) {
 
 function getActualPlaylist() {
     url = "/playlist?show=";
+    console.log("request for show actual playlist: ", url);
     $.getJSON(url).done(function(response) {
+    console.log("reply for show actual playlist: ", response);
         $('#act_playlist tbody').empty();
-        var trHTML;
+        var trHTML ="";
         $.each(response, function(i, item) {
             trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
         });
+        //console.log("print playlist", trHTML);
+
         $('#act_playlist tbody').append(trHTML);
     });
 

@@ -44,6 +44,7 @@ struct PlaylistItem {
     std::string m_name;
     std::string m_name_lower;
     std::string m_performer;
+    std::string m_performer_lower ;
 };
 
 class Playlist {
@@ -79,10 +80,13 @@ public:
     void setUniqueID(const std::string& uniqueID) { m_item.m_uniqueId = uniqueID; setChanged(Changed::isChanged); }
 
     void setName(const std::string& name);
-    void setPerformer(const std::string& performer) { m_item.m_performer = performer; }
+    void setPerformer(const std::string& performer);
 
     std::string getName() const;
     std::string getPerformer() const { return m_item.m_performer; }
+
+    std::string getNameLower() const { return m_item.m_name_lower; }
+    std::string getPerformerLower() const { return m_item.m_performer_lower; }
 
     const std::vector<std::string>& getUniqueIdPlaylist() const;
     bool addToList(std::string&& audioUID);

@@ -12,7 +12,7 @@
 
 using PlaylistEndCallback = std::function<void()>;
 using SongEndCallback = std::function<void(const std::string&)>;
-using OnUiChangeHandler = std::function<void( const std::string& songID, int position, bool doLoop, bool doShuffle)>;
+using OnUiChangeHandler = std::function<void( const std::string& songID, const std::string& playlistID, int position, bool doLoop, bool doShuffle)>;
 
 
 class BasePlayer {
@@ -37,7 +37,6 @@ protected:
 
     std::default_random_engine m_rng {};
 
-    void updateUi() const;
     virtual void stopAndRestart() = 0;
 
     bool needsOnlyUnpause(const std::string &playlist);
@@ -46,6 +45,8 @@ protected:
 
     bool calculatePreviousFileInList();
     bool calculateNextFileInList();
+
+    void updateUi() const;
 
 public:
 
@@ -60,11 +61,12 @@ public:
     bool toogleLoop();
     bool getLoop() const { return m_doCycle; }
     bool getShuffle() const { return m_shuffle; }
+    std::string getPlaylistID() const { return m_PlaylistUniqueId; }
 
     void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
 
-    virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) = 0;
+    virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) = 0;
     virtual bool stop() = 0;
     virtual bool stopPlayerConnection() = 0;
 

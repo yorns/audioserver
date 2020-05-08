@@ -51,9 +51,16 @@ public:
     Id3Info& operator=(const Id3Info& info) = default;
     Id3Info& operator=(Id3Info&& info) = default;
 
+    std::string toString() const {
+        std::stringstream tmp;
+        tmp << album_name << "("<<albumName_lower<<") / " << performer_name << " (" << performerName_lower <<")";
+        return tmp.str();
+    }
+
     bool isAlike(const std::vector<std::string>& whatList) const {
         for (auto& part : whatList) {
-            if (albumName_lower.find(part) || performerName_lower.find(part) || performer_name.find(part)) {
+            if ( albumName_lower.find(part) != std::string::npos ||
+                 performerName_lower.find(part) != std::string::npos ) {
                 return true;
             }
         }

@@ -94,9 +94,9 @@ std::optional<FullId3Information> id3TagReader::extractId3Info(const std::string
 
         if (!id3v2tag->frameListMap()[idPicture].isEmpty()) {
 
-            TagLib::ID3v2::FrameList Frame = id3v2tag->frameListMap()[idPicture];
-
+            auto Frame = id3v2tag->frameListMap()[idPicture];
             auto frameTagPicture = Frame.front();
+
             if (frameTagPicture && frameTagPicture->size() > 0) {
                 auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frameTagPicture);
                 if (picFrame) {
@@ -118,18 +118,42 @@ std::optional<FullId3Information> id3TagReader::extractId3Info(const std::string
                     fullId3Info.hash = hash;
                     fullId3Info.pictureAvailable = true;
 
-                    logger(Level::info) << "image found for <" << fullId3Info.info.title_name
-                                         << "/" << fullId3Info.info.album_name<<">\n";
+                    logger(Level::info) << "image found for <" << fullId3Info.info.toString() << ">\n";
                 }
             }
         }
 
         if (!fullId3Info.pictureAvailable)
-            logger(Level::debug) << "image NOT found for <" << fullId3Info.info.title_name
-                                 << "/" << fullId3Info.info.album_name << ">\n";
+            logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
 
         return std::move(fullId3Info);
     }
+
+    if (mpegFile.hasID3v1Tag()) {
+
+        logger(Level::info) << "extracting data from file <"<<mp3File<<"> is a id3v1\n";
+
+        auto id3v1tag = mpegFile.ID3v1Tag();
+
+        Id3Info info;
+        info.uid = uid;
+        info.title_name = id3v1tag->title().to8Bit(true);
+        info.performer_name = id3v1tag->artist().to8Bit(true);
+        info.album_name = id3v1tag->album().to8Bit(true);
+        info.track_no = id3v1tag->track();
+        info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+        // TRCK (Track number/Position in set): 14/14
+        info.url = "file://" + mp3File;
+        info.finishEntry();     // help search by adding strings on lowercase
+
+        FullId3Information fullId3Info;
+        fullId3Info.info = std::move(info);
+        if (!fullId3Info.pictureAvailable)
+            logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
+
+        return std::move(fullId3Info);
+    }
+
 
     logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 v2 available \n";
 

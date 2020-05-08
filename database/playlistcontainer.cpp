@@ -246,7 +246,9 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
     case SearchAction::exact: {
         logger(Level::debug) << "exact seaching for string <" << what << ">\n";
         for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
-            if (playlistItem->getName().find(what) != std::string::npos) {
+            if ( playlistItem->getName() == what ||
+                 playlistItem->getPerformer() == what ||
+                 playlistItem->getUniqueID() == what) {
                 playlist.push_back(*playlistItem);
             }
         }
@@ -266,7 +268,9 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
         for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
             bool found {true};
             for(auto whatElem : whatList) {
-                if (playlistItem->getName().find(whatElem) == std::string::npos) {
+                logger(Level::debug) << "check against <"<<playlistItem->getNameLower()<<"> / <" << playlistItem->getPerformerLower() <<">\n";
+                if (playlistItem->getNameLower().find(whatElem) == std::string::npos &&
+                        playlistItem->getPerformerLower().find(whatElem) == std::string::npos) {
                     found = false;
                     break;
                 }

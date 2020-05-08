@@ -100,8 +100,10 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
     if (action == SearchAction::uniqueId) {
         std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
                       [&what, &findData](const Id3Info &info) {
-            if (info.uid == what)
+            if (info.uid == what) {
+                logger(Level::debug) << "found alike search: " << info.toString() <<"\n";
                 findData.push_back(info);
+            }
         });
     }
     else {

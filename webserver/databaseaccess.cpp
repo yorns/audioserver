@@ -36,8 +36,10 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
             jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.getUniqueID();
             jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
             jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.getPerformer();
+            jentry[std::string(ServerConstant::Parameter::Database::titel)] = "";
             std::string relativCoverPath = item.getCover();
             jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
+            jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = 0;
             json.push_back(jentry);
         }
 
@@ -50,6 +52,11 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
 }
 
 std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
+
+    if (!urlInfo) {
+        logger(Level::warning) << "invalid url given for database access\n";
+        return R"({"result": "illegal url given" })";
+    }
 
     logger(Level::debug) << "database access - parameter:"<<urlInfo->parameter<<" value:"<<urlInfo->value<<"\n";
     if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
@@ -73,8 +80,14 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
 
     if ( urlInfo->parameter == ServerConstant::Parameter::Database::uid ){
         auto uidData = m_database.searchAudioItems(urlInfo->value, Database::SearchItem::uid , Database::SearchAction::uniqueId);
-        logger(Level::debug) << "uid found <"<<uidData.size()<<"> elements\n";
-        return convertToJson(uidData);
+        logger(Level::debug) << "audio item uid found <"<<uidData.size()<<"> elements\n";
+        if (uidData.size()>0)
+            return convertToJson(uidData);
+
+        auto plData = m_database.searchPlaylistItems(urlInfo->value);
+        logger(Level::debug) << "playlist uid found <"<<uidData.size()<<"> elements\n";
+        if (plData.size() > 0)
+            return convertToJson(plData);
     }
 
     return "[]";

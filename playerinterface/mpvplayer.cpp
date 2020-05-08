@@ -56,7 +56,7 @@ MpvPlayer::MpvPlayer(boost::asio::io_context &context)
     init_MpvCommandHandling();
 }
 
-bool MpvPlayer::startPlay(const Common::AlbumPlaylistAndNames &list)
+bool MpvPlayer::startPlay(const Common::AlbumPlaylistAndNames &list, const std::string& songUID)
 {
 
     // just unpause if player is in playing state and paused

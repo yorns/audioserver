@@ -58,6 +58,11 @@ std::string PlaylistAccess::convertToJson(const std::vector<Database::Playlist> 
 
 std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
+    if (!urlInfo) {
+        logger(Level::warning) << "invalid url given for playlist access\n";
+        return R"({"result": "illegal url given" })";
+    }
+
     logger(Level::debug) << "playlist request: <"<<urlInfo->parameter<<"> with value <"<<urlInfo->value<<">\n";
 
     if (urlInfo->parameter == ServerConstant::Command::create) {
@@ -77,7 +82,6 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         auto list = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::alike);
         return convertToJson(list);
     }
-
 
     /* change to new playlist */
     if (urlInfo->parameter == ServerConstant::Command::change) {

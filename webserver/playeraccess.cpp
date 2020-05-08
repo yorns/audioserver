@@ -7,6 +7,11 @@ using namespace LoggerFramework;
 
 std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
+    if (!urlInfo) {
+        logger(Level::warning) << "invalid url given for playlist access\n";
+        return R"({"result": "illegal url given" })";
+    }
+
     if ( urlInfo->parameter == ServerConstant::Command::play &&
          urlInfo->value == ServerConstant::Value::_true) {
 
@@ -14,7 +19,7 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
         auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
 
-        if (m_player->startPlay(albumPlaylistAndNames))
+        if (m_player->startPlay(albumPlaylistAndNames,""))
           return R"({"result": "ok"})";
         else
             return R"({"result": "cannot find playlist"})";
@@ -47,8 +52,17 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
     if (urlInfo->parameter == ServerConstant::Parameter::Player::select) {
         const std::string& fileUrl = urlInfo->value;
-        m_player->jump_to_fileUID(fileUrl);
-        return R"({"result": "ok"})";
+        if (m_player->jump_to_fileUID(fileUrl))
+            return R"({"result": "ok"})";
+        else {
+            auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
+
+            if (albumPlaylistAndNames.m_playlistUniqueId != m_player->getPlaylistID() &&
+                m_player->startPlay(albumPlaylistAndNames,fileUrl))
+              return R"({"result": "ok"})";
+            else
+                return R"({"result": "cannot find neither song nor playlist"})";
+        }
     }
 
     if (urlInfo->parameter == ServerConstant::Parameter::Player::toPosition) {

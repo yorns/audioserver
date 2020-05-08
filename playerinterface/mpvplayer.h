@@ -67,7 +67,7 @@ public:
 
     virtual ~MpvPlayer() = default;
 
-    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) final;
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) final;
     bool stop() final;
     bool stopPlayerConnection() final;
 

@@ -162,11 +162,17 @@ public:
         m_gstLoop.start();
     }
 
+    bool changeAlbum(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) {
+        if (albumPlaylistAndNames.m_playlist.empty())
+            return false;
 
-    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) final {
+        m_playlist = albumPlaylistAndNames.m_playlist;
+        m_playlist_orig = albumPlaylistAndNames.m_playlist;
+        m_currentItemIterator = m_playlist.begin();
+    }
 
-        boost::ignore_unused(albumPlaylistAndNames.m_playlistUniqueId);
-        boost::ignore_unused(albumPlaylistAndNames.m_playlistName);
+
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) final {
 
         if (needsOnlyUnpause(albumPlaylistAndNames.m_playlistUniqueId)) {
             logger(LoggerFramework::Level::debug) << "unpause playlist <" << albumPlaylistAndNames.m_playlistName <<">\n";
@@ -175,6 +181,7 @@ public:
                 logger(LoggerFramework::Level::warning) "Unable to set the pipeline to the playing state.\n";
                 return false;
             }
+            return true;
         }
 
         if (albumPlaylistAndNames.m_playlist.empty())
@@ -183,6 +190,16 @@ public:
         m_playlist = albumPlaylistAndNames.m_playlist;
         m_playlist_orig = albumPlaylistAndNames.m_playlist;
         m_currentItemIterator = m_playlist.begin();
+        m_PlaylistUniqueId = albumPlaylistAndNames.m_playlistUniqueId;
+        m_PlaylistName = albumPlaylistAndNames.m_playlistName;
+
+        if (!songUID.empty() && songUID != m_currentItemIterator->m_uniqueId) {
+            m_currentItemIterator = std::find_if(std::begin(m_playlist), std::end(m_playlist), [&songUID](auto& elem){ return elem.m_uniqueId == songUID; });
+            if (m_currentItemIterator == std::end(m_playlist))
+                return false;
+        }
+
+        logger(LoggerFramework::Level::info) << "start Playing new playlist <"<<m_PlaylistUniqueId<<"> ("<<m_PlaylistName<<")\n";
 
         return doPlayFile(*m_currentItemIterator);
     }
@@ -315,14 +332,14 @@ public:
             doPlayFile(*m_currentItemIterator);
         }
         else {
-            logger(LoggerFramework::Level::warning) << "file <" << fileId << "> not in playlist\n";
+            logger(LoggerFramework::Level::warning) << "file <" << fileId << "> not in current playlist\n";
             return false;
         }
         return true;
     }
 
     const std::string getSongName() const final { return m_songName; }
-    std::string getSongID() const final { return m_currentItemIterator->m_uniqueId; }
+    std::string getSongID() const final { if(m_currentItemIterator != std::end(m_playlist)) return m_currentItemIterator->m_uniqueId; return ""; }
 
     int getSongPercentage() const final {
         gint64 pos, len;

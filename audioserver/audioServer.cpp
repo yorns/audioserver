@@ -146,25 +146,30 @@ int main(int argc, char* argv[])
     DatabaseAccess databaseWrapper(database);
     PlaylistAccess playlistWrapper(database);
 
-    auto updateUI = [&sessionHandler]( const std::string& songID,
-                  int position, bool doLoop, bool doShuffle) {
+    auto updateUI = [&sessionHandler]( const std::string& songID, const std::string& playlistID, const std::string& currPlaylistID,
+                  int position, bool doLoop, bool doShuffle, bool playing) {
+
+        logger(Level::debug) << "send updateUID json with with songID: <"<<songID<<"> playlistID: <"<<playlistID<<">\n";
 
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
         songInfo["songID"] = songID;
+        songInfo["playlistID"] = playlistID;
+        songInfo["curPlaylistID"] = currPlaylistID;
         songInfo["position"] = position;
         songInfo["loop"] = doLoop;
         songInfo["shuffle"] = doShuffle;
+        songInfo["playing"] = playing;
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
 
     };
 
-    player->onUiChange(updateUI);
+    //player->onUiChange(updateUI);
 
     player->setSongEndCB([&player, &updateUI](const std::string& songID){
         boost::ignore_unused(songID);
-        updateUI("", 0, player->getLoop(), player->getShuffle());
+        updateUI("", player->getPlaylistID(), player->getPlaylistID(), 0, player->getLoop(), player->getShuffle(), false);
         logger(Level::info) << "end handler called for current song\n";
     });
 
@@ -182,6 +187,8 @@ int main(int argc, char* argv[])
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::playlist, http::verb::get, PathCompare::exact,
                                  [&playlistWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        if (!url)
+            logger(Level::debug) << "url not set correctly\n";
         return playlistWrapper.access(url);
     });
 
@@ -224,14 +231,30 @@ int main(int argc, char* argv[])
     RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
 
     // create a timer service to request actual player information and send them to the session handlers
-    websocketSonginfoSenderTimer.setHandler( [&player, &updateUI](){
-      if (player && player->isPlaying()) {
-          std::string songID = player->getSongID();
-          int timePercent = player->getSongPercentage()/100;
-          bool loop = player->getLoop();
-          bool shuffle = player->getShuffle();
-          updateUI(songID, timePercent, loop, shuffle);
-      }
+    websocketSonginfoSenderTimer.setHandler( [&player, &database, &updateUI](){
+
+        if (player) {
+
+            std::string songID;
+            std::string playlistID;
+            std::string currPlaylistID;
+
+            int timePercent { 0 };
+
+            if (auto _playlistID = database.getCurrentPlaylistUniqueID())
+                playlistID = *_playlistID;
+
+            bool loop = player->getLoop();
+            bool shuffle = player->getShuffle();
+
+            if (player->isPlaying()) {
+                songID = player->getSongID();
+                currPlaylistID = player->getPlaylistID();
+                timePercent = player->getSongPercentage()/100;
+            }
+
+            updateUI(songID, playlistID, currPlaylistID, timePercent, loop, shuffle, player->isPlaying());
+        }
     });
 
     websocketSonginfoSenderTimer.start();

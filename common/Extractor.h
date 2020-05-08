@@ -5,7 +5,7 @@
 #include <vector>
 #include <tuple>
 #include <regex>
-#include <boost/optional.hpp>
+#include <optional>
 #include "urlDecode.h"
 
 namespace utility {
@@ -16,8 +16,8 @@ namespace utility {
         if (url.empty())
             return std::string("");
 
-        std::vector<char> tmp1(url.length()+2,0);
-        std::vector<char> tmp2(url.length()+2,0);
+        std::vector<char> tmp1(url.length()+20,0);
+        std::vector<char> tmp2(url.length()+20,0);
         std::memcpy(tmp1.data(), url.data(), url.length());
 
         auto length = static_cast<std::size_t>(decodeURIComponent(tmp1.data(), tmp2.data()));
@@ -34,7 +34,7 @@ namespace utility {
             std::string value;
         };
 
-        using UrlInformation = boost::optional<UrlInfo>;
+        using UrlInformation = std::optional<UrlInfo>;
 
         static UrlInformation getUrlInformation(const std::string& url) {
 
@@ -49,12 +49,12 @@ namespace utility {
                     std::string m = match[3].str();
                     info.value = urlConvert(m);
                 } catch (...) {
-                    return boost::none;
+                    return std::nullopt;
                 }
                 return UrlInformation(info);
             }
 
-            return boost::none;
+            return std::nullopt;
         }
     };
 

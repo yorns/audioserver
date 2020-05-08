@@ -35,6 +35,7 @@ namespace ServerConstant {
 
     namespace Command {
         static constexpr auto play {sv("play")};
+        static constexpr auto readPlaylist {sv("readPlaylist")};
         static constexpr auto find {sv("find")};
         static constexpr auto create {sv("create")};
         static constexpr auto createAlbumList {sv("createAlbumList")};

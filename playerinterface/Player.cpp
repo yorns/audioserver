@@ -34,13 +34,19 @@ bool BasePlayer::doShuffle(bool shuffleRequest) {
 }
 
 void BasePlayer::updateUi() const {
-    if (!m_onUiChangeHandler)
+    if (!m_onUiChangeHandler) {
+        logger(Level::debug) << "Websocket playlist Update not set\n";
         return;
+    }
 
-    if (isPlaying())
-        m_onUiChangeHandler(getSongID(), getSongPercentage()/100, getLoop(), getShuffle());
-    else
-        m_onUiChangeHandler("", 0, getLoop(), getShuffle());
+    if (isPlaying()) {
+        logger(Level::debug) << "Websocket playlist Update with SongID <"<<getSongID() << "> and playlistID <"<<getPlaylistID()<<">\n";
+        m_onUiChangeHandler(getSongID(), getPlaylistID(), getSongPercentage()/100, getLoop(), getShuffle());
+    }
+    else {
+        logger(Level::debug) << "Websocket playlist Update with playlistID <"<<getPlaylistID()<<">\n";
+        m_onUiChangeHandler("", getPlaylistID(), 0, getLoop(), getShuffle());
+    }
 }
 
 bool BasePlayer::needsOnlyUnpause(const std::string &playlist){

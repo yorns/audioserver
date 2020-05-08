@@ -25,6 +25,14 @@ void Playlist::setName(const std::string &name)
     setChanged(Changed::isChanged);
 }
 
+void Playlist::setPerformer(const std::string &performer)
+{
+    m_item.m_performer = performer;
+    m_item.m_performer_lower = Common::str_tolower(performer);
+    setChanged(Changed::isChanged);
+}
+
+
 const std::vector<std::string> &Playlist::getUniqueIdPlaylist() const
 {
     return m_playlist;

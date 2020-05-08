@@ -1,4 +1,6 @@
 #include "stringmanipulator.h"
+#include <algorithm>
+#include <sstream>
 
 std::vector<std::string> Common::extractWhatList(const std::string &what)
 {
@@ -9,8 +11,9 @@ std::vector<std::string> Common::extractWhatList(const std::string &what)
     while (tmp.good()) {
         std::string whatItem;
         tmp >> whatItem;
-        if (!whatItem.empty())
-            whatList.emplace_back(whatItem);
+        if (!whatItem.empty()) {
+            whatList.emplace_back(Common::str_tolower(whatItem));
+        }
     }
     return whatList;
 }
