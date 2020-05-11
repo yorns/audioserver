@@ -198,21 +198,21 @@ The playlist accesspoint is implemented as REST GET:
 
 * receive all available playlists with **/playlist?showlists=true**
 
-returned json is:
-```
-{
-  playlists: [
-    { 
-      "uid" : string   -> playlist unique ID
-      "playlist" : string   -> playlist name
-    },
-    ... as many entries as playlists are available
-  ]
-  actualPlaylist: string currrent playlist id
-}
-```
+  returned json is:
+  ```
+  {
+    playlists: [
+      {
+        "uid" : string   -> playlist unique ID
+        "playlist" : string   -> playlist name
+      },
+      ... as many entries as playlists are available
+    ]
+    actualPlaylist: string currrent playlist id
+  }
+  ```
 
-* show entries in current playlist with **/playlist?show=<uniqueID>**
+* show entries in current playlist with **/playlist?show=\<uniqueID\>**
   
   returns the playlist items from playlist with uniqueID. If uniqueID is empty, the current playlist items are returned.
   
@@ -229,6 +229,19 @@ returned json is:
   ```
   These itmes are compiled in a json list **[ ... ]**. The list may be empty.
 
+* change current playlist to playlist with unique ID by **/playlist?change=\<uniqueID\>**
+  
+  just changes the current playlist to the one with the unique ID given.
+  
+  json return value could be:
+  ```
+  {"result": "ok"}
+  ```
+  or
+  ```
+  {"result": "playlist not found"}
+  ```
+  
 
 ### player:
 
