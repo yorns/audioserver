@@ -31,7 +31,7 @@ class id3TagReader {
 
 public:
     std::optional<FullId3Information> readJsonAudioInfo(const std::string& uid);
-    std::optional<FullId3Information> extractId3Info(const std::string &uid);
+    std::optional<FullId3Information> readMp3AudioInfo(const std::string &uid);
 
 };
 

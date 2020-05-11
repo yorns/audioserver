@@ -34,7 +34,7 @@ protected:
     bool m_doCycle   { false };
     bool m_isPlaying { false };
     bool m_pause     { false };
-
+    uint32_t m_volume { 15 };
     std::default_random_engine m_rng {};
 
     virtual void stopAndRestart() = 0;
@@ -62,6 +62,7 @@ public:
     bool getLoop() const { return m_doCycle; }
     bool getShuffle() const { return m_shuffle; }
     std::string getPlaylistID() const { return m_PlaylistUniqueId; }
+    uint32_t getVolume() { return m_volume; }
 
     void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
@@ -69,6 +70,7 @@ public:
     virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) = 0;
     virtual bool stop() = 0;
     virtual bool stopPlayerConnection() = 0;
+    virtual bool setVolume(uint32_t volume) = 0;
 
     virtual bool seek_forward() = 0;
     virtual bool seek_backward() = 0;

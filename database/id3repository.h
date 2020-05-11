@@ -52,7 +52,11 @@ public:
     bool addCover(std::string uid, std::vector<char>&& data, std::size_t hash);
 
     bool add(const std::string& uid) {
-        return add(m_tagReader.readJsonAudioInfo(uid));
+        if (add(m_tagReader.readJsonAudioInfo(uid)))
+            return true;
+        if (add(m_tagReader.readMp3AudioInfo(uid)))
+            return true;
+        return false;
     }
     bool remove(const std::string& uniqueID);
 

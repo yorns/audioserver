@@ -71,6 +71,9 @@ public:
     bool stop() final;
     bool stopPlayerConnection() final;
 
+    bool setVolume(uint32_t volume) final { m_volume = volume;
+                                            return sendCommand({"volume",ServerConstant::seekForwardSeconds});
+                                          }
     bool seek_forward() final;
     bool seek_backward() final;
     bool next_file() final;

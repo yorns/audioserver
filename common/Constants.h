@@ -71,6 +71,7 @@ namespace ServerConstant {
             static constexpr auto toggleLoop {sv("toggleLoop")};
             static constexpr auto select {sv("select")};
             static constexpr auto toPosition {sv("toPosition")};
+            static constexpr auto volume {sv("volume")};
         }
     }
 

@@ -23,7 +23,8 @@ void MpvPlayer::init_MpvCommandHandling() {
 
     /* set observers */
     if ( sendCommand({"observe_property", 1, "percent-pos"}) &&
-         sendCommand({"observe_property", 2, "metadata"}) ) {
+         sendCommand({"observe_property", 2, "volume"}) &&
+         sendCommand({"observe_property", 3, "metadata"}) ) {
         logger(Level::info) << "all MPV observers set up\n";
     }
 
@@ -31,6 +32,10 @@ void MpvPlayer::init_MpvCommandHandling() {
         m_actTime = msg.at("data");
         if (m_actTime > 1 )
             m_isPlaying = true;
+    };
+
+    m_propertiesHandler["volume"] = [this](const nlohmann::json& msg) {
+        m_volume = msg.at("data");
     };
 
     m_propertiesHandler["metadata"] = [this](const nlohmann::json& msg) {

@@ -147,8 +147,7 @@ public:
         flags |= playFlagAudio;
         g_object_set (m_playbin.get(), "flags", flags, NULL);
 
-        /* Add a bus watch, so we get notified when a message arrives */
-        //gst_bus_add_watch (m_gstBus.get(), static_cast<GstBusFunc>(GstPlayer::handle_message), this);
+        setVolume(15); // set default volume (test 15)
 
         logger(LoggerFramework::Level::info) << "Constructor GstPlayer - DONE\n";
 
@@ -162,15 +161,16 @@ public:
         m_gstLoop.start();
     }
 
-    bool changeAlbum(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) {
-        if (albumPlaylistAndNames.m_playlist.empty())
-            return false;
+    bool setVolume(uint32_t volume) final {
 
-        m_playlist = albumPlaylistAndNames.m_playlist;
-        m_playlist_orig = albumPlaylistAndNames.m_playlist;
-        m_currentItemIterator = m_playlist.begin();
+        double volume_double = volume/100.0;
+        volume_double *= 2.5;
+        g_object_set ( m_playbin.get(), "volume", volume_double, NULL );
+
+        m_volume = volume;
+
+        return true;
     }
-
 
     bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) final {
 

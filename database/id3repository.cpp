@@ -196,7 +196,7 @@ bool Id3Repository::read() {
 
     for (auto& file : filelist) {
         logger(::Level::debug) << "list of id3 files - reading audio file <"<<file.name<<file.extension<<">\n";
-        add(m_tagReader.extractId3Info(file.name));
+        add(m_tagReader.readMp3AudioInfo(file.name));
     }
 
     for (auto& file : jsonList) {

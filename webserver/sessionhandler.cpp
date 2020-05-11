@@ -71,7 +71,6 @@ bool SessionHandler::callFileUploadHandler(http::request_parser<http::file_body>
 
     auto handlerIt = find(pathToFileHandler, path, method);
 
-
     if (handlerIt != pathToFileHandler.end()) {
         auto handler = std::get<UploadFinishedHandler>(*handlerIt);
         return handler(name);

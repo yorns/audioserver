@@ -57,6 +57,7 @@ $(document).ready(function () {
                     
                     //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
                     $("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
+                    $("#volumeProgress").css("height", msg.SongBroadcastMessage.volume + "%");
                     if (msg.SongBroadcastMessage.loop) {
                         $("#btnRepeat").removeClass("btn-gray");
                         $("#btnRepeat").addClass("btn-black");
@@ -149,6 +150,17 @@ $(document).ready(function () {
         //alert("progress "+ (e.pageX - posX)*100/width);
         var toPosition = parseInt((e.pageX - posX)*100/width);
             url = "/player?toPosition="+toPosition;
+            $.post(url, "", function (data, textStatus) {}, "json");
+
+    });
+
+    $("#volume-box").click(function(e) {
+        var posY = $(this).offset().top;
+        var height = $("#volume-box").height();
+//        alert("volume "+ (e.pageY - posY)*100/height);
+//        alert("volume " + e.pageY + " - " + posY + "*100 / " + height);
+        var volume = 100 - parseInt((e.pageY - posY)*100/height);
+            url = "/player?volume="+volume;
             $.post(url, "", function (data, textStatus) {}, "json");
 
     });

@@ -80,6 +80,21 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         return R"({"result": "ok"})";
     }
 
+    if (urlInfo->parameter == ServerConstant::Parameter::Player::volume) {
+        uint32_t volume {0};
+        try {
+            volume = static_cast<uint32_t>(std::stoi(urlInfo->value));
+        } catch (const std::exception& ex) {
+            logger(Level::warning) << "volume request with value <"
+                                   << urlInfo->value
+                                   << "> could not be parsed ("
+                                   << ex.what() << ")";
+            return R"({"result": "jump to position: position could not be parsed"})";
+        }
+        m_player->setVolume(volume);
+        return R"({"result": "ok"})";
+    }
+
     if (urlInfo->parameter == ServerConstant::Parameter::Player::fastForward &&
             urlInfo->value == ServerConstant::Value::_true) {
         m_player->seek_forward();

@@ -147,9 +147,9 @@ int main(int argc, char* argv[])
     PlaylistAccess playlistWrapper(database);
 
     auto updateUI = [&sessionHandler]( const std::string& songID, const std::string& playlistID, const std::string& currPlaylistID,
-                  int position, bool doLoop, bool doShuffle, bool playing) {
+                  int position, bool doLoop, bool doShuffle, bool playing, double volume) {
 
-        logger(Level::debug) << "send updateUID json with with songID: <"<<songID<<"> playlistID: <"<<playlistID<<">\n";
+        //logger(Level::debug) << "send updateUID json with with songID: <"<<songID<<"> playlistID: <"<<playlistID<<">\n";
 
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
@@ -160,6 +160,7 @@ int main(int argc, char* argv[])
         songInfo["loop"] = doLoop;
         songInfo["shuffle"] = doShuffle;
         songInfo["playing"] = playing;
+        songInfo["volume"] = volume;
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
 
@@ -169,7 +170,7 @@ int main(int argc, char* argv[])
 
     player->setSongEndCB([&player, &updateUI](const std::string& songID){
         boost::ignore_unused(songID);
-        updateUI("", player->getPlaylistID(), player->getPlaylistID(), 0, player->getLoop(), player->getShuffle(), false);
+        updateUI("", player->getPlaylistID(), player->getPlaylistID(), 0, player->getLoop(), player->getShuffle(), false, player->getVolume());
         logger(Level::info) << "end handler called for current song\n";
     });
 
@@ -253,7 +254,7 @@ int main(int argc, char* argv[])
                 timePercent = player->getSongPercentage()/100;
             }
 
-            updateUI(songID, playlistID, currPlaylistID, timePercent, loop, shuffle, player->isPlaying());
+            updateUI(songID, playlistID, currPlaylistID, timePercent, loop, shuffle, player->isPlaying(), player->getVolume());
         }
     });
 

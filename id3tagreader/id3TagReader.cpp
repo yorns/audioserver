@@ -27,9 +27,8 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::str
     std::string streamFileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioJson)
             + "/" + uid + ".json";
 
-    FullId3Information fullInfo;
-
     if (fs::exists(streamFileName)) {
+        FullId3Information fullInfo;
         try {
             std::ifstream streamInfoFile(streamFileName.c_str());
             nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
@@ -65,97 +64,101 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::str
     return std::nullopt;
 }
 
-std::optional<FullId3Information> id3TagReader::extractId3Info(const std::string &uid) {
+std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const std::string &uid) {
 
     static const auto idPicture = "APIC";
 
     std::string mp3File = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioMp3) + '/' + uid + ".mp3";
-    TagLib::MPEG::File mpegFile(mp3File.c_str());
 
-    if (mpegFile.hasID3v2Tag()) {
+    if (fs::exists(mp3File)) {
 
-        logger(Level::info) << "extracting data from file <"<<mp3File<<"> is a id3v2\n";
+        TagLib::MPEG::File mpegFile(mp3File.c_str());
 
-        auto id3v2tag = mpegFile.ID3v2Tag();
+        if (mpegFile.hasID3v2Tag()) {
 
-        Id3Info info;
-        info.uid = uid;
-        info.title_name = id3v2tag->title().to8Bit(true);
-        info.performer_name = id3v2tag->artist().to8Bit(true);
-        info.album_name = id3v2tag->album().to8Bit(true);
-        info.track_no = id3v2tag->track();
-        info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
-        // TRCK (Track number/Position in set): 14/14
-        info.url = "file://" + mp3File;
-        info.finishEntry();     // help search by adding strings on lowercase
+            logger(Level::debug) << "extracting data from file <"<<mp3File<<"> is a id3v2\n";
 
-        FullId3Information fullId3Info;
-        fullId3Info.info = std::move(info);
+            auto id3v2tag = mpegFile.ID3v2Tag();
 
-        if (!id3v2tag->frameListMap()[idPicture].isEmpty()) {
+            Id3Info info;
+            info.uid = uid;
+            info.title_name = id3v2tag->title().to8Bit(true);
+            info.performer_name = id3v2tag->artist().to8Bit(true);
+            info.album_name = id3v2tag->album().to8Bit(true);
+            info.track_no = id3v2tag->track();
+            info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+            // TRCK (Track number/Position in set): 14/14
+            info.url = "file://" + mp3File;
+            info.finishEntry();     // help search by adding strings on lowercase
 
-            auto Frame = id3v2tag->frameListMap()[idPicture];
-            auto frameTagPicture = Frame.front();
+            FullId3Information fullId3Info;
+            fullId3Info.info = std::move(info);
 
-            if (frameTagPicture && frameTagPicture->size() > 0) {
-                auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frameTagPicture);
-                if (picFrame) {
-                    std::string filetype(".jpg");
-                    if (!picFrame->mimeType().isEmpty()) {
-                        std::string tmp{picFrame->mimeType().to8Bit()};
-                        fullId3Info.info.fileExtension = "." + tmp.substr(tmp.find_last_of('/')+1);
+            if (!id3v2tag->frameListMap()[idPicture].isEmpty()) {
+
+                auto Frame = id3v2tag->frameListMap()[idPicture];
+                auto frameTagPicture = Frame.front();
+
+                if (frameTagPicture && frameTagPicture->size() > 0) {
+                    auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frameTagPicture);
+                    if (picFrame) {
+                        std::string filetype(".jpg");
+                        if (!picFrame->mimeType().isEmpty()) {
+                            std::string tmp{picFrame->mimeType().to8Bit()};
+                            fullId3Info.info.fileExtension = "." + tmp.substr(tmp.find_last_of('/')+1);
+                        }
+
+                        // generate entry for cover Table
+                        std::vector<char> coverData;
+                        coverData.resize(picFrame->picture().size());
+
+                        std::copy_n(picFrame->picture().data(), picFrame->picture().size(), coverData.begin());
+
+                        auto hash = Common::genHash(coverData);
+
+                        fullId3Info.data = std::move(coverData);
+                        fullId3Info.hash = hash;
+                        fullId3Info.pictureAvailable = true;
+
+                        logger(Level::info) << "image found for <" << fullId3Info.info.toString() << ">\n";
                     }
-
-                    // generate entry for cover Table
-                    std::vector<char> coverData;
-                    coverData.resize(picFrame->picture().size());
-
-                    std::copy_n(picFrame->picture().data(), picFrame->picture().size(), coverData.begin());
-
-                    auto hash = Common::genHash(coverData);
-
-                    fullId3Info.data = std::move(coverData);
-                    fullId3Info.hash = hash;
-                    fullId3Info.pictureAvailable = true;
-
-                    logger(Level::info) << "image found for <" << fullId3Info.info.toString() << ">\n";
                 }
             }
+
+            if (!fullId3Info.pictureAvailable)
+                logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
+
+            return std::move(fullId3Info);
         }
 
-        if (!fullId3Info.pictureAvailable)
-            logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
+        if (mpegFile.hasID3v1Tag()) {
 
-        return std::move(fullId3Info);
+            logger(Level::debug) << "extracting data from file <"<<mp3File<<"> is a id3v1\n";
+
+            auto id3v1tag = mpegFile.ID3v1Tag();
+
+            Id3Info info;
+            info.uid = uid;
+            info.title_name = id3v1tag->title().to8Bit(true);
+            info.performer_name = id3v1tag->artist().to8Bit(true);
+            info.album_name = id3v1tag->album().to8Bit(true);
+            info.track_no = id3v1tag->track();
+            info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+            // TRCK (Track number/Position in set): 14/14
+            info.url = "file://" + mp3File;
+            info.finishEntry();     // help search by adding strings on lowercase
+
+            FullId3Information fullId3Info;
+            fullId3Info.info = std::move(info);
+            if (!fullId3Info.pictureAvailable)
+                logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
+
+            return std::move(fullId3Info);
+        }
+
     }
 
-    if (mpegFile.hasID3v1Tag()) {
-
-        logger(Level::info) << "extracting data from file <"<<mp3File<<"> is a id3v1\n";
-
-        auto id3v1tag = mpegFile.ID3v1Tag();
-
-        Id3Info info;
-        info.uid = uid;
-        info.title_name = id3v1tag->title().to8Bit(true);
-        info.performer_name = id3v1tag->artist().to8Bit(true);
-        info.album_name = id3v1tag->album().to8Bit(true);
-        info.track_no = id3v1tag->track();
-        info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
-        // TRCK (Track number/Position in set): 14/14
-        info.url = "file://" + mp3File;
-        info.finishEntry();     // help search by adding strings on lowercase
-
-        FullId3Information fullId3Info;
-        fullId3Info.info = std::move(info);
-        if (!fullId3Info.pictureAvailable)
-            logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
-
-        return std::move(fullId3Info);
-    }
-
-
-    logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 v2 available \n";
+    logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 available\n";
 
     return std::nullopt;
 }
