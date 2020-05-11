@@ -205,6 +205,7 @@ The playlist must be defined before.
 * fast backward (20 Sec) **/player/fastBackward=true**
 * toogle Shuffle **/player/toggleShuffle=true**
 * toggle Looping **/player/toggleLoop=true**
+* set volume **/player/volume=<0-100>**
 
 Feedback for the action (e.g. if a toogle was successsfull) is given through the websocket interface. This will keep all states within the Player and the UI does not care for this.
 
@@ -212,4 +213,18 @@ Feedback for the action (e.g. if a toogle was successsfull) is given through the
 ## Web Socket API
 
 The websocket accesspoint is **/dynamic**. Here are messages send for regular updates:
+```
+{
+  "SongBroadcastMessage": {
+  "songID" = string   -> unique ID of the actual file (or 0, if no file is actually played)
+  "playlistID" = string   -> unique ID of the playlist, that should be presented 
+  "curPlaylistID" = string   -> unique ID of the current playlist
+  "position" = int   ->  song position in % (0-100)
+  "loop" = boolean   ->  true if looping is enabled 
+  "shuffle" = boolean   -> true if shuffle is enabled
+  "playing" = boolean   -> true if player is playing
+  "volume" = int   -> volume value in % (0-100)
+  }
+}
+```
 
