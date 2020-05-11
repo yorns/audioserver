@@ -59,8 +59,8 @@ audioServer ${HOME}/audioConfig/audioserver.json
         "IpAddress": "0.0.0.0",
         "Port": "8080",
         "BasePath": "/usr/local/var/audioserver",
-        "LogLevel": "debug"
-
+        "LogLevel": "debug",
+	"AudioInterface": "gst"
 }
 ```
 
@@ -74,6 +74,9 @@ Within this file, you can configure the following information:
   * info
   * warning
   * error
+* **AudioInterface** what audio output interface should be taken 
+  * "gst": gstreamer interface (actually better supported and default)
+  * "mpv": mpv interface (uses the pipe interface to mpv what needs to run as a second process with pipe interface) 
 
 ### setup audio data
 
