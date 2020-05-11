@@ -194,7 +194,43 @@ Accesspoints are described below
 
 ### playlist:
 
-### player
+The playlist accesspoint is implemented as REST GET:
+
+* receive all available playlists with **/playlist?showlists=true**
+
+returned json is:
+```
+{
+  playlists: [
+    { 
+      "uid" : string   -> playlist unique ID
+      "playlist" : string   -> playlist name
+    },
+    ... as many entries as playlists are available
+  ]
+  actualPlaylist: string currrent playlist id
+}
+```
+
+* show entries in current playlist with **/playlist?show=<uniqueID>**
+  
+  returns the playlist items from playlist with uniqueID. If uniqueID is empty, the current playlist items are returned.
+  
+  Items are represented by:
+  ```
+  {
+    "uid": string   -> unique ID of the audio item
+    "performer": string   -> performer name of this audio item
+    "album": string   -> album name of this audio item
+    "title": string   -> title name of this audio item
+    "cover": string   -> cover image with path and extension (could be directly requested with that name)
+    "trackNo": string   -> track number
+  }
+  ```
+  These itmes are compiled in a json list **[ ... ]**. The list may be empty.
+
+
+### player:
 
 The player accesspoint is implemented as REST POST: 
 
@@ -214,6 +250,11 @@ The playlist must be defined before.
 
 Feedback for the action (e.g. if a toogle was successsfull) is given through the websocket interface. This will keep all states within the Player and the UI does not care for this.
 
+The returned json is a message giving information about the success:
+```
+{"result": "ok"}
+```
+if the access failed, the result message is the verbal error code (that could be shown e.g. with javascript ``alert()``)
 
 ## Web Socket API
 
