@@ -193,6 +193,8 @@ Accesspoints are described below
 
 ### player
 
+The player accesspoint is implemented as REST POST: 
+
 * Start playing a playlist **/player?play=true** 
 The playlist must be defined before.
 * select a playlist be its unique ID **/player/select=\<uniqueID\>**
@@ -228,3 +230,4 @@ The websocket accesspoint is **/dynamic**. Here are messages send for regular up
 }
 ```
 
+for more information about the song or playlist, the database REST API is the way to go.
