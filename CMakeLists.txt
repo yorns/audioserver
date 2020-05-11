@@ -6,10 +6,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 message("server build")
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "-O2")        ## Optimize
-    set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
-endif()
+#if(CMAKE_COMPILER_IS_GNUCXX)
+#    set(CMAKE_CXX_FLAGS "-O2")        ## Optimize
+#    set(CMAKE_EXE_LINKER_FLAGS "-s")  ## Strip binary
+#endif()
 
 if (BOOST_DIR)
   set(BOOST_ROOT ${BOOST_DIR})
