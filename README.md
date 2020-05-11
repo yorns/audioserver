@@ -242,6 +242,17 @@ The playlist accesspoint is implemented as REST GET:
   {"result": "playlist not found"}
   ```
   
+* create a new playlist with **/playlist?create=\<playlist name\>**
+  
+  [tbd]
+  
+* add a new audio item to the actual playlist with **/playlist?add=\<unique song ID\>**
+
+  [tbd]
+  
+* search for a playlist name with **/playlist?albumList=\<pattern list\>**
+
+  [tbd]
 
 ### player:
 
