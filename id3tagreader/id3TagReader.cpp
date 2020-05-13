@@ -57,7 +57,7 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::str
             logger(Level::warning) << "failed to read file: " << streamFileName << ": " << ex.what() << "\n";
             return std::nullopt;
         }
-        return std::move(fullInfo);
+        return fullInfo;
     }
 
     logger(Level::debug) << "file <"<<streamFileName<<"> does not exist\n";
@@ -120,15 +120,15 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const std::stri
                         fullId3Info.hash = hash;
                         fullId3Info.pictureAvailable = true;
 
-                        logger(Level::info) << "image found for <" << fullId3Info.info.toString() << ">\n";
+                        logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
                     }
                 }
             }
 
             if (!fullId3Info.pictureAvailable)
-                logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
+                logger(Level::info) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
 
-            return std::move(fullId3Info);
+            return fullId3Info;
         }
 
         if (mpegFile.hasID3v1Tag()) {
@@ -153,7 +153,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const std::stri
             if (!fullId3Info.pictureAvailable)
                 logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
 
-            return std::move(fullId3Info);
+            return fullId3Info;
         }
 
     }

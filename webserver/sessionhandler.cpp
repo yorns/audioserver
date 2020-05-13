@@ -49,6 +49,7 @@ std::string SessionHandler::callHandler(http::request_parser<http::string_body> 
         return handler(requestHeader);
     }
 
+    logger(Level::warning) << "request to no endpoint found for <"<<requestHeader.get().target() <<">\n";
     return "";
 }
 

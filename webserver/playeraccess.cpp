@@ -12,6 +12,8 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         return R"({"result": "illegal url given" })";
     }
 
+    logger(Level::info) << "player access - parameter: <"<<urlInfo->parameter<<"> value: <"<<urlInfo->value<<">\n";
+
     if ( urlInfo->parameter == ServerConstant::Command::play &&
          urlInfo->value == ServerConstant::Value::_true) {
 

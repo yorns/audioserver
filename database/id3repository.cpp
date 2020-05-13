@@ -191,18 +191,23 @@ std::optional<Id3Info> Id3Repository::getId3InfoByUid(const std::string &uniqueI
 
 bool Id3Repository::read() {
 
+    logger(Level::info) << "start reading id3 information\n";
     auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::AudioMp3);
     auto jsonList = FileSystemAdditions::getAllFilesInDir(FileType::AudioJson);
 
+    logger(Level::info) << "read mp3 file information\n";
     for (auto& file : filelist) {
         logger(::Level::debug) << "list of id3 files - reading audio file <"<<file.name<<file.extension<<">\n";
         add(m_tagReader.readMp3AudioInfo(file.name));
     }
 
+    logger(Level::info) << "read json file information\n";
     for (auto& file : jsonList) {
         logger(::Level::debug) << "list of json files - reading audio file <"<<file.name<<file.extension<<">\n";
         add(m_tagReader.readJsonAudioInfo(file.name));
     }
+
+    logger(Level::info) << "database read completed\n";
 
     return true;
 }

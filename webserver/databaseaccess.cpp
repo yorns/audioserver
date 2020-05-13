@@ -58,7 +58,7 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
         return R"({"result": "illegal url given" })";
     }
 
-    logger(Level::debug) << "database access - parameter:"<<urlInfo->parameter<<" value:"<<urlInfo->value<<"\n";
+    logger(Level::info) << "database access - parameter:<"<<urlInfo->parameter<<"> value:<"<<urlInfo->value<<">\n";
     if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
         // get all albums and sort/reduce
         auto infoList = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::alike);

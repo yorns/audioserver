@@ -207,6 +207,10 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
 
     logger(Level::debug) << "<" << m_runID << "> " << "file request on: <"<< path << ">\n";
 
+    if (path.find("index.html") != std::string::npos) {
+        logger(Level::info) << "index.html requested\n";
+    }
+
     // read full request (should be empty, however ..)
 
     // Attempt to open the file

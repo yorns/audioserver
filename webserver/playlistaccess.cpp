@@ -63,7 +63,7 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         return R"({"result": "illegal url given" })";
     }
 
-    logger(Level::debug) << "playlist request: <"<<urlInfo->parameter<<"> with value <"<<urlInfo->value<<">\n";
+    logger(Level::info) << "playlist access - parameter: <"<<urlInfo->parameter<<"> value: <"<<urlInfo->value<<">\n";
 
     if (urlInfo->parameter == ServerConstant::Command::create) {
         auto ID = m_database.createPlaylist(urlInfo->value, Database::Persistent::isPermanent);

@@ -140,7 +140,6 @@ int main(int argc, char* argv[])
     auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
 
     Database::SimpleDatabase database;
-    database.loadDatabase();
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
@@ -277,6 +276,8 @@ int main(int argc, char* argv[])
 
 
     logger(Level::info) << "Rest Accesspoints:\n" << sessionHandler.generateRESTInterfaceDocumentation();
+
+    database.loadDatabase();
 
     logger(Level::info) << "server started\n";
 
