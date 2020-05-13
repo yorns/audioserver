@@ -59,8 +59,8 @@ audioServer ${HOME}/audioConfig/audioserver.json
         "IpAddress": "0.0.0.0",
         "Port": "8080",
         "BasePath": "/usr/local/var/audioserver",
-        "LogLevel": "debug"
-
+        "LogLevel": "debug",
+	"AudioInterface": "gst"
 }
 ```
 
@@ -74,6 +74,9 @@ Within this file, you can configure the following information:
   * info
   * warning
   * error
+* **AudioInterface** what audio output interface should be taken 
+  * "gst": gstreamer interface (actually better supported and default)
+  * "mpv": mpv interface (uses the pipe interface to mpv what needs to run as a second process with pipe interface) 
 
 ### setup audio data
 
@@ -191,7 +194,69 @@ Accesspoints are described below
 
 ### playlist:
 
-### player
+The playlist accesspoint is implemented as REST GET:
+
+* receive all available playlists with **/playlist?showlists=true**
+
+  returned json is:
+  ```
+  {
+    playlists: [
+      {
+        "uid" : string   -> playlist unique ID
+        "playlist" : string   -> playlist name
+      },
+      ... as many entries as playlists are available
+    ]
+    actualPlaylist: string currrent playlist id
+  }
+  ```
+
+* show entries in current playlist with **/playlist?show=\<uniqueID\>**
+  
+  returns the playlist items from playlist with uniqueID. If uniqueID is empty, the current playlist items are returned.
+  
+  Items are represented by:
+  ```
+  {
+    "uid": string   -> unique ID of the audio item
+    "performer": string   -> performer name of this audio item
+    "album": string   -> album name of this audio item
+    "title": string   -> title name of this audio item
+    "cover": string   -> cover image with path and extension (could be directly requested with that name)
+    "trackNo": string   -> track number
+  }
+  ```
+  These itmes are compiled in a json list **[ ... ]**. The list may be empty.
+
+* change current playlist to playlist with unique ID by **/playlist?change=\<uniqueID\>**
+  
+  just changes the current playlist to the one with the unique ID given.
+  
+  json return value could be:
+  ```
+  {"result": "ok"}
+  ```
+  or
+  ```
+  {"result": "playlist not found"}
+  ```
+  
+* create a new playlist with **/playlist?create=\<playlist name\>**
+  
+  [tbd]
+  
+* add a new audio item to the actual playlist with **/playlist?add=\<unique song ID\>**
+
+  [tbd]
+  
+* search for a playlist name with **/playlist?albumList=\<pattern list\>**
+
+  [tbd]
+
+### player:
+
+The player accesspoint is implemented as REST POST: 
 
 * Start playing a playlist **/player?play=true** 
 The playlist must be defined before.
@@ -205,11 +270,32 @@ The playlist must be defined before.
 * fast backward (20 Sec) **/player/fastBackward=true**
 * toogle Shuffle **/player/toggleShuffle=true**
 * toggle Looping **/player/toggleLoop=true**
+* set volume **/player/volume=<0-100>**
 
 Feedback for the action (e.g. if a toogle was successsfull) is given through the websocket interface. This will keep all states within the Player and the UI does not care for this.
 
+The returned json is a message giving information about the success:
+```
+{"result": "ok"}
+```
+if the access failed, the result message is the verbal error code (that could be shown e.g. with javascript ``alert()``)
 
 ## Web Socket API
 
 The websocket accesspoint is **/dynamic**. Here are messages send for regular updates:
+```
+{
+  "SongBroadcastMessage": {
+  "songID" = string   -> unique ID of the actual file (or 0, if no file is actually played)
+  "playlistID" = string   -> unique ID of the playlist, that should be presented 
+  "curPlaylistID" = string   -> unique ID of the current playlist
+  "position" = int   ->  song position in % (0-100)
+  "loop" = boolean   ->  true if looping is enabled 
+  "shuffle" = boolean   -> true if shuffle is enabled
+  "playing" = boolean   -> true if player is playing
+  "volume" = int   -> volume value in % (0-100)
+  }
+}
+```
 
+for more information about the song or playlist, the database REST API is the way to go.
