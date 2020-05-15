@@ -52,7 +52,8 @@ class Session : public std::enable_shared_from_this<Session>
         auto self { shared_from_this() };
         // do answer synchron, so we do not need to keep the resonse message until end of connection
         http::write(m_socket, response);
-        do_close();
+        if (!response.keep_alive())
+            do_close();
         logger(Level::debug) << "resonse send without an error\n";
     }
 

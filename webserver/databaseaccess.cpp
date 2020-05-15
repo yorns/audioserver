@@ -47,7 +47,6 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
         logger(Level::error) << "conversion to json failed: " << ex.what();
     }
 
-    logger(Level::debug) << "generated json: "<<json.dump(2)<<"\n";
     return json.dump();
 }
 

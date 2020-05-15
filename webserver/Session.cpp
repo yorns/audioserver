@@ -55,8 +55,10 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     boost::ignore_unused(bytes_transferred);
 
     // This means they closed the connection
-    if (ec == http::error::end_of_stream)
+    if (ec == http::error::end_of_stream) {
+        logger(Level::debug) << "<" << m_runID << "> " << "End of stream\n";
         return do_close();
+    }
 
     if (ec) {
         return fail(ec, "read");
@@ -65,18 +67,24 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     if (is_unknown_http_method(*requestHandler_sp)) {
         // read until finished
         logger(Level::debug) << "<" << m_runID << "> " << "Method unknown\n";
-        return answer(generate_result_packet(http::status::bad_request,
+        answer(generate_result_packet(http::status::bad_request,
                                              "Unknown HTTP-method", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
+        if (requestHandler_sp->get().keep_alive())
+            start();
+        return;
     }
 
     // Request path must be absolute and not contain "..".
     if (is_illegal_request_target(*requestHandler_sp)) {
         // read until finished
         logger(Level::debug) << "<" << m_runID << "> " << "Illegal request\n";
-        return answer(generate_result_packet(http::status::bad_request,
+        answer(generate_result_packet(http::status::bad_request,
                                              "Illegal request-target", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
+        if (requestHandler_sp->get().keep_alive())
+            start();
+        return;
     }
 
     logger(Level::debug) << "<" << m_runID << "> " << "reading target: " << requestHandler_sp->get().target() << "\n";
@@ -96,12 +104,14 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
             answer(generate_result_packet(http::status::internal_server_error,
                                           "An error occurred: 'open file failed for writing'",
                                           reqFile->get().version(), reqFile->get().keep_alive()));
+            if (requestHandler_sp->get().keep_alive())
+                start();
         }
         else {
             auto self { shared_from_this() };
 
             auto read_done_handler = [this, self, name, reqFile](boost::system::error_code ec,
-                    std::size_t bytes_transferred) {
+                        std::size_t bytes_transferred) {
                 logger(Level::debug) << "<" << m_runID << "> " << "finished read <" << name.unique_id << ">\n";
                 boost::ignore_unused(bytes_transferred);
                 if (!ec) {
@@ -109,6 +119,10 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                     answer(generate_result_packet(http::status::ok , "",
                                                   reqFile->get().version(), reqFile->get().keep_alive(),
                                                   "audio/mp3"));
+                    if (reqFile->get().keep_alive())
+                        start();
+                    return;
+
                 }
                 else {
                     logger(Level::warning) << "<" << m_runID << "> " << "could not reade file <" << name.filename << ">\n";
@@ -150,9 +164,11 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                                                   reply,
                                                   requestString->get().version(),
                                                   requestString->get().keep_alive()));
+
                 }
 
-
+                if (requestString->keep_alive())
+                    start();
             }
         });
 
@@ -232,15 +248,24 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
             res.set(http::field::content_type, mime_type(path));
             res.content_length(size);
             res.keep_alive(keep_alive);
-            return answer(std::move(res));
+            answer(std::move(res));
+            if (keep_alive)
+                start();
+            return;
         }
 
         logger(Level::warning) << "requested regular file <"<< path <<"> not found\n";
-        return answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
+        answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
+        if (keep_alive)
+            start();
+        return;
     }
     // Handle an unknown error
     if(ec) {
-        return answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
+        answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
+        if (keep_alive)
+            start();
+        return;
     }
 
     // Cache the size since we need it after the move
@@ -254,7 +279,10 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
         res.set(http::field::content_type, mime_type(path));
         res.content_length(size);
         res.keep_alive(keep_alive);
-        return answer(std::move(res));
+        answer(std::move(res));
+        if (keep_alive)
+            start();
+        return;
     }
 
     // Respond to GET request
@@ -266,7 +294,11 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
     res.set(http::field::content_type, mime_type(path));
     res.content_length(size);
     res.keep_alive(keep_alive);
-    return answer(std::move(res));
+    answer(std::move(res));
+    if (keep_alive)
+        start();
+    return;
+
 }
 
 
