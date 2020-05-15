@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <cstring>
 
 namespace Common {
 
@@ -19,14 +20,15 @@ inline std::size_t genHash(std::vector<char> const& _vec) {
 
     std::size_t seed = size_uint32;
 
-    for (std::size_t pos{0}; size_uint32<pos; pos++) {
+    for (std::size_t pos{0}; size_uint32>pos; pos++) {
         seed ^= char_position[pos] + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
 
-//    if (remainder32) {
-//        uint32_t lastItem {0};
-//        memcpy(&lastItem, )
-//    }
+    if (remainder32) {
+        uint32_t lastItem {0};
+        std::memcpy(&lastItem, (void*)(_vec.data()+size-remainder32), remainder32);
+        seed ^= lastItem + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
     return seed;
 }
 

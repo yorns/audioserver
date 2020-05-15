@@ -14,7 +14,7 @@ bool Id3Repository::addCover(std::string uid, std::vector<char>&& data, std::siz
                                 [&hash](const CoverElement& elem){ return elem.hash == hash; });
 
     if (coverIt == std::end(m_simpleCoverDatabase)) {
-        logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << hash << ")\n";
+        logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << hash << std::dec << ")\n";
         CoverElement coverElem;
         coverElem.insertNewUid(std::move(uid));
         coverElem.hash = hash;
@@ -22,7 +22,7 @@ bool Id3Repository::addCover(std::string uid, std::vector<char>&& data, std::siz
         m_simpleCoverDatabase.emplace_back(coverElem);
     }
     else {
-        logger(Level::debug) << "    -----  cover known (0x"<< std::hex << hash << ")\n";
+        logger(Level::debug) << "    -----  cover known (0x"<< std::hex << hash << std::dec << ")\n";
         coverIt->insertNewUid(std::move(uid));
     }
 
