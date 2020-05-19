@@ -72,8 +72,10 @@ std::vector<std::pair<std::string, std::string> > SimpleDatabase::getAllPlaylist
 }
 
 bool SimpleDatabase::addNewAudioFileUniqueId(const std::string &uniqueID) {
-    if (m_id3Repository.add(uniqueID))
+    if (m_id3Repository.add(uniqueID)) {
+        m_playlistContainer.insertAlbumPlaylists(m_id3Repository.extractAlbumList());
         m_id3Repository.writeCache();
+    }
     return true;
 }
 
