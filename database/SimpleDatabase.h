@@ -26,6 +26,8 @@ class SimpleDatabase {
 
 public:
 
+    SimpleDatabase(bool enableCache) :m_id3Repository(enableCache) {}
+
     void loadDatabase();
     bool writeChangedPlaylists();
 
@@ -53,14 +55,14 @@ public:
     std::vector<Id3Info> getIdListOfItemsInPlaylistId(const std::string& uniqueId);
     Common::AlbumPlaylistAndNames getAlbumPlaylistAndNames();
 
-    std::optional<std::vector<char>> getCover(const std::string& coverUid) {
-        auto& coverElement = m_id3Repository.getCover(coverUid);
+    std::optional<std::vector<char>> getCover(const std::string& uid) {
+        auto& coverElement = m_id3Repository.getCover(uid);
         if (coverElement.rawData.size()>0) {
-            logger(LoggerFramework::Level::debug) << "found cover for cover id <" << coverUid << "> in database\n";
+            logger(LoggerFramework::Level::debug) << "found cover for cover id <" << uid << "> in database\n";
             return coverElement.rawData;
         }
         else
-            logger(LoggerFramework::Level::debug) << "NO cover in database found for cover id <" << coverUid << ">\n";
+            logger(LoggerFramework::Level::debug) << "NO cover in database found for cover id <" << uid << ">\n";
         return std::nullopt;
     }
 

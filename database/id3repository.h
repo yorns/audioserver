@@ -9,6 +9,9 @@
 #include "id3tagreader/id3TagReader.h"
 #include "common/logger.h"
 #include "common/albumlist.h"
+#include "common/base64.h"
+#include "common/filesystemadditions.h"
+#include "nlohmann/json.hpp"
 
 using namespace LoggerFramework;
 
@@ -45,24 +48,37 @@ class Id3Repository
 
     const CoverElement emptyElement;
 
+    bool m_cache_dirty { false };
+    bool m_enableCache { false };
+
+    std::optional<nlohmann::json> toJson(const std::vector<Id3Info>& id3Db) const;
+    const std::vector<Id3Info> id3fromJson(const std::string& file) const ;
+    std::optional<nlohmann::json> toJson(const std::vector<CoverElement>& coverDb) const;
+    const std::vector<CoverElement> coverFromJson(const std::string& filename) const;
+
+    bool writeJson(nlohmann::json&& data, const std::string& filename) const;
+
     bool add(std::optional<FullId3Information>&& audioItem);
+
+    bool readCache();
+    bool writeCacheInternal();
+
+    bool isCached(const std::string& uid) {
+        return std::find_if(std::cbegin(m_simpleDatabase), std::cend(m_simpleDatabase),
+                            [&uid](const Id3Info& elem) { return elem.uid == uid; }) != std::cend(m_simpleDatabase);
+    }
 
 public:
 
-    bool addCover(std::string uid, std::vector<char>&& data, std::size_t hash);
+    Id3Repository(bool enableCache) : m_enableCache(enableCache) {}
 
-    bool add(const std::string& uid) {
-        if (add(m_tagReader.readJsonAudioInfo(uid)))
-            return true;
-        if (add(m_tagReader.readMp3AudioInfo(uid)))
-            return true;
-        return false;
-    }
+    const CoverElement& getCover(const std::string& coverUid) const;
+
+    bool add(const std::string& uid);
+    bool addCover(std::string uid, std::vector<char>&& data, std::size_t hash);
     bool remove(const std::string& uniqueID);
 
-    void clear() {
-        m_simpleDatabase.clear();
-    }
+    void clear();
 
     std::vector<std::tuple<Id3Info, std::vector<std::string>>> findDuplicates();
 
@@ -74,17 +90,8 @@ public:
     std::optional<Id3Info> getId3InfoByUid(const std::string& uniqueId) const;
 
     bool read();
-
-    const CoverElement& getCover(const std::string& coverUid) const {
-        auto it = std::find_if(std::begin(m_simpleCoverDatabase),
-                               std::end(m_simpleCoverDatabase),
-                               [&coverUid](const CoverElement& elem){
-            return elem.isConnectedToUid(coverUid);
-        });
-        if (it != std::end(m_simpleCoverDatabase)) {
-            return *it;
-        }
-        return emptyElement;
+    bool writeCache() {
+        return writeCacheInternal();
     }
 
 #ifdef WITH_UNITTEST

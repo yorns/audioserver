@@ -57,6 +57,8 @@ struct Config {
     std::string m_port;
     std::string m_basePath;
 
+    bool m_enableCache;
+
     LoggerFramework::Level m_logLevel;
 };
 
@@ -72,6 +74,7 @@ std::optional<Config> readConfig(std::string configFile) {
     config.m_address = configData["IpAddress"];
     config.m_port = configData["Port"];
     config.m_basePath = configData["BasePath"];
+    config.m_enableCache = configData["EnableCache"];
     debugLogLevel = configData["LogLevel"];
 
     config.m_logLevel = LoggerFramework::Level::debug;
@@ -139,7 +142,7 @@ int main(int argc, char* argv[])
 
     auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
 
-    Database::SimpleDatabase database;
+    Database::SimpleDatabase database(config->m_enableCache);
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);

@@ -23,7 +23,7 @@ void test_database_base()
     boost::filesystem::remove_all(mp3_path);
     boost::filesystem::create_directory(mp3_path);
 
-    SimpleDatabase database;
+    SimpleDatabase database(false);
 
     database.loadDatabase();
 
@@ -65,7 +65,7 @@ void test_id3_repository() {
     boost::filesystem::remove_all(mp3_path);
     boost::filesystem::create_directory(mp3_path);
 
-    SimpleDatabase database;
+    SimpleDatabase database(false);
 
     database.loadDatabase();
 

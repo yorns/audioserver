@@ -72,7 +72,9 @@ std::vector<std::pair<std::string, std::string> > SimpleDatabase::getAllPlaylist
 }
 
 bool SimpleDatabase::addNewAudioFileUniqueId(const std::string &uniqueID) {
-    return m_id3Repository.add(uniqueID);
+    if (m_id3Repository.add(uniqueID))
+        m_id3Repository.writeCache();
+    return true;
 }
 
 std::vector<Id3Info> SimpleDatabase::getIdListOfItemsInPlaylistId(const std::string &uniqueId) {

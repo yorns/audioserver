@@ -10,7 +10,8 @@ enum class FileType {
     PlaylistM3u,
     Covers,
     CoversRelative,
-    Html
+    Html,
+    Cache
 };
 
 }

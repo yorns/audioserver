@@ -94,3 +94,11 @@ install (FILES
       OWNER_READ OWNER_WRITE
       GROUP_READ
       WORLD_READ )
+
+install (FILES
+      ${CMAKE_SOURCE_DIR}/etc/audioserver.json
+      DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}
+      PERMISSIONS
+      OWNER_READ OWNER_WRITE
+      GROUP_READ
+      WORLD_READ )
