@@ -60,7 +60,8 @@ audioServer ${HOME}/audioConfig/audioserver.json
         "Port": "8080",
         "BasePath": "/usr/local/var/audioserver",
         "LogLevel": "debug",
-	"AudioInterface": "gst"
+	"AudioInterface": "gst",
+	"EnableCache": false
 }
 ```
 
@@ -77,6 +78,8 @@ Within this file, you can configure the following information:
 * **AudioInterface** what audio output interface should be taken 
   * "gst": gstreamer interface (actually better supported and default)
   * "mpv": mpv interface (uses the pipe interface to mpv what needs to run as a second process with pipe interface) 
+* **EnableCache** enables Cache creation and read on startup
+  This is important on slow filesystems (e.g. sd card on raspberry pi). Increases startup time. Id3 Information are not read from MP3 files, but from cache. 
 
 ### setup audio data
 
