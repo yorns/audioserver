@@ -37,19 +37,19 @@ bool Id3Repository::addCover(std::string uid, std::vector<char>&& data, std::siz
     return isUpdated;
 }
 
-bool Id3Repository::add(const std::string &uid) {
-    if (add(m_tagReader.readJsonAudioInfo(uid))) {
+bool Id3Repository::add(const Common::FileNameType& filename) {
+    if (add(m_tagReader.readJsonAudioInfo(filename))) {
         m_cache_dirty = true;
         return true;
     }
-    if (add(m_tagReader.readMp3AudioInfo(uid))) {
+    if (add(m_tagReader.readMp3AudioInfo(filename))) {
         m_cache_dirty = true;
         return true;
     }
     return false;
 }
 
-std::optional<nlohmann::json> Id3Repository::toJson(const std::vector<Id3Info> &id3Db) const {
+std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info> &id3Db) const {
 
     nlohmann::json data;
 
@@ -57,6 +57,7 @@ std::optional<nlohmann::json> Id3Repository::toJson(const std::vector<Id3Info> &
         for (const auto& id3Elem : id3Db) {
             nlohmann::json jsonElem;
             jsonElem["Uid"] = id3Elem.uid;
+            jsonElem["InfoSrc"] = id3Elem.informationSource;
             jsonElem["Title"] = id3Elem.title_name;
             jsonElem["Album"] = id3Elem.album_name;
             jsonElem["Performer"] = id3Elem.performer_name;
@@ -73,7 +74,7 @@ std::optional<nlohmann::json> Id3Repository::toJson(const std::vector<Id3Info> &
         return std::nullopt;
     }
 
-    return std::move(data);
+    return data;
 
 }
 
@@ -90,6 +91,7 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
             for (const auto& streamInfo : streamList) {
             Id3Info info;
             info.uid = streamInfo.at("Uid");
+            info.informationSource = streamInfo.at("InfoSrc");
             info.title_name = streamInfo.at("Title");
             info.album_name = streamInfo.at("Album");
             info.performer_name = streamInfo.at("Performer");
@@ -113,7 +115,7 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
 
 }
 
-std::optional<nlohmann::json> Id3Repository::toJson(const std::vector<CoverElement> &coverDb) const {
+std::optional<nlohmann::json> Id3Repository::coverToJson(const std::vector<CoverElement> &coverDb) const {
 
     nlohmann::json data;
 
@@ -122,9 +124,9 @@ std::optional<nlohmann::json> Id3Repository::toJson(const std::vector<CoverEleme
             nlohmann::json jsonElem;
             jsonElem["Hash"] = elem.hash;
             jsonElem["HasCover"] = !elem.rawData.empty();
-            if (!elem.rawData.empty()) {
-                jsonElem["Cover"] = utility::base64_encode(elem.rawData.data(), elem.rawData.size());
-            }
+            //if (!elem.rawData.empty()) {
+            //    jsonElem["Cover"] = utility::base64_encode(elem.rawData.data(), static_cast<uint32_t>(elem.rawData.size()));
+            //}
             auto& uidList = jsonElem["UidList"];
             for(const auto& uidElem : elem.uidListForCover)
                 uidList.push_back(uidElem);
@@ -136,7 +138,7 @@ std::optional<nlohmann::json> Id3Repository::toJson(const std::vector<CoverEleme
         return std::nullopt;
     }
 
-    return std::move(data);
+    return data;
 }
 
 const std::vector<CoverElement> Id3Repository::coverFromJson(const std::string &filename) const {
@@ -150,8 +152,8 @@ const std::vector<CoverElement> Id3Repository::coverFromJson(const std::string &
             for (const auto& elem : streamInfo) {
                 CoverElement coverElement;
                 coverElement.hash = elem["Hash"];
-                auto vec = utility::base64_decode(elem["Cover"]);
-                coverElement.rawData = std::move(vec);
+                //auto vec = utility::base64_decode(elem["Cover"]);
+                //coverElement.rawData = std::move(vec);
                 for (const auto& uidElem : elem["UidList"]) {
                     coverElement.uidListForCover.push_back(uidElem);
                 }
@@ -170,7 +172,7 @@ bool Id3Repository::writeJson(nlohmann::json &&data, const std::string &filename
     std::ofstream of(filename.c_str());
 
     if (of.good()) {
-        of << data;
+        of << data.dump(2);
         of.close();
         return true;
     }
@@ -213,6 +215,40 @@ bool Id3Repository::readCache() {
     m_simpleDatabase.insert(m_simpleDatabase.end(), std::begin(id3DatabaseList), std::end(id3DatabaseList));
     // read image cache
     auto coverDatabaseList = coverFromJson(coverCacheFile);
+    for (auto& elem : coverDatabaseList) {
+        fs::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache) + "/" + std::to_string(elem.hash) + ".cache";
+        if (fs::exists(filename)) {
+            logger(Level::debug) << "reading file: " << filename <<"\n";
+            std::ifstream ofs(filename.c_str(), std::ios::binary);
+            ofs.unsetf(std::ios::skipws);
+            if (ofs.good()) {
+
+                std::streampos fileSize;
+
+                ofs.seekg(0, std::ios::end);
+                fileSize = ofs.tellg();
+                ofs.seekg(0, std::ios::beg);
+
+                // reserve capacity
+                elem.rawData.reserve(static_cast<std::vector<uint8_t>::size_type>(fileSize));
+                elem.rawData.insert(elem.rawData.begin(),
+                                    std::istream_iterator<uint8_t>(ofs),
+                                    std::istream_iterator<uint8_t>());
+
+
+
+            }
+            else {
+                logger(Level::warning) << "cannot read file <"<<filename<<">\n";
+            }
+        }
+        else {
+            logger(Level::warning) << "file <"<<filename<<"> does not exist\n";
+        }
+
+
+    }
+
     // convert json to cover Database
     m_simpleCoverDatabase.insert(m_simpleCoverDatabase.end(), std::begin(coverDatabaseList), std::end(coverDatabaseList));
 
@@ -237,15 +273,39 @@ bool Id3Repository::writeCacheInternal() {
             + "/cover_cache.json";
 
     // create json file
-    auto jsonDatabase = toJson(m_simpleDatabase);
+    auto jsonDatabase = id3ToJson(m_simpleDatabase);
     // write simple database
     if (jsonDatabase)
         writeJson(std::move(*jsonDatabase), id3CacheFile);
     // write cover database
 
-    auto jsonCover = toJson(m_simpleCoverDatabase);
+    logger(Level::info) << "writing <" << m_simpleCoverDatabase.size() << "> cover data entries\n";
+    uint64_t entryCounter {0};
+    std::for_each(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase), [&entryCounter](const auto& elem) { entryCounter += elem.uidListForCover.size(); } );
+    logger(Level::info) << "medial number of items with same cover: " << entryCounter/m_simpleCoverDatabase.size() << "\n";
+    auto jsonCover = coverToJson(m_simpleCoverDatabase);
     if (jsonCover)
         writeJson(std::move(*jsonCover), coverCacheFile);
+
+    logger(Level::info) << "writing cover cache files\n";
+
+    for (const auto& elem : m_simpleCoverDatabase) {
+        fs::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache) +
+                "/" + std::to_string(elem.hash) + ".cache";
+        // write image if file does not exists
+        if (!fs::exists(filename)) {
+            logger(Level::debug) << "creating file: " << filename <<"\n";
+            std::ofstream ofs(filename.c_str(), std::ios::binary);
+            if (ofs.good()) {
+                for(const auto& val : elem.rawData)
+                    ofs << val;
+            }
+            else {
+                logger(Level::warning) << "cannot create file <"<<filename<<">\n";
+            }
+        }
+
+    }
 
     return true;
 }
@@ -407,21 +467,30 @@ bool Id3Repository::read() {
     auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::AudioMp3);
     auto jsonList = FileSystemAdditions::getAllFilesInDir(FileType::AudioJson);
 
+    logger(Level::info) << "reading uncached files\n";
     logger(Level::info) << "read mp3 file information\n";
     for (auto& file : filelist) {
-        if (!isCached(file.name)) {
-            logger(::Level::debug) << "list of id3 files - reading audio file <"<<file.name<<file.extension<<">\n";
-            if (add(m_tagReader.readMp3AudioInfo(file.name)))
+        std::string fullname = "file://" + FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioMp3) + "/" + file.name + file.extension;
+        if (!isCached(fullname)) {
+            logger(::Level::debug) << "list of id3 files - reading audio file <"<<fullname<<">\n";
+            if (add(m_tagReader.readMp3AudioInfo(file)))
                 m_cache_dirty = true;
+        }
+        else {
+            logger(Level::debug) << "file <"<<file.name << "> is cached\n";
         }
     }
 
     logger(Level::info) << "read json file information\n";
     for (auto& file : jsonList) {
-        if (!isCached(file.name)) {
-            logger(::Level::debug) << "list of json files - reading audio file <"<<file.name<<file.extension<<">\n";
-            if (add(m_tagReader.readJsonAudioInfo(file.name)))
+        std::string fullname = "file://" + FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioJson) + "/" + file.name + file.extension;
+        if (!isCached(fullname)) {
+            logger(::Level::debug) << "list of json files - reading audio file <" << fullname << ">\n";
+            if (add(m_tagReader.readJsonAudioInfo(file)))
                 m_cache_dirty = true;
+        }
+        else {
+            logger(Level::debug) << "file <"<<file.name << "> is cached\n";
         }
     }
 

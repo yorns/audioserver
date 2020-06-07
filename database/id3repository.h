@@ -51,9 +51,9 @@ class Id3Repository
     bool m_cache_dirty { false };
     bool m_enableCache { false };
 
-    std::optional<nlohmann::json> toJson(const std::vector<Id3Info>& id3Db) const;
+    std::optional<nlohmann::json> id3ToJson(const std::vector<Id3Info>& id3Db) const;
     const std::vector<Id3Info> id3fromJson(const std::string& file) const ;
-    std::optional<nlohmann::json> toJson(const std::vector<CoverElement>& coverDb) const;
+    std::optional<nlohmann::json> coverToJson(const std::vector<CoverElement>& coverDb) const;
     const std::vector<CoverElement> coverFromJson(const std::string& filename) const;
 
     bool writeJson(nlohmann::json&& data, const std::string& filename) const;
@@ -63,9 +63,9 @@ class Id3Repository
     bool readCache();
     bool writeCacheInternal();
 
-    bool isCached(const std::string& uid) {
+    bool isCached(const std::string& url) {
         return std::find_if(std::cbegin(m_simpleDatabase), std::cend(m_simpleDatabase),
-                            [&uid](const Id3Info& elem) { return elem.uid == uid; }) != std::cend(m_simpleDatabase);
+                            [&url](const Id3Info& elem) { return elem.informationSource == url; }) != std::cend(m_simpleDatabase);
     }
 
 public:
@@ -74,7 +74,7 @@ public:
 
     const CoverElement& getCover(const std::string& coverUid) const;
 
-    bool add(const std::string& uid);
+    bool add(const Common::FileNameType& file);
     bool addCover(std::string uid, std::vector<char>&& data, std::size_t hash);
     bool remove(const std::string& uniqueID);
 

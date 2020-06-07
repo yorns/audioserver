@@ -24,6 +24,8 @@ public:
     uint32_t genreId;
     bool albumCreation { true };
 
+    std::string informationSource;
+
     std::string fileExtension;
     std::string url;
 

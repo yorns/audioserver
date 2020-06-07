@@ -19,6 +19,7 @@ namespace ServerConstant {
     static constexpr auto cachePath {sv("cache")};
     static constexpr auto tmpPath {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
+    static constexpr auto mp3Extension{sv(".mp3")};
 
     static constexpr int seekForwardSeconds {20};
     static constexpr int seekBackwardSeconds {-20};

@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 #include <optional>
+#include <snc/client.h>
 
 #include <boost/lexical_cast.hpp>
 #include "nlohmann/json.hpp"
@@ -93,7 +94,7 @@ std::optional<Config> readConfig(std::string configFile) {
         return std::nullopt;
     }
 
-    return std::move(config);
+    return config;
 }
 
 int helpOutput(const char* command) {
@@ -138,6 +139,9 @@ int main(int argc, char* argv[])
 
     boost::asio::io_context ioc;
 
+    logger(Level::info) << "connection client <audioserver> to broker\n";
+    snc::Client client("audioserver", ioc, "127.0.0.1", 12001);
+
     logger(Level::info) << "create player instance for";
 
     auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
@@ -167,6 +171,22 @@ int main(int argc, char* argv[])
         sessionHandler.broadcast(songBroadcast.dump());
 
     };
+
+    auto externalSelect = [&database, &player](const std::string& raw_msg) {
+        try {
+        nlohmann::json msg = nlohmann::json::parse(raw_msg);
+      database.setCurrentPlaylistUniqueId(msg.at("Album"));
+      auto albumPlaylistAndNames = database.getAlbumPlaylistAndNames();
+      player->startPlay(albumPlaylistAndNames,msg.at("Title"));
+        } catch (std::exception& exp) {
+            logger(Level::warning) << "Cannot parse message (Error is > " << exp.what() << "):\n " << raw_msg << "\n";
+        }
+    };
+
+    client.recvHandler([externalSelect](const std::string& other, const std::string& raw_msg) {
+        logger(Level::info) << "received Message from <" << other << ">\n";
+        externalSelect(raw_msg);
+    });
 
     //player->onUiChange(updateUI);
 
@@ -222,7 +242,10 @@ int main(int argc, char* argv[])
 
     auto uploadFinishHandler = [&database](const Common::NameGenerator::GenerationName& name)-> bool
     {
-        return database.addNewAudioFileUniqueId(name.unique_id);
+        Common::FileNameType file;
+        file.name = name.unique_id;
+        file.extension = std::string(ServerConstant::mp3Extension);
+        return database.addNewAudioFileUniqueId(file);
     };
 
     sessionHandler.addUploadHandler(ServerConstant::AccessPoints::upload,

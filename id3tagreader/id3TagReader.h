@@ -15,8 +15,10 @@
 #include <id3v1tag.h>
 #include <attachedpictureframe.h>
 
-#include "common/Constants.h"
 #include "common/logger.h"
+#include "common/Constants.h"
+#include "common/NameGenerator.h"
+#include "common/filesystemadditions.h"
 
 struct FullId3Information {
     Id3Info info;
@@ -30,8 +32,8 @@ class id3TagReader {
     std::string unknownCover();
 
 public:
-    std::optional<FullId3Information> readJsonAudioInfo(const std::string& uid);
-    std::optional<FullId3Information> readMp3AudioInfo(const std::string &uid);
+    std::optional<FullId3Information> readJsonAudioInfo(const Common::FileNameType& uid);
+    std::optional<FullId3Information> readMp3AudioInfo(const Common::FileNameType& uid);
 
 };
 

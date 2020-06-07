@@ -117,6 +117,7 @@ target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${TagLib_LIBRARIES}
         ${GST_LIBRARIES}
+        snc_client
 )
 
 target_include_directories(
@@ -133,184 +134,186 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW ${UNREADABLE})
 
-add_executable( mp3CoverExtractor ${CMAKE_SOURCE_DIR}/extractId3Cover/saveID3TagPicture.cpp ${COMMONCOMPONENTS})
-set_target_properties(mp3CoverExtractor PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if (WITH_ADD)
 
-target_include_directories(
-        mp3CoverExtractor
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-        ${TagLib_INCLUDE_DIRS}
-)
+    add_executable( mp3CoverExtractor ${CMAKE_SOURCE_DIR}/extractId3Cover/saveID3TagPicture.cpp ${COMMONCOMPONENTS})
+    set_target_properties(mp3CoverExtractor PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 
-target_link_libraries(
-        mp3CoverExtractor
-        Threads::Threads
-        ${Boost_LIBRARIES}
-        ${TagLib_LIBRARIES}
-)
-
-add_executable( uniqueNameGenerator ${CMAKE_SOURCE_DIR}/test/uniqueNameGenerator.cpp ${COMMONCOMPONENTS})
-set_target_properties(uniqueNameGenerator PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-
-target_include_directories(
-        uniqueNameGenerator
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-        ${TagLib_INCLUDE_DIRS}
-)
-
-target_link_libraries(
-        uniqueNameGenerator
-        Threads::Threads
-        ${Boost_LIBRARIES}
-        ${TagLib_LIBRARIES}
-)
-
-
-add_executable( databaseTest ${DATABASE} ${ID3INTERFACE} ${COMMONCOMPONENTS} test/databaseTest.cpp)
-set_target_properties( databaseTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_include_directories(
-        databaseTest
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-        ${TagLib_INCLUDE_DIRS}
-)
-target_link_libraries(
-        databaseTest
-        Threads::Threads
-        ${Boost_LIBRARIES}
-        ${TagLib_LIBRARIES}
-)
-
-#
-# playerCmdl
-#
-add_executable( playerCmdl ${PLAYERINTERFACE}
-    ${CMAKE_SOURCE_DIR}/common/Constants.cpp
-    ${CMAKE_SOURCE_DIR}/common/Constants.h
-    ${CMAKE_SOURCE_DIR}/common/logger.cpp
-    ${CMAKE_SOURCE_DIR}/common/logger.h
-    ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
-    ${CMAKE_SOURCE_DIR}/common/repeattimer.h
-    ${CMAKE_SOURCE_DIR}/common/filesystemadditions.cpp
-    ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
-    ${CMAKE_SOURCE_DIR}/common/stringmanipulator.cpp
-    ${CMAKE_SOURCE_DIR}/common/stringmanipulator.h
-    ${CMAKE_SOURCE_DIR}/common/base64.cpp
-    ${CMAKE_SOURCE_DIR}/common/base64.h
-    ${CMAKE_SOURCE_DIR}/database/playlist.cpp
-    ${CMAKE_SOURCE_DIR}/database/playlist.h
-    ${CMAKE_SOURCE_DIR}/test/KeyHit.cpp
-    ${CMAKE_SOURCE_DIR}/test/KeyHit.h
-    ${CMAKE_SOURCE_DIR}/test/PlayerCmdl.cpp
+    target_include_directories(
+            mp3CoverExtractor
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+            ${TagLib_INCLUDE_DIRS}
     )
 
-set_target_properties( playerCmdl PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options( playerCmdl PUBLIC -O2)
-target_include_directories(
-        playerCmdl
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-        ${GST_INCLUDE_DIRS}
-)
-target_link_libraries(
-        playerCmdl
-        Threads::Threads
-        ${Boost_LIBRARIES}
-        ${GST_LIBRARIES}
-)
-
-#
-# loggerTest
-#
-add_executable( loggerTest
-    ${CMAKE_SOURCE_DIR}/common/logger.cpp
-    ${CMAKE_SOURCE_DIR}/common/logger.h
-    ${CMAKE_SOURCE_DIR}/test/loggerTest.cpp
+    target_link_libraries(
+            mp3CoverExtractor
+            Threads::Threads
+            ${Boost_LIBRARIES}
+            ${TagLib_LIBRARIES}
     )
 
-set_target_properties( loggerTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options( loggerTest PUBLIC -O0 -g)
-target_include_directories(
-        loggerTest
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-)
+    add_executable( uniqueNameGenerator ${CMAKE_SOURCE_DIR}/test/uniqueNameGenerator.cpp ${COMMONCOMPONENTS})
+    set_target_properties(uniqueNameGenerator PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 
-#
-# repeatTimerTeset
-#
-add_executable( repeatTimerTest
-    ${CMAKE_SOURCE_DIR}/common/logger.cpp
-    ${CMAKE_SOURCE_DIR}/common/logger.h
-    ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
-    ${CMAKE_SOURCE_DIR}/common/repeattimer.h
-    ${CMAKE_SOURCE_DIR}/test/repeatTimerTest.cpp
+    target_include_directories(
+            uniqueNameGenerator
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+            ${TagLib_INCLUDE_DIRS}
     )
-set_target_properties( repeatTimerTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options( repeatTimerTest PUBLIC -O0 -g)
-target_include_directories(
-        repeatTimerTest
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-)
-target_link_libraries(
-        repeatTimerTest
-        ${Boost_LIBRARIES}
-        Threads::Threads
-)
 
-#
-# mpvTest
-#
-add_executable( mpvTest
-    ${COMMONCOMPONENTS}
-    ${CMAKE_SOURCE_DIR}/test/mpvTest.cpp
+    target_link_libraries(
+            uniqueNameGenerator
+            Threads::Threads
+            ${Boost_LIBRARIES}
+            ${TagLib_LIBRARIES}
     )
-set_target_properties( mpvTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options( mpvTest PUBLIC -O0 -g)
-target_include_directories(
-        mpvTest
-        PUBLIC
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-)
-target_link_libraries(
-        mpvTest
-        ${Boost_LIBRARIES}
-        Threads::Threads
-)
 
-#
-# gstreamer Test
-#
-add_executable( gstTest
-    ${COMMONCOMPONENTS}
-    ${CMAKE_SOURCE_DIR}/test/gstTest.cpp
+
+    add_executable( databaseTest ${DATABASE} ${ID3INTERFACE} ${COMMONCOMPONENTS} test/databaseTest.cpp)
+    set_target_properties( databaseTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_include_directories(
+            databaseTest
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+            ${TagLib_INCLUDE_DIRS}
     )
-set_target_properties( gstTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_compile_options( gstTest PUBLIC -O0 -g)
-target_include_directories(
-        gstTest
-        PUBLIC
-        ${GST_INCLUDE_DIRS}
-        ${CMAKE_SOURCE_DIR}
-        ${Boost_INCLUDE_DIRS}
-)
-target_link_libraries(
-        gstTest
-        ${GST_LIBRARIES}
-        ${Boost_LIBRARIES}
-        Threads::Threads
-)
+    target_link_libraries(
+            databaseTest
+            Threads::Threads
+            ${Boost_LIBRARIES}
+            ${TagLib_LIBRARIES}
+    )
 
+    #
+    # playerCmdl
+    #
+    add_executable( playerCmdl ${PLAYERINTERFACE}
+        ${CMAKE_SOURCE_DIR}/common/Constants.cpp
+        ${CMAKE_SOURCE_DIR}/common/Constants.h
+        ${CMAKE_SOURCE_DIR}/common/logger.cpp
+        ${CMAKE_SOURCE_DIR}/common/logger.h
+        ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
+        ${CMAKE_SOURCE_DIR}/common/repeattimer.h
+        ${CMAKE_SOURCE_DIR}/common/filesystemadditions.cpp
+        ${CMAKE_SOURCE_DIR}/common/filesystemadditions.h
+        ${CMAKE_SOURCE_DIR}/common/stringmanipulator.cpp
+        ${CMAKE_SOURCE_DIR}/common/stringmanipulator.h
+        ${CMAKE_SOURCE_DIR}/common/base64.cpp
+        ${CMAKE_SOURCE_DIR}/common/base64.h
+        ${CMAKE_SOURCE_DIR}/database/playlist.cpp
+        ${CMAKE_SOURCE_DIR}/database/playlist.h
+        ${CMAKE_SOURCE_DIR}/test/KeyHit.cpp
+        ${CMAKE_SOURCE_DIR}/test/KeyHit.h
+        ${CMAKE_SOURCE_DIR}/test/PlayerCmdl.cpp
+        )
+
+    set_target_properties( playerCmdl PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_compile_options( playerCmdl PUBLIC -O2)
+    target_include_directories(
+            playerCmdl
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+            ${GST_INCLUDE_DIRS}
+    )
+    target_link_libraries(
+            playerCmdl
+            Threads::Threads
+            ${Boost_LIBRARIES}
+            ${GST_LIBRARIES}
+    )
+
+    #
+    # loggerTest
+    #
+    add_executable( loggerTest
+        ${CMAKE_SOURCE_DIR}/common/logger.cpp
+        ${CMAKE_SOURCE_DIR}/common/logger.h
+        ${CMAKE_SOURCE_DIR}/test/loggerTest.cpp
+        )
+
+    set_target_properties( loggerTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_compile_options( loggerTest PUBLIC -O0 -g)
+    target_include_directories(
+            loggerTest
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+    )
+
+    #
+    # repeatTimerTeset
+    #
+    add_executable( repeatTimerTest
+        ${CMAKE_SOURCE_DIR}/common/logger.cpp
+        ${CMAKE_SOURCE_DIR}/common/logger.h
+        ${CMAKE_SOURCE_DIR}/common/repeattimer.cpp
+        ${CMAKE_SOURCE_DIR}/common/repeattimer.h
+        ${CMAKE_SOURCE_DIR}/test/repeatTimerTest.cpp
+        )
+    set_target_properties( repeatTimerTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_compile_options( repeatTimerTest PUBLIC -O0 -g)
+    target_include_directories(
+            repeatTimerTest
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+    )
+    target_link_libraries(
+            repeatTimerTest
+            ${Boost_LIBRARIES}
+            Threads::Threads
+    )
+
+    #
+    # mpvTest
+    #
+    add_executable( mpvTest
+        ${COMMONCOMPONENTS}
+        ${CMAKE_SOURCE_DIR}/test/mpvTest.cpp
+        )
+    set_target_properties( mpvTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_compile_options( mpvTest PUBLIC -O0 -g)
+    target_include_directories(
+            mpvTest
+            PUBLIC
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+    )
+    target_link_libraries(
+            mpvTest
+            ${Boost_LIBRARIES}
+            Threads::Threads
+    )
+
+    #
+    # gstreamer Test
+    #
+    add_executable( gstTest
+        ${COMMONCOMPONENTS}
+        ${CMAKE_SOURCE_DIR}/test/gstTest.cpp
+        )
+    set_target_properties( gstTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_compile_options( gstTest PUBLIC -O0 -g)
+    target_include_directories(
+            gstTest
+            PUBLIC
+            ${GST_INCLUDE_DIRS}
+            ${CMAKE_SOURCE_DIR}
+            ${Boost_INCLUDE_DIRS}
+    )
+    target_link_libraries(
+            gstTest
+            ${GST_LIBRARIES}
+            ${Boost_LIBRARIES}
+            Threads::Threads
+    )
+endif(WITH_ADD)
 
 install(
     TARGETS ${PROJECT_NAME}

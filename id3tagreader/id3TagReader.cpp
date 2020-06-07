@@ -1,5 +1,4 @@
 #include "id3TagReader.h"
-#include "common/filesystemadditions.h"
 #include "nlohmann/json.hpp"
 #include "common/hash.h"
 #include "common/base64.h"
@@ -22,10 +21,11 @@ std::string makeUnreadable(const std::string& block) {
     return output;
 }
 
-std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::string& uid) {
+std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::FileNameType& file) {
 
     std::string streamFileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioJson)
-            + "/" + uid + ".json";
+            + "/" + file.name + file.extension;
+    std::string uid = Common::NameGenerator::create("","").unique_id;
 
     if (fs::exists(streamFileName)) {
         FullId3Information fullInfo;
@@ -34,7 +34,8 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::str
             nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
 
             Id3Info info;
-            info.uid = uid;
+            info.uid = file.name;
+            info.informationSource = "file://" + streamFileName;
             info.title_name = streamInfo.at("Title");
             info.album_name = streamInfo.at("Album");
             info.performer_name = streamInfo.at("Performer");
@@ -43,15 +44,23 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::str
             info.url = streamInfo.at("Url");
             info.fileExtension = streamInfo.at("Extension");
             info.albumCreation = streamInfo.at("AlbumCreation");
-            auto cover = utility::base64_decode(streamInfo.at("Image"));
+
+            if (streamInfo.find("Image") != streamInfo.end()) {
+                auto cover = utility::base64_decode(streamInfo.at("Image"));
+                fullInfo.pictureAvailable = true;
+                fullInfo.hash = Common::genHash(cover);
+                fullInfo.data = std::move(cover);
+            }
+            else {
+                fullInfo.pictureAvailable = false;
+                fullInfo.hash = 0;
+            }
 
             info.finishEntry();
-            logger(LoggerFramework::Level::debug) << "reading <" << info.uid << "> <"<<info.title_name<<">\n";
+
+            logger(LoggerFramework::Level::debug) << "reading <" << info.uid << "> <" << info.title_name << ">\n";
 
             fullInfo.info = std::move(info);
-            fullInfo.pictureAvailable = true;
-            fullInfo.hash = Common::genHash(cover);
-            fullInfo.data = std::move(cover);
 
         } catch (std::exception& ex) {
             logger(Level::warning) << "failed to read file: " << streamFileName << ": " << ex.what() << "\n";
@@ -64,15 +73,17 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const std::str
     return std::nullopt;
 }
 
-std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const std::string &uid) {
+std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::FileNameType &fileName) {
 
     static const auto idPicture = "APIC";
 
-    std::string mp3File = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioMp3) + '/' + uid + ".mp3";
+    std::string mp3File = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioMp3) + '/' + fileName.name + fileName.extension;
 
     if (fs::exists(mp3File)) {
 
         TagLib::MPEG::File mpegFile(mp3File.c_str());
+        std::string uid = Common::NameGenerator::create("","").unique_id;
+        std::string fileUrl = "file://" + mp3File;
 
         if (mpegFile.hasID3v2Tag()) {
 
@@ -88,7 +99,8 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const std::stri
             info.track_no = id3v2tag->track();
             info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
             // TRCK (Track number/Position in set): 14/14
-            info.url = "file://" + mp3File;
+            info.url = fileUrl;
+            info.informationSource = fileUrl;
             info.finishEntry();     // help search by adding strings on lowercase
 
             FullId3Information fullId3Info;
@@ -145,11 +157,13 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const std::stri
             info.track_no = id3v1tag->track();
             info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
             // TRCK (Track number/Position in set): 14/14
-            info.url = "file://" + mp3File;
+            info.url = fileUrl;
+            info.informationSource = fileUrl;
             info.finishEntry();     // help search by adding strings on lowercase
 
             FullId3Information fullId3Info;
             fullId3Info.info = std::move(info);
+
             if (!fullId3Info.pictureAvailable)
                 logger(Level::debug) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
 

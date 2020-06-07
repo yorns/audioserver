@@ -41,7 +41,7 @@ public:
 
     bool addToPlaylistName(const std::string &playlistName, std::string &&uniqueID);
     bool addToPlaylistUID(const std::string &playlistUniqueID, std::string&& uniqueID);
-    bool addNewAudioFileUniqueId(const std::string& uniqueID);
+    bool addNewAudioFileUniqueId(const Common::FileNameType &uniqueID);
 
     std::optional<const std::vector<std::string>> getPlaylistByName(const std::string& playlistName) const;
     std::optional<const std::vector<std::string>> getPlaylistByUID(const std::string& playlistUniqueId) const;
