@@ -2,6 +2,7 @@
 #include "nlohmann/json.hpp"
 #include "common/hash.h"
 #include "common/base64.h"
+#include <mp4file.h>
 
 namespace fs = boost::filesystem;
 using namespace LoggerFramework;
@@ -23,8 +24,7 @@ std::string makeUnreadable(const std::string& block) {
 
 std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::FileNameType& file) {
 
-    std::string streamFileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioJson)
-            + "/" + file.name + file.extension;
+    std::string streamFileName = FileSystemAdditions::getFullName(file);
     std::string uid = Common::NameGenerator::create("","").unique_id;
 
     if (fs::exists(streamFileName)) {
@@ -77,9 +77,9 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
     static const auto idPicture = "APIC";
 
-    std::string mp3File = FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioMp3) + '/' + fileName.name + fileName.extension;
+    std::string mp3File = FileSystemAdditions::getFullName(fileName);
 
-    if (fs::exists(mp3File)) {
+    if (fs::exists(mp3File) && fileName.extension == ".mp3") {
 
         TagLib::MPEG::File mpegFile(mp3File.c_str());
         std::string uid = Common::NameGenerator::create("","").unique_id;
@@ -169,6 +169,78 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
             return fullId3Info;
         }
+    }
+    if (fs::exists(mp3File) && fileName.extension == ".m4a") {
+        TagLib::MP4::File mpegFile(mp3File.c_str());
+
+        if (mpegFile.hasMP4Tag()) {
+            std::string uid = Common::NameGenerator::create("","").unique_id;
+            std::string fileUrl = "file://" + mp3File;
+
+            auto idData = mpegFile.tag();
+
+            idData->title();
+            Id3Info info;
+            info.uid = uid;
+            info.title_name = idData->title().to8Bit(true);
+            info.performer_name = idData->artist().to8Bit(true);
+            info.album_name = idData->album().to8Bit(true);
+            info.track_no = idData->track();
+            info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+            // TRCK (Track number/Position in set): 14/14
+            info.url = fileUrl;
+            info.informationSource = fileUrl;
+            info.finishEntry();     // help search by adding strings on lowercase
+
+            FullId3Information fullId3Info;
+            fullId3Info.info = std::move(info);
+
+            TagLib::MP4::ItemListMap itemsListMap = idData->itemListMap();
+            TagLib::MP4::Item coverItem = itemsListMap["covr"];
+            TagLib::MP4::CoverArtList coverArtList = coverItem.toCoverArtList();
+
+            if (!coverArtList.isEmpty() && coverArtList.front().data().size() > 0) {
+                auto coverArt = coverArtList.front();
+
+                switch (coverArt.format()) {
+                case TagLib::MP4::CoverArt::PNG:
+                    fullId3Info.info.fileExtension = ".png";
+                    fullId3Info.pictureAvailable = true;
+                    break;
+                case TagLib::MP4::CoverArt::JPEG:
+                    fullId3Info.info.fileExtension = ".jpeg";
+                    fullId3Info.pictureAvailable = true;
+                    break;
+                default:
+                    fullId3Info.pictureAvailable = false;
+                    break;
+                }
+
+                if (fullId3Info.pictureAvailable == true) {
+                    // generate entry for cover Table
+                    std::vector<char> coverData;
+                    coverData.resize(coverArt.data().size());
+
+                    std::copy_n(coverArt.data().data(), coverArt.data().size(), coverData.begin());
+
+                    auto hash = Common::genHash(coverData);
+
+                    fullId3Info.data = std::move(coverData);
+                    fullId3Info.hash = hash;
+                    fullId3Info.pictureAvailable = true;
+
+                    logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
+                }
+
+            }
+
+            if (!fullId3Info.pictureAvailable)
+                logger(Level::info) << "image NOT found for <" << fullId3Info.info.toString() << ">\n";
+
+            return fullId3Info;
+        }
+
+
 
     }
 

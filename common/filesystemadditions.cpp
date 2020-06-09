@@ -22,20 +22,14 @@ std::vector<FileNameType> getAllFilesInDir(FileType fileType) {
 
         if (filesys::exists(dirPath) && filesys::is_directory(dirPath)) {
 
-            filesys::directory_iterator iter(dirPath);
-            filesys::directory_iterator end;
-
-            while (iter != end) {
-                if (!filesys::is_directory(iter->path())) {
-                    listOfFiles.push_back({iter->path().stem().string(), iter->path().extension().string()});
-                }
-
-                boost::system::error_code ec;
-                iter.increment(ec);
-                if (ec) {
-                    logger(Level::warning) << "Error While incrementing in directory\n";
-                }
+            for(auto& p: filesys::recursive_directory_iterator(dirPath)) {
+                if (filesys::is_regular_file(p.path()))
+                    listOfFiles.push_back(
+                    {p.path().parent_path().string(),
+                     p.path().stem().string(),
+                     p.path().extension().string()});
             }
+
         }
     }
     catch (std::system_error &e) {
@@ -93,6 +87,15 @@ std::string getFullQualifiedDirectory(FileType fileType) {
     }
 
     return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::tmpPath);
+}
+
+std::string getFullName(FileNameType file) {
+
+    std::string fileDirSeparator;
+    if (!file.dir.empty() && file.dir.back() != '/')
+        fileDirSeparator = "/";
+
+    return  file.dir + fileDirSeparator + file.name + file.extension;
 }
 
 }

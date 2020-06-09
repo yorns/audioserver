@@ -243,6 +243,7 @@ int main(int argc, char* argv[])
     auto uploadFinishHandler = [&database](const Common::NameGenerator::GenerationName& name)-> bool
     {
         Common::FileNameType file;
+        file.dir = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::AudioMp3);
         file.name = name.unique_id;
         file.extension = std::string(ServerConstant::mp3Extension);
         return database.addNewAudioFileUniqueId(file);

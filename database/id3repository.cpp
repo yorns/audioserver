@@ -470,9 +470,9 @@ bool Id3Repository::read() {
     logger(Level::info) << "reading uncached files\n";
     logger(Level::info) << "read mp3 file information\n";
     for (auto& file : filelist) {
-        std::string fullname = "file://" + FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioMp3) + "/" + file.name + file.extension;
+        std::string fullname = "file://" + FileSystemAdditions::getFullName(file);
         if (!isCached(fullname)) {
-            logger(::Level::debug) << "list of id3 files - reading audio file <"<<fullname<<">\n";
+            logger(::Level::debug) << "id3 file <"<<fullname<<"> not cached - reading\n";
             if (add(m_tagReader.readMp3AudioInfo(file)))
                 m_cache_dirty = true;
         }
@@ -483,7 +483,7 @@ bool Id3Repository::read() {
 
     logger(Level::info) << "read json file information\n";
     for (auto& file : jsonList) {
-        std::string fullname = "file://" + FileSystemAdditions::getFullQualifiedDirectory(FileType::AudioJson) + "/" + file.name + file.extension;
+        std::string fullname = "file://" + FileSystemAdditions::getFullName(file);
         if (!isCached(fullname)) {
             logger(::Level::debug) << "list of json files - reading audio file <" << fullname << ">\n";
             if (add(m_tagReader.readJsonAudioInfo(file)))
