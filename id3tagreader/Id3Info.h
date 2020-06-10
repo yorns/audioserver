@@ -21,6 +21,7 @@ public:
     std::string performer_name;
     uint32_t track_no {0};
     uint32_t all_tracks_no {0};
+    uint32_t cd_no {0};
     uint32_t genreId;
     bool albumCreation { true };
 
@@ -36,7 +37,9 @@ public:
     }
 
     bool operator<(const Id3Info& info) const {
-        return uid < info.uid;
+        if (cd_no == info.cd_no)
+            return uid < info.uid;
+        return cd_no < info.cd_no;
     }
 
     Id3Info() = default;

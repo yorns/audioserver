@@ -3,6 +3,7 @@
 #include "common/hash.h"
 #include "common/base64.h"
 #include <mp4file.h>
+#include <cctype>
 
 namespace fs = boost::filesystem;
 using namespace LoggerFramework;
@@ -76,6 +77,7 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
 std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::FileNameType &fileName) {
 
     static const auto idPicture = "APIC";
+    static const auto idDiskNo = "TPOS";
 
     std::string mp3File = FileSystemAdditions::getFullName(fileName);
 
@@ -99,6 +101,11 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             info.track_no = id3v2tag->track();
             info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
             // TRCK (Track number/Position in set): 14/14
+            auto diskNoItem = id3v2tag->frameListMap().find(idDiskNo);
+            if (diskNoItem != id3v2tag->frameListMap().end() && !diskNoItem->second.isEmpty()) {
+                auto frameTagDiskNo = diskNoItem->second.front();
+                std::stringstream(frameTagDiskNo->toString().to8Bit(true)) >> info.cd_no;
+            }
             info.url = fileUrl;
             info.informationSource = fileUrl;
             info.finishEntry();     // help search by adding strings on lowercase
@@ -106,34 +113,32 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             FullId3Information fullId3Info;
             fullId3Info.info = std::move(info);
 
-            if (!id3v2tag->frameListMap()[idPicture].isEmpty()) {
+            auto Frame = id3v2tag->frameListMap().find(idPicture);
+            if (Frame != id3v2tag->frameListMap().end() && !Frame->second.isEmpty()) {
 
-                auto Frame = id3v2tag->frameListMap()[idPicture];
-                auto frameTagPicture = Frame.front();
+                const auto& frameTagPicture = Frame->second.front();
 
-                if (frameTagPicture && frameTagPicture->size() > 0) {
-                    auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frameTagPicture);
-                    if (picFrame) {
-                        std::string filetype(".jpg");
-                        if (!picFrame->mimeType().isEmpty()) {
-                            std::string tmp{picFrame->mimeType().to8Bit()};
-                            fullId3Info.info.fileExtension = "." + tmp.substr(tmp.find_last_of('/')+1);
-                        }
-
-                        // generate entry for cover Table
-                        std::vector<char> coverData;
-                        coverData.resize(picFrame->picture().size());
-
-                        std::copy_n(picFrame->picture().data(), picFrame->picture().size(), coverData.begin());
-
-                        auto hash = Common::genHash(coverData);
-
-                        fullId3Info.data = std::move(coverData);
-                        fullId3Info.hash = hash;
-                        fullId3Info.pictureAvailable = true;
-
-                        logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
+                auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(frameTagPicture);
+                if (picFrame) {
+                    std::string filetype(".jpg");
+                    if (!picFrame->mimeType().isEmpty()) {
+                        std::string tmp{picFrame->mimeType().to8Bit()};
+                        fullId3Info.info.fileExtension = "." + tmp.substr(tmp.find_last_of('/')+1);
                     }
+
+                    // generate entry for cover Table
+                    std::vector<char> coverData;
+                    coverData.resize(picFrame->picture().size());
+
+                    std::copy_n(picFrame->picture().data(), picFrame->picture().size(), coverData.begin());
+
+                    auto hash = Common::genHash(coverData);
+
+                    fullId3Info.data = std::move(coverData);
+                    fullId3Info.hash = hash;
+                    fullId3Info.pictureAvailable = true;
+
+                    logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
                 }
             }
 
@@ -157,6 +162,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             info.track_no = id3v1tag->track();
             info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
             // TRCK (Track number/Position in set): 14/14
+            // TODO read CD number information
             info.url = fileUrl;
             info.informationSource = fileUrl;
             info.finishEntry();     // help search by adding strings on lowercase
@@ -188,7 +194,10 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             info.track_no = idData->track();
             info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
             // TRCK (Track number/Position in set): 14/14
-            info.url = fileUrl;
+            auto disk = idData->itemListMap().find("disk");
+            if (disk != idData->itemListMap().end()) {
+                info.cd_no = static_cast<uint32_t>(disk->second.toInt());
+            }
             info.informationSource = fileUrl;
             info.finishEntry();     // help search by adding strings on lowercase
 
@@ -244,7 +253,8 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
     }
 
-    logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 available\n";
+    if (fileName.extension == ".mp3" || fileName.extension == ".m4a")
+       logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 available\n";
 
     return std::nullopt;
 }

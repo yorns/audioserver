@@ -65,6 +65,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
             jsonElem["Extension"] = id3Elem.fileExtension;
             jsonElem["AlbumCreation"] = id3Elem.albumCreation;
+            jsonElem["Disk"] = id3Elem.cd_no;
             jsonElem["Url"] = id3Elem.url;
             data.push_back(jsonElem);
         }
@@ -99,6 +100,7 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
             info.all_tracks_no = streamInfo.at("AllTrackNo");
             info.fileExtension = streamInfo.at("Extension");
             info.albumCreation = streamInfo.at("AlbumCreation");
+            info.cd_no = streamInfo.at("Disk");
             info.url = streamInfo.at("Url");
 
             info.finishEntry();
@@ -408,33 +410,35 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
 
         if (it->albumCreation) {
 
-        auto albumIt = std::find_if(std::begin(albumList), std::end(albumList), [&it](const AlbumListEntry& albumListEntry)
-        { return albumListEntry.m_name == it->album_name; });
+            auto albumIt = std::find_if(std::begin(albumList), std::end(albumList), [&it](const AlbumListEntry& albumListEntry)
+            { return albumListEntry.m_name == it->album_name; });
 
-        if (albumIt == std::cend(albumList)) {
-            AlbumListEntry entry;
-            entry.m_name = it->album_name;
-            entry.m_performer = it->performer_name;
-            if (!it->fileExtension.empty()) {
-                entry.m_coverExtension = it->fileExtension;
-                entry.m_coverId = it->uid;
-            } else {
-                entry.m_coverExtension = ServerConstant::unknownCoverExtension;
-                entry.m_coverId = ServerConstant::unknownCoverFile;
+            if (albumIt == std::cend(albumList)) {
+                AlbumListEntry entry;
+                entry.m_name = it->album_name;
+                entry.m_performer = it->performer_name;
+                if (!it->fileExtension.empty() ) {
+                    entry.m_coverExtension = it->fileExtension;
+                    entry.m_coverId = it->uid;
+                } else {
+                    entry.m_coverExtension = ServerConstant::unknownCoverExtension;
+                    entry.m_coverId = ServerConstant::unknownCoverFile;
+                }
+                entry.m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
+                albumList.emplace_back(entry);
             }
-            entry.m_playlist.push_back(std::make_tuple(it->uid, it->track_no));
-            albumList.emplace_back(entry);
-        }
-        else {
-            if (it->performer_name != albumIt->m_performer)
-                albumIt->m_performer = "multiple performer";
-            if (albumIt->m_coverId == ServerConstant::unknownCoverFile && !it->fileExtension.empty()) {
-                albumIt->m_coverExtension = it->fileExtension;
-                albumIt->m_coverId = it->uid;
-            }
+            else {
+                if (it->performer_name != albumIt->m_performer) {
+                    logger(Level::debug) << "found multiple performers <"<<it->performer_name<<"> - <" <<albumIt->m_performer <<">\n";
+                    albumIt->m_performer = "multiple performer";
+                }
+                if (albumIt->m_coverId == ServerConstant::unknownCoverFile && !it->fileExtension.empty()) {
+                    albumIt->m_coverExtension = it->fileExtension;
+                    albumIt->m_coverId = it->uid;
+                }
 
-            albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->track_no));
-        }
+                albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
+            }
         }
     }
     logger(Level::info) << "extracted <"<<albumList.size()<<"> album playlists\n";
