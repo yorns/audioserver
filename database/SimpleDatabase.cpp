@@ -8,7 +8,7 @@ void SimpleDatabase::loadDatabase() {
 
     m_id3Repository.read();
     m_playlistContainer.readPlaylistsM3U();
-    m_playlistContainer.readPlaylistsJson([this](std::string uid, std::vector<char>&& data, std::size_t hash){ m_id3Repository.addCover(uid, std::move(data), hash); });
+    m_playlistContainer.readPlaylistsJson([this](boost::uuids::uuid uid, std::vector<char>&& data, std::size_t hash){ m_id3Repository.addCover(std::move(uid), std::move(data), hash); });
     m_playlistContainer.insertAlbumPlaylists(m_id3Repository.extractAlbumList());
 
 }
@@ -18,55 +18,68 @@ std::vector<Id3Info> SimpleDatabase::searchAudioItems(const std::string &what, S
         return m_id3Repository.search(what, item, action);
 }
 
-std::optional<std::string> SimpleDatabase::createPlaylist(const std::string &name, Persistent persistent) {
+std::optional<boost::uuids::uuid> SimpleDatabase::createPlaylist(const std::string &name, Persistent ) {
 
     if (!m_playlistContainer.isUniqueName(name))
         return std::nullopt;
+     return std::nullopt;
+// TODO
+//    const auto newPlaylistUniqueID =
+//            Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u),".m3u");
+//    Playlist newPlaylist(newPlaylistUniqueID.unique_id, ReadType::isM3u, persistent);
+//    newPlaylist.setName(name);
 
-    const auto newPlaylistUniqueID =
-            Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u),".m3u");
-    Playlist newPlaylist(newPlaylistUniqueID.unique_id, ReadType::isM3u, persistent);
-    newPlaylist.setName(name);
+//    m_playlistContainer.addPlaylist(std::move(newPlaylist));
 
-    m_playlistContainer.addPlaylist(std::move(newPlaylist));
-
-    return newPlaylistUniqueID.unique_id;
+//    return newPlaylistUniqueID.unique_id;
 }
 
 bool SimpleDatabase::addToPlaylistName(const std::string &playlistName, std::string &&uniqueID) {
-    return m_playlistContainer.addItemToPlaylistName(playlistName, std::move(uniqueID));
+    boost::uuids::uuid uid;
+    try {
+        uid = boost::lexical_cast<boost::uuids::uuid>(uniqueID);
+    } catch(std::exception&) {
+        return false;
+    }
+    return m_playlistContainer.addItemToPlaylistName(playlistName, std::move(uid));
 }
 
-bool SimpleDatabase::addToPlaylistUID(const std::string &playlistUniqueID, std::string &&uniqueID) {
-    return m_playlistContainer.addItemToPlaylistUID(playlistUniqueID, std::move(uniqueID));
+bool SimpleDatabase::addToPlaylistUID(const boost::uuids::uuid &playlistUid, boost::uuids::uuid &&uid) {
+
+    return m_playlistContainer.addItemToPlaylistUID(playlistUid, std::move(uid));
 }
 
 bool SimpleDatabase::writeChangedPlaylists() {
     return m_playlistContainer.writeChangedPlaylists();
 }
 
-std::optional<std::string> SimpleDatabase::convertPlaylist(const std::string &name, NameType nameType) {
-    return m_playlistContainer.convertName(name, nameType);
+std::optional<boost::uuids::uuid> SimpleDatabase::convertPlaylist(const std::string &name) {
+    return m_playlistContainer.convertName(name);
 }
 
-std::optional<const std::vector<std::string> > SimpleDatabase::getPlaylistByName(const std::string &playlistName) const {
-    return m_playlistContainer.getPlaylistByName(playlistName);
+std::optional<std::string> SimpleDatabase::convertPlaylist(const boost::uuids::uuid &name) {
+    return m_playlistContainer.convertName(name);
 }
 
-std::optional<const std::vector<std::string> > SimpleDatabase::getPlaylistByUID(const std::string &playlistName) const {
+std::optional<const std::vector<boost::uuids::uuid> > SimpleDatabase::getPlaylistByName(const std::string &playlistName) const {
+    auto list = m_playlistContainer.getPlaylistByName(playlistName);
+    return list;
+}
+
+std::optional<const std::vector<boost::uuids::uuid> > SimpleDatabase::getPlaylistByUID(const boost::uuids::uuid &playlistName) const {
     return m_playlistContainer.getPlaylistByUID(playlistName);
 }
 
-bool SimpleDatabase::setCurrentPlaylistUniqueId(const std::string &uniqueID) {
-    return m_playlistContainer.setCurrentPlaylist(uniqueID);
+bool SimpleDatabase::setCurrentPlaylistUniqueId(boost::uuids::uuid &&uniqueID) {
+    return m_playlistContainer.setCurrentPlaylist(std::move(uniqueID));
 }
 
-std::optional<const std::string> SimpleDatabase::getCurrentPlaylistUniqueID() {
+std::optional<const boost::uuids::uuid> SimpleDatabase::getCurrentPlaylistUniqueID() {
     return m_playlistContainer.getCurrentPlaylistUniqueID();
 }
 
-std::vector<std::pair<std::string, std::string> > SimpleDatabase::getAllPlaylists() {
-    std::vector<std::pair<std::string, std::string>> list;
+std::vector<std::pair<std::string, boost::uuids::uuid> > SimpleDatabase::getAllPlaylists() {
+    std::vector<std::pair<std::string, boost::uuids::uuid>> list;
 
     return m_playlistContainer.getAllPlaylists();
 }
@@ -81,7 +94,7 @@ bool SimpleDatabase::addNewAudioFileUniqueId(const Common::FileNameType &uniqueI
 
 }
 
-std::vector<Id3Info> SimpleDatabase::getIdListOfItemsInPlaylistId(const std::string &uniqueId) {
+std::vector<Id3Info> SimpleDatabase::getIdListOfItemsInPlaylistId(const boost::uuids::uuid &uniqueId) {
     std::vector<Id3Info> itemList;
     if (auto playlistNameOpt = m_playlistContainer.getPlaylistByUID(uniqueId)) {
         for (auto playlistItemUID : *playlistNameOpt) {
@@ -101,7 +114,7 @@ Common::AlbumPlaylistAndNames SimpleDatabase::getAlbumPlaylistAndNames() {
     if (auto playlistNameOpt = m_playlistContainer.getCurrentPlaylist()) {
         albumPlaylistAndNames.m_playlistUniqueId = playlistNameOpt->getUniqueID();
         albumPlaylistAndNames.m_playlistName = playlistNameOpt->getName();
-        const std::vector<std::string> uniqueIdPlaylist = playlistNameOpt->getUniqueIdPlaylist();
+        const std::vector<boost::uuids::uuid> uniqueIdPlaylist = playlistNameOpt->getUniqueIdPlaylist();
         for (auto& uniqueId : uniqueIdPlaylist) {
             auto item = m_id3Repository.getId3InfoByUid(uniqueId);
             if (item) {

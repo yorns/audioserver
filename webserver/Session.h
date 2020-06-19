@@ -30,6 +30,7 @@ class Session : public std::enable_shared_from_this<Session>
     uint32_t m_runID {0};
 
     void handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive);
+    void handle_regular_file_request(std::string path, http::verb method, uint32_t version, bool keep_alive);
 
     void returnMessage();
 

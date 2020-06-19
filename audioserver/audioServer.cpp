@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
     boost::asio::io_context ioc;
 
     logger(Level::info) << "connection client <audioserver> to broker\n";
-    snc::Client client("audioserver", ioc, "127.0.0.1", 12001);
+    snc::Client sncClient("audioserver", ioc, "127.0.0.1", 12001);
 
     logger(Level::info) << "create player instance for";
 
@@ -152,16 +152,16 @@ int main(int argc, char* argv[])
     DatabaseAccess databaseWrapper(database);
     PlaylistAccess playlistWrapper(database);
 
-    auto updateUI = [&sessionHandler]( const std::string& songID, const std::string& playlistID, const std::string& currPlaylistID,
+    auto updateUI = [&sessionHandler, &sncClient]( const boost::uuids::uuid& songID, const boost::uuids::uuid& playlistID, const boost::uuids::uuid& currPlaylistID,
                   int position, bool doLoop, bool doShuffle, bool playing, double volume) {
 
         //logger(Level::debug) << "send updateUID json with with songID: <"<<songID<<"> playlistID: <"<<playlistID<<">\n";
 
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
-        songInfo["songID"] = songID;
-        songInfo["playlistID"] = playlistID;
-        songInfo["curPlaylistID"] = currPlaylistID;
+        songInfo["songID"] = boost::lexical_cast<std::string>(songID);
+        songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
+        songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
         songInfo["position"] = position;
         songInfo["loop"] = doLoop;
         songInfo["shuffle"] = doShuffle;
@@ -169,30 +169,54 @@ int main(int argc, char* argv[])
         songInfo["volume"] = volume;
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
-
+        sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());
     };
 
     auto externalSelect = [&database, &player](const std::string& raw_msg) {
         try {
         nlohmann::json msg = nlohmann::json::parse(raw_msg);
-      database.setCurrentPlaylistUniqueId(msg.at("Album"));
-      auto albumPlaylistAndNames = database.getAlbumPlaylistAndNames();
-      player->startPlay(albumPlaylistAndNames,msg.at("Title"));
+        auto command = msg.at("Cmd");
+        if (command == "start") {
+            logger(Level::info) << "start new album <"<<msg.at("AlbumID")<<">\n";
+            boost::uuids::uuid albumId, titleID;
+            try {
+                albumId = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("AlbumID")));
+            } catch (std::exception& ex) {
+                logger(Level::warning) << "cannot extract album id: "<< ex.what() << "\n";
+                return;
+            }
+
+            database.setCurrentPlaylistUniqueId(std::move(albumId));
+            auto albumPlaylistAndNames = database.getAlbumPlaylistAndNames();
+            try {
+                titleID = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("TitleID")));
+            } catch (std::exception& ex) {
+                logger(Level::warning) << "cannot extract title id: "<< ex.what() << "\n";
+                return;
+            }
+            player->startPlay(albumPlaylistAndNames,
+                              titleID,
+                              msg.at("Position"));
+        }
+        if (command == "stop") {
+            logger(Level::info) << "stop album <"<<msg.at("AlbumID")<<">\n";
+            player->stop();
+        }
         } catch (std::exception& exp) {
             logger(Level::warning) << "Cannot parse message (Error is > " << exp.what() << "):\n " << raw_msg << "\n";
         }
     };
 
-    client.recvHandler([externalSelect](const std::string& other, const std::string& raw_msg) {
+    sncClient.recvHandler([externalSelect](const std::string& other, const std::string& raw_msg) {
         logger(Level::info) << "received Message from <" << other << ">\n";
         externalSelect(raw_msg);
     });
 
     //player->onUiChange(updateUI);
 
-    player->setSongEndCB([&player, &updateUI](const std::string& songID){
+    player->setSongEndCB([&player, &updateUI](const boost::uuids::uuid& songID){
         boost::ignore_unused(songID);
-        updateUI("", player->getPlaylistID(), player->getPlaylistID(), 0, player->getLoop(), player->getShuffle(), false, player->getVolume());
+        updateUI(boost::uuids::uuid(), player->getPlaylistID(), player->getPlaylistID(), 0, player->getLoop(), player->getShuffle(), false, player->getVolume());
         logger(Level::info) << "end handler called for current song\n";
     });
 
@@ -262,9 +286,9 @@ int main(int argc, char* argv[])
 
         if (player) {
 
-            std::string songID;
-            std::string playlistID;
-            std::string currPlaylistID;
+            boost::uuids::uuid songID;
+            boost::uuids::uuid playlistID;
+            boost::uuids::uuid currPlaylistID;
 
             int timePercent { 0 };
 
@@ -277,7 +301,7 @@ int main(int argc, char* argv[])
             if (player->isPlaying()) {
                 songID = player->getSongID();
                 currPlaylistID = player->getPlaylistID();
-                timePercent = player->getSongPercentage()/100;
+                timePercent = player->getSongPercentage(); // getSongPercentage is in 1/100 (e.g. 7843 is 78.43%)
             }
 
             updateUI(songID, playlistID, currPlaylistID, timePercent, loop, shuffle, player->isPlaying(), player->getVolume());

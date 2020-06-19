@@ -1,3 +1,6 @@
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/string_generator.hpp>
 #include "id3repository.h"
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
@@ -9,7 +12,7 @@ using namespace Common;
 
 namespace fs = boost::filesystem;
 
-bool Id3Repository::addCover(std::string uid, std::vector<char>&& data, std::size_t hash) {
+bool Id3Repository::addCover(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash) {
 
     logger(Level::debug) << "add cover to database\n";
     auto coverIt = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
@@ -56,7 +59,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
     try {
         for (const auto& id3Elem : id3Db) {
             nlohmann::json jsonElem;
-            jsonElem["Uid"] = id3Elem.uid;
+            jsonElem["Uid"] = boost::uuids::to_string(id3Elem.uid);
             jsonElem["InfoSrc"] = id3Elem.informationSource;
             jsonElem["Title"] = id3Elem.title_name;
             jsonElem["Album"] = id3Elem.album_name;
@@ -91,7 +94,7 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
 
             for (const auto& streamInfo : streamList) {
             Id3Info info;
-            info.uid = streamInfo.at("Uid");
+            info.uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at("Uid")));
             info.informationSource = streamInfo.at("InfoSrc");
             info.title_name = streamInfo.at("Title");
             info.album_name = streamInfo.at("Album");
@@ -104,7 +107,7 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
             info.url = streamInfo.at("Url");
 
             info.finishEntry();
-            logger(LoggerFramework::Level::debug) << "reading <" << info.uid << "> <"<<info.title_name<<">\n";
+            logger(LoggerFramework::Level::debug) << "reading <" << boost::uuids::to_string(info.uid) << "> <"<<info.title_name<<">\n";
             id3Data.emplace_back(info);
             }
 
@@ -131,7 +134,7 @@ std::optional<nlohmann::json> Id3Repository::coverToJson(const std::vector<Cover
             //}
             auto& uidList = jsonElem["UidList"];
             for(const auto& uidElem : elem.uidListForCover)
-                uidList.push_back(uidElem);
+                uidList.push_back(boost::uuids::to_string(uidElem));
             logger(LoggerFramework::Level::debug) << "reading cover hash <" << elem.hash << ">\n";
             data.push_back(jsonElem);
         }
@@ -157,7 +160,7 @@ const std::vector<CoverElement> Id3Repository::coverFromJson(const std::string &
                 //auto vec = utility::base64_decode(elem["Cover"]);
                 //coverElement.rawData = std::move(vec);
                 for (const auto& uidElem : elem["UidList"]) {
-                    coverElement.uidListForCover.push_back(uidElem);
+                    coverElement.uidListForCover.push_back(boost::lexical_cast<boost::uuids::uuid>(std::string(uidElem)));
                 }
                 coverList.emplace_back(coverElement);
             }
@@ -185,12 +188,12 @@ bool Id3Repository::writeJson(nlohmann::json &&data, const std::string &filename
 bool Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
 
     if (audioItem) {
-        std::string uniqueID = audioItem->info.uid;
-        logger(Level::debug) << "adding audio file <" << uniqueID
+        auto uniqueID = audioItem->info.uid;
+        logger(Level::debug) << "adding audio file <" << boost::lexical_cast<std::string>(uniqueID)
                              << "> ("<<audioItem->info.title_name <<"/" << audioItem->info.album_name << ") to database\n";
         m_simpleDatabase.emplace_back(std::move(audioItem->info));
         if (audioItem->pictureAvailable) {
-            if (addCover(uniqueID, std::move(audioItem->data), audioItem->hash))
+            if (addCover(std::move(uniqueID), std::move(audioItem->data), audioItem->hash))
                 logger(Level::debug) << "added audioItem <" << uniqueID << ">\n";
         }
         return true;
@@ -218,7 +221,8 @@ bool Id3Repository::readCache() {
     // read image cache
     auto coverDatabaseList = coverFromJson(coverCacheFile);
     for (auto& elem : coverDatabaseList) {
-        fs::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache) + "/" + std::to_string(elem.hash) + ".cache";
+        fs::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
+                + "/" + std::to_string(elem.hash) + ".cache";
         if (fs::exists(filename)) {
             logger(Level::debug) << "reading file: " << filename <<"\n";
             std::ifstream ofs(filename.c_str(), std::ios::binary);
@@ -283,7 +287,8 @@ bool Id3Repository::writeCacheInternal() {
 
     logger(Level::info) << "writing <" << m_simpleCoverDatabase.size() << "> cover data entries\n";
     uint64_t entryCounter {0};
-    std::for_each(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase), [&entryCounter](const auto& elem) { entryCounter += elem.uidListForCover.size(); } );
+    std::for_each(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
+                  [&entryCounter](const auto& elem) { entryCounter += elem.uidListForCover.size(); } );
     logger(Level::info) << "medial number of items with same cover: " << entryCounter/m_simpleCoverDatabase.size() << "\n";
     auto jsonCover = coverToJson(m_simpleCoverDatabase);
     if (jsonCover)
@@ -312,7 +317,7 @@ bool Id3Repository::writeCacheInternal() {
     return true;
 }
 
-bool Id3Repository::remove(const std::string &uniqueID) {
+bool Id3Repository::remove(const boost::uuids::uuid& uniqueID) {
     auto it = std::find_if(std::begin(m_simpleDatabase),
                            std::end(m_simpleDatabase),
                            [&uniqueID](const Id3Info& info) { return info.uid == uniqueID; });
@@ -332,12 +337,12 @@ void Id3Repository::clear() {
     m_cache_dirty = true;
 }
 
-std::vector<std::tuple<Id3Info, std::vector<std::string> > > Id3Repository::findDuplicates() {
+std::vector<std::tuple<Id3Info, std::vector<boost::uuids::uuid>>> Id3Repository::findDuplicates() {
 
     if (m_simpleDatabase.size() < 1)
         return {};
 
-    std::vector<std::tuple<Id3Info, std::vector<std::string>>> dublicateList;
+    std::vector<std::tuple<Id3Info, std::vector<boost::uuids::uuid>>> dublicateList;
 
     for(auto it{ std::cbegin(m_simpleDatabase) }; it != std::cend(m_simpleDatabase); ++it) {
         /* find dublicats within following entries */
@@ -347,16 +352,16 @@ std::vector<std::tuple<Id3Info, std::vector<std::string> > > Id3Repository::find
                                                  std::end(dublicateList), [&it](const auto& elem)
                 { return std::get<Id3Info>(elem) == *it; });
                 if ( dublicatList != std::end(dublicateList)) {
-                    std::tuple<Id3Info, std::vector<std::string>> entry {*dublicatList};
-                    auto list { std::get<std::vector<std::string>>(entry) };
+                    std::tuple<Id3Info, std::vector<boost::uuids::uuid>> entry {*dublicatList};
+                    auto list { std::get<std::vector<boost::uuids::uuid>>(entry) };
                     list.push_back(dub->uid);
                 }
                 else {
                     Id3Info info {*it};
                     auto entryIt = dublicateList.insert(std::cbegin(dublicateList),
-                                                        std::make_tuple<Id3Info, std::vector<std::string>> (std::move(info), {}));
-                    std::tuple<Id3Info, std::vector<std::string>>& entry {*entryIt};
-                    auto list { std::get<std::vector<std::string>>(entry) };
+                                                        std::make_tuple<Id3Info, std::vector<boost::uuids::uuid>> (std::move(info), {}));
+                    std::tuple<Id3Info, std::vector<boost::uuids::uuid>>& entry {*entryIt};
+                    auto list { std::get<std::vector<boost::uuids::uuid>>(entry) };
                     list.push_back(dub->uid);
                 }
             }
@@ -365,18 +370,44 @@ std::vector<std::tuple<Id3Info, std::vector<std::string> > > Id3Repository::find
     return dublicateList;
 }
 
+std::vector<Id3Info> Id3Repository::search(const boost::uuids::uuid &what, SearchItem , SearchAction action) {
+
+    std::vector<Id3Info> findData;
+
+    if (action == SearchAction::uniqueId) {
+        try {
+            std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
+                          [&what, &findData](const Id3Info &info) {
+                if (info.uid == what) {
+                    logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
+                    findData.push_back(info);
+                }
+            });
+        } catch (std::exception& ex) {
+            logger(Level::warning) << "cannot convert Uid <"<<what<<">: "<<ex.what()<<"\n";
+        }
+    }
+
+    return findData;
+}
+
 std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem item, SearchAction action) {
 
     std::vector<Id3Info> findData;
 
     if (action == SearchAction::uniqueId) {
-        std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
-                      [&what, &findData](const Id3Info &info) {
-            if (info.uid == what) {
-                logger(Level::debug) << "found alike search: " << info.toString() <<"\n";
-                findData.push_back(info);
-            }
-        });
+        try {
+            auto whatUuid = boost::lexical_cast<boost::uuids::uuid>(what);
+            std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
+                          [&whatUuid, &findData](const Id3Info &info) {
+                if (info.uid == whatUuid) {
+                    logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
+                    findData.push_back(info);
+                }
+            });
+        } catch (std::exception& ex) {
+            logger(Level::warning) << "cannot convert Uid <"<<what<<">: "<<ex.what()<<"\n";
+        }
     }
     else {
         auto whatList = Common::extractWhatList(what);
@@ -413,6 +444,9 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
             auto albumIt = std::find_if(std::begin(albumList), std::end(albumList), [&it](const AlbumListEntry& albumListEntry)
             { return albumListEntry.m_name == it->album_name; });
 
+            boost::uuids::string_generator gen;
+            auto unknownUid = gen(std::string(ServerConstant::unknownCoverFileUid));
+
             if (albumIt == std::cend(albumList)) {
                 AlbumListEntry entry;
                 entry.m_name = it->album_name;
@@ -422,7 +456,7 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
                     entry.m_coverId = it->uid;
                 } else {
                     entry.m_coverExtension = ServerConstant::unknownCoverExtension;
-                    entry.m_coverId = ServerConstant::unknownCoverFile;
+                    entry.m_coverId = unknownUid;
                 }
                 entry.m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
                 albumList.emplace_back(entry);
@@ -432,7 +466,7 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
                     logger(Level::debug) << "found multiple performers <"<<it->performer_name<<"> - <" <<albumIt->m_performer <<">\n";
                     albumIt->m_performer = "multiple performer";
                 }
-                if (albumIt->m_coverId == ServerConstant::unknownCoverFile && !it->fileExtension.empty()) {
+                if (albumIt->m_coverId == unknownUid && !it->fileExtension.empty()) {
                     albumIt->m_coverExtension = it->fileExtension;
                     albumIt->m_coverId = it->uid;
                 }
@@ -452,7 +486,7 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
     return albumList;
 }
 
-std::optional<Id3Info> Id3Repository::getId3InfoByUid(const std::string &uniqueId) const {
+std::optional<Id3Info> Id3Repository::getId3InfoByUid(const boost::uuids::uuid& uniqueId) const {
     auto it = std::find_if(std::begin(m_simpleDatabase),
                            std::end(m_simpleDatabase),
                            [&uniqueId](const Id3Info& info) { return info.uid == uniqueId; });
@@ -505,7 +539,7 @@ bool Id3Repository::read() {
     return true;
 }
 
-const CoverElement &Id3Repository::getCover(const std::string &coverUid) const {
+const CoverElement &Id3Repository::getCover(const boost::uuids::uuid& coverUid) const {
     auto it = std::find_if(std::begin(m_simpleCoverDatabase),
                            std::end(m_simpleCoverDatabase),
                            [&coverUid](const CoverElement& elem){

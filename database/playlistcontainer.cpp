@@ -1,6 +1,7 @@
 #include "playlistcontainer.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "common/filesystemadditions.h"
 #include "common/logger.h"
@@ -14,7 +15,7 @@ void PlaylistContainer::addPlaylist(Playlist &&playlist) {
     m_playlists.emplace_back(playlist);
 }
 
-bool PlaylistContainer::addItemToPlaylistName(const std::string &playlistName, std::string &&audioUniqueId) {
+bool PlaylistContainer::addItemToPlaylistName(const std::string &playlistName, boost::uuids::uuid &&audioUniqueId) {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&playlistName](const Playlist& item) {
         return item.getName() == playlistName;
     });
@@ -27,7 +28,7 @@ bool PlaylistContainer::addItemToPlaylistName(const std::string &playlistName, s
     return false;
 }
 
-bool PlaylistContainer::addItemToPlaylistUID(const std::string &playlistUniqueID, std::string &&audioUniqueId) {
+bool PlaylistContainer::addItemToPlaylistUID(const boost::uuids::uuid &playlistUniqueID, boost::uuids::uuid &&audioUniqueId) {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&playlistUniqueID](const Playlist& item) {
         return item.getUniqueID() == playlistUniqueID;
     });
@@ -40,14 +41,14 @@ bool PlaylistContainer::addItemToPlaylistUID(const std::string &playlistUniqueID
     return false;
 }
 
-bool PlaylistContainer::removePlaylistUID(const std::string &playlistUniqueId) {
+bool PlaylistContainer::removePlaylistUID(const boost::uuids::uuid &playlistUniqueId) {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                            [&playlistUniqueId](const Playlist& pl)
     { return (pl.getUniqueID() == playlistUniqueId); });
 
     if (it != std::end(m_playlists) ) {
         m_playlists.erase(it);
-        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, playlistUniqueId);
+        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
     }
     return false;
 }
@@ -60,7 +61,7 @@ bool PlaylistContainer::removePlaylistName(const std::string &playlistName) {
     if (it != std::end(m_playlists) ) {
         auto playlistUniqueId { it->getUniqueID() };
         m_playlists.erase(it);
-        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, playlistUniqueId);
+        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
     }
     return false;
 }
@@ -73,7 +74,7 @@ bool PlaylistContainer::writeChangedPlaylists() {
 
     for (auto &elem : m_playlists) {
         if (!elem.write()) {
-            logger(Level::warning) << "playlist file <"<<elem.getUniqueID()<<".m3u> could not be saved";
+            logger(Level::warning) << "playlist file <"<<boost::uuids::to_string(elem.getUniqueID())<<".m3u> could not be saved";
         }
     }
 
@@ -82,56 +83,52 @@ bool PlaylistContainer::writeChangedPlaylists() {
     return success;
 }
 
-std::optional<std::string> PlaylistContainer::convertName(const std::string &name, NameType nametype) {
+std::optional<std::string> PlaylistContainer::convertName(const boost::uuids::uuid &uid) {
+    auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&uid] (const Playlist& playlist) {
+        return playlist.getUniqueID() == uid;
+    });
+    if (it != std::end(m_playlists))
+        return it->getName();
+    else
+        return std::nullopt;
 
-    switch (nametype) {
-    case NameType::realName: {
+}
+
+std::optional<boost::uuids::uuid> PlaylistContainer::convertName(const std::string &name) {
+
         auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&name] (const Playlist& playlist) {
             return playlist.getName() == name;
         });
         if (it != std::end(m_playlists))
             return it->getUniqueID();
-        else
-            return std::nullopt;
-    }
-    case NameType::uniqueID: {
-        auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&name] (const Playlist& playlist) {
-            return playlist.getUniqueID() == name;
-        });
-        if (it != std::end(m_playlists))
-            return it->getName();
-        else
-            return std::nullopt;
-    }
-    case NameType::none:
-        return std::nullopt;
-    }
 
-    return std::nullopt;
+        return std::nullopt;
 }
 
 bool PlaylistContainer::readPlaylistsM3U() {
 
-    auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistM3u);
+    // read m3u actually not supported
+    return false;
+//    auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistM3u);
 
-    for (auto file : fileList) {
-        logger(Level::debug) << "reading m3u playlist <"<<file.name<<">\n";
-        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u) + '/';
-        fileName += file.name + file.extension;
-        if (file.extension == ".m3u") {
-            Playlist playlist(file.name, ReadType::isM3u, Persistent::isPermanent, Changed::isUnchanged);
-            if (playlist.readM3u()) {
-                m_playlists.emplace_back(playlist);
-            }
-            else
-                logger(Level::warning) << "reading file <"<<file.name+file.extension <<"> failed\n";
-        }
-    }
+//    for (auto file : fileList) {
+//        logger(Level::debug) << "reading m3u playlist <"<<file.name<<">\n";
+//        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u) + '/';
+//        fileName += file.name + file.extension;
+//        if (file.extension == ".m3u") {
+//            Playlist playlist(file.name, ReadType::isM3u, Persistent::isPermanent, Changed::isUnchanged);
+//            if (playlist.readM3u()) {
+//                m_playlists.emplace_back(playlist);
+//            }
+//            else
+//                logger(Level::warning) << "reading file <"<<file.name+file.extension <<"> failed\n";
+//        }
+//    }
 
-    return true;
+//    return true;
 }
 
-bool PlaylistContainer::readPlaylistsJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert) {
+bool PlaylistContainer::readPlaylistsJson(std::function<void(const boost::uuids::uuid& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert) {
     auto streamList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistJson);
 
     for (auto file : streamList) {
@@ -139,7 +136,7 @@ bool PlaylistContainer::readPlaylistsJson(std::function<void(std::string uid, st
         std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistJson) + '/';
         fileName += file.name + file.extension;
         if (file.extension == ".json") {
-            Playlist playlist(file.name, ReadType::isJson, Persistent::isPermanent, Changed::isConst);
+            Playlist playlist(std::move(fileName), ReadType::isJson, Persistent::isPermanent, Changed::isConst);
             if (playlist.readJson(std::move(coverInsert))) {
                 m_playlists.emplace_back(playlist);
             }
@@ -154,13 +151,15 @@ bool PlaylistContainer::readPlaylistsJson(std::function<void(std::string uid, st
 bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &albumList) {
 
     for(auto& elem : albumList) {
-        auto uniqueID = NameGenerator::create("", "");
-        Playlist playlist(uniqueID.unique_id, ReadType::isM3u, Persistent::isTemporal);
+        auto uniqueID = boost::lexical_cast<boost::uuids::uuid>(NameGenerator::create("", "").unique_id);
+        Playlist playlist("", ReadType::isM3u, Persistent::isTemporal);
         playlist.setName(elem.m_name);
         playlist.setPerformer(elem.m_performer);
         playlist.setCover(elem.m_coverId, elem.m_coverExtension);
+        playlist.setUniqueID(std::move(uniqueID));
         for(auto& uid : elem.m_playlist) {
-            playlist.addToList(std::string(std::get<std::string>(uid)));
+            auto addUid = std::get<boost::uuids::uuid>(uid);
+            playlist.addToList(std::move(addUid));
         }
         m_playlists.emplace_back(playlist);
     }
@@ -168,7 +167,7 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
     return true;
 }
 
-std::optional<const std::vector<std::string>> PlaylistContainer::getPlaylistByName(const std::string &playlistName) const {
+std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlaylistByName(const std::string& playlistName) const {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                            [playlistName](const Playlist& elem) { return elem.getName() == playlistName; });
 
@@ -179,7 +178,7 @@ std::optional<const std::vector<std::string>> PlaylistContainer::getPlaylistByNa
 
 }
 
-std::optional<const std::vector<std::string>> PlaylistContainer::getPlaylistByUID(const std::string &uid) const {
+std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlaylistByUID(const boost::uuids::uuid &uid) const {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                            [uid](const Playlist& elem) { return elem.getUniqueID() == uid; });
 
@@ -189,7 +188,7 @@ std::optional<const std::vector<std::string>> PlaylistContainer::getPlaylistByUI
     return std::nullopt;
 }
 
-std::optional<Playlist> PlaylistContainer::getCurrentPlaylist() {
+std::optional<const Playlist> PlaylistContainer::getCurrentPlaylist() const {
 
     if (m_currentPlaylist) {
         auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
@@ -202,11 +201,11 @@ std::optional<Playlist> PlaylistContainer::getCurrentPlaylist() {
     return std::nullopt;
 }
 
-std::optional<const std::string> PlaylistContainer::getCurrentPlaylistUniqueID() const {
+std::optional<const boost::uuids::uuid> PlaylistContainer::getCurrentPlaylistUniqueID() const {
     return m_currentPlaylist;
 }
 
-bool PlaylistContainer::setCurrentPlaylist(const std::string &currentPlaylistUniqueId) {
+bool PlaylistContainer::setCurrentPlaylist(boost::uuids::uuid &&currentPlaylistUniqueId) {
     if (std::find_if(std::begin(m_playlists), std::end(m_playlists),
                      [&currentPlaylistUniqueId](const Playlist& playlist) {
                      return (playlist.getUniqueID() == currentPlaylistUniqueId);})
@@ -230,8 +229,8 @@ bool PlaylistContainer::isUniqueName(const std::string &name) {
     return true;
 }
 
-std::vector<std::pair<std::string, std::string> > PlaylistContainer::getAllPlaylists() {
-    std::vector<std::pair<std::string, std::string>> list;
+std::vector<std::pair<std::string, boost::uuids::uuid> > PlaylistContainer::getAllPlaylists() {
+    std::vector<std::pair<std::string, boost::uuids::uuid>> list;
     for(auto& elem : m_playlists) {
         list.push_back(std::make_pair(elem.getName(), elem.getUniqueID()));
     }
@@ -241,6 +240,14 @@ std::vector<std::pair<std::string, std::string> > PlaylistContainer::getAllPlayl
 std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what, SearchAction action) {
 
     std::vector<Playlist> playlist;
+    boost::uuids::uuid whatUid;
+    bool uidValid { false };
+    try {
+        whatUid = boost::lexical_cast<boost::uuids::uuid>(what);
+        uidValid = true;
+    } catch (std::exception& ) {
+        uidValid = false;
+    }
 
     switch(action) {
     case SearchAction::exact: {
@@ -248,7 +255,7 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
         for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
             if ( playlistItem->getName() == what ||
                  playlistItem->getPerformer() == what ||
-                 playlistItem->getUniqueID() == what) {
+                 (uidValid && playlistItem->getUniqueID() == whatUid)) {
                 playlist.push_back(*playlistItem);
             }
         }
@@ -281,9 +288,12 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
         break;
     }
     case SearchAction::uniqueId : {
-        auto playlist_it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&what](const Playlist& playlist){ return playlist.getUniqueID() == what; });
-        if (playlist_it != std::end(m_playlists))
-            playlist.push_back(*playlist_it);
+        if (uidValid) {
+            auto playlist_it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
+                                            [&whatUid](const Playlist& playlist){ return playlist.getUniqueID() == whatUid; });
+            if (playlist_it != std::end(m_playlists))
+                playlist.push_back(*playlist_it);
+        }
         break;
     }
     }

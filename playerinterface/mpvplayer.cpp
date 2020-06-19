@@ -1,4 +1,6 @@
 #include "mpvplayer.h"
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid.hpp>
 
 using namespace LoggerFramework;
 
@@ -61,7 +63,7 @@ MpvPlayer::MpvPlayer(boost::asio::io_context &context)
     init_MpvCommandHandling();
 }
 
-bool MpvPlayer::startPlay(const Common::AlbumPlaylistAndNames &list, const std::string& songUID)
+bool MpvPlayer::startPlay(const Common::AlbumPlaylistAndNames &list, const boost::uuids::uuid& , uint32_t )
 {
 
     // just unpause if player is in playing state and paused
@@ -160,13 +162,15 @@ bool MpvPlayer::stopPlayerConnection()
 
 const std::string MpvPlayer::getSongName() const { return m_AudioFileName; }
 
-std::string MpvPlayer::getSongID() const { return (m_currentItemIterator != std::end(m_playlist))?m_currentItemIterator->m_uniqueId:""; }
+boost::uuids::uuid MpvPlayer::getSongID() const
+{ return (m_currentItemIterator != std::end(m_playlist))?m_currentItemIterator->m_uniqueId:
+                                                         boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid)); }
 
 int MpvPlayer::getSongPercentage() const  { int time { static_cast<int>(m_actTime) }; if (time > 100.0) time = 100.0; return time*100; }
 
 bool MpvPlayer::jump_to_position(int percent) { return sendCommand({"seek", percent, "absolute-percent"}); }
 
-bool MpvPlayer::jump_to_fileUID(const std::string &fileId)
+bool MpvPlayer::jump_to_fileUID(const boost::uuids::uuid &fileId)
 {
     auto it = std::find_if(std::begin(m_playlist),
                            std::end(m_playlist),
@@ -214,7 +218,7 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
                 }
             }
             else if (event == "end-file") {
-                logger(Level::debug) << "End file event found on <" << m_currentItemIterator->m_uniqueId << ">.\n";
+                logger(Level::debug) << "End file event found on <" << boost::uuids::to_string(m_currentItemIterator->m_uniqueId) << ">.\n";
                     switch (m_nextPlaylistDirection) {
                     case MpvPlayer::NextPlaylistDirection::next: {
                         if (calculateNextFileInList()) {

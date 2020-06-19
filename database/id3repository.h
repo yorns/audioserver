@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <boost/uuid/uuid.hpp>
 #include "searchitem.h"
 #include "searchaction.h"
 #include "id3tagreader/Id3Info.h"
@@ -23,20 +24,20 @@ enum class AddType {
 };
 
 struct CoverElement {
-    std::vector<std::string> uidListForCover;
+    std::vector<boost::uuids::uuid> uidListForCover;
     std::vector<char> rawData;
     std::size_t hash {0};
 
     CoverElement() = default;
 
-    bool isConnectedToUid(const std::string& uid) const {
+    bool isConnectedToUid(const boost::uuids::uuid& uid) const {
         return std::find_if(std::cbegin(uidListForCover), std::cend(uidListForCover),
-                            [&uid](const std::string& elem) { return uid == elem; } ) != std::cend(uidListForCover);
+                            [&uid](const boost::uuids::uuid& elem) { return uid == elem; } ) != std::cend(uidListForCover);
     }
 
     bool hasEqualHash(const std::size_t otherHash) { return hash == otherHash; }
 
-    bool insertNewUid(std::string&& newUid) { uidListForCover.emplace_back(std::move(newUid)); return true; }
+    bool insertNewUid(boost::uuids::uuid&& newUid) { uidListForCover.emplace_back(std::move(newUid)); return true; }
 };
 
 class Id3Repository
@@ -72,22 +73,25 @@ public:
 
     Id3Repository(bool enableCache) : m_enableCache(enableCache) {}
 
-    const CoverElement& getCover(const std::string& coverUid) const;
+    const CoverElement& getCover(const boost::uuids::uuid& coverUid) const;
 
     bool add(const Common::FileNameType& file);
-    bool addCover(std::string uid, std::vector<char>&& data, std::size_t hash);
-    bool remove(const std::string& uniqueID);
+    bool addCover(boost::uuids::uuid&& uuid, std::vector<char>&& data, std::size_t hash);
+    bool remove(const boost::uuids::uuid& uuid);
 
     void clear();
 
-    std::vector<std::tuple<Id3Info, std::vector<std::string>>> findDuplicates();
+    std::vector<std::tuple<Id3Info, std::vector<boost::uuids::uuid>>> findDuplicates();
+
+    std::vector<Id3Info> search(const boost::uuids::uuid &what, SearchItem item,
+                                               SearchAction action = SearchAction::exact);
 
     std::vector<Id3Info> search(const std::string &what, SearchItem item,
                                                SearchAction action = SearchAction::exact);
 
     std::vector<Common::AlbumListEntry> extractAlbumList();
 
-    std::optional<Id3Info> getId3InfoByUid(const std::string& uniqueId) const;
+    std::optional<Id3Info> getId3InfoByUid(const boost::uuids::uuid& uid) const;
 
     bool read();
     bool writeCache() {

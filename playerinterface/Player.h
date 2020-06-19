@@ -5,14 +5,17 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include "common/logger.h"
 #include "common/generalPlaylist.h"
 #include <algorithm>
 #include <random>
 
 using PlaylistEndCallback = std::function<void()>;
-using SongEndCallback = std::function<void(const std::string&)>;
-using OnUiChangeHandler = std::function<void( const std::string& songID, const std::string& playlistID, int position, bool doLoop, bool doShuffle)>;
+using SongEndCallback = std::function<void(const boost::uuids::uuid&)>;
+using OnUiChangeHandler = std::function<void( const boost::uuids::uuid& songID, const boost::uuids::uuid& playlistID, int position, bool doLoop, bool doShuffle)>;
 
 
 class BasePlayer {
@@ -25,7 +28,7 @@ protected:
 
     std::vector<Common::PlaylistItem> m_playlist;
     std::vector<Common::PlaylistItem> m_playlist_orig;
-    std::string m_PlaylistUniqueId;
+    boost::uuids::uuid m_PlaylistUniqueId;
     std::string m_PlaylistName;
 
     std::vector<Common::PlaylistItem>::const_iterator m_currentItemIterator { m_playlist.end() };
@@ -39,7 +42,7 @@ protected:
 
     virtual void stopAndRestart() = 0;
 
-    bool needsOnlyUnpause(const std::string &playlist);
+    bool needsOnlyUnpause(const boost::uuids::uuid &playlist);
     bool needsStop();
     bool isPause() const { return m_pause; }
 
@@ -61,13 +64,15 @@ public:
     bool toogleLoop();
     bool getLoop() const { return m_doCycle; }
     bool getShuffle() const { return m_shuffle; }
-    std::string getPlaylistID() const { return m_PlaylistUniqueId; }
+    std::string getPlaylistIDStr() const { return boost::uuids::to_string(m_PlaylistUniqueId); }
+    boost::uuids::uuid getPlaylistID() const { return m_PlaylistUniqueId; }
     uint32_t getVolume() { return m_volume; }
 
     void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
 
-    virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) = 0;
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const boost::uuids::uuid& songUID) { return startPlay(albumPlaylistAndNames, songUID, 0); }
+    virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const boost::uuids::uuid& songUID, uint32_t position) = 0;
     virtual bool stop() = 0;
     virtual bool stopPlayerConnection() = 0;
     virtual bool setVolume(uint32_t volume) = 0;
@@ -79,12 +84,13 @@ public:
     virtual bool pause_toggle() = 0;
 
     virtual bool jump_to_position(int percent) = 0;
-    virtual bool jump_to_fileUID(const std::string& uniqueId) = 0;
+    virtual bool jump_to_fileUID(const boost::uuids::uuid& uniqueId) = 0;
 
     bool isPlaying() const { return m_isPlaying; }
 
     virtual const std::string getSongName() const = 0;
-    virtual std::string getSongID() const = 0;
+    virtual boost::uuids::uuid getSongID() const = 0;
+    std::string getSongIDStr() const { return boost::uuids::to_string(getSongID()); }
     virtual int getSongPercentage() const = 0;
 
     void onUiChange(OnUiChangeHandler&& onUiChangeFunc) { m_onUiChangeHandler = std::move(onUiChangeFunc); }

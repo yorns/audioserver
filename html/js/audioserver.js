@@ -3,6 +3,8 @@ var webSocket;
 var songID = "";
 var playlistID = "";
 var name_typed;
+var interval = 3000; // Interval for calling the function in milliseconds (seconds * 1000)
+var safety = 500; // This is the allowed divergence to the interval
 
 $(document).ready(function () {
 
@@ -56,7 +58,7 @@ $(document).ready(function () {
                     }
                     
                     //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
-                    $("#songProgress").css("width", msg.SongBroadcastMessage.position + "%");
+                    $("#songProgress").css("width", msg.SongBroadcastMessage.position/100 + "%");
                     $("#volumeProgress").css("height", msg.SongBroadcastMessage.volume + "%");
                     if (msg.SongBroadcastMessage.loop) {
                         $("#btnRepeat").removeClass("btn-gray");
@@ -177,6 +179,31 @@ $(document).ready(function () {
     $('#albumSearch').val("");
     
 });
+
+Cookies.set('timeCookie', Date.now());
+
+setInterval(doCheck, interval); // Call the doCheck function every interval
+
+function doCheck() {
+  timePrev = Cookies.get('timeCookie'); // Fetch the cookie with the previously saves timestamp
+
+  if (typeof timePrev !== 'undefined') { // May be undefined, if timestamp was never saved before to cookie
+//   console.log('Previousliy saved timestamp is '+ timePrev);
+   diff =  Date.now() - timePrev; // Calcluate the difference
+//   console.log('Difference is '+ diff);
+   if (diff < (interval + safety)) { // Check if difference is ok
+//     console.log('Everything is ok');
+//     $(document.body).append('Everything is ok. Difference: '+diff+'<br>');
+   } else {
+	   runWebsocket();
+       alert ("Wake up!\nDifference is too big: " + diff); // Call a function if the difference is too big
+       Cookies.set('timeCookie', Date.now()); // Save actual timestamp to a cookie
+
+     }
+   }
+   Cookies.set('timeCookie', Date.now()); // Save actual timestamp to a cookie
+  }
+
 
 function stopPlayer() {
     url = "/player?stop=true";

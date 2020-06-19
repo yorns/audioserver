@@ -1,5 +1,6 @@
 #include "playlistaccess.h"
 #include <nlohmann/json.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include "common/logger.h"
 #include "common/FileType.h"
 #include "database/NameType.h"
@@ -14,13 +15,13 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
         if (list) {
             for(auto item : *list) {
                 nlohmann::json jentry;
-                jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.uid;
+                jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.uid);
                 jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.performer_name;
                 jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
                 jentry[std::string(ServerConstant::Parameter::Database::titel)] = item.title_name;
                 std::string relativCoverPath =
                         Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
-                        "/" + item.uid + item.fileExtension;
+                        "/" + boost::lexical_cast<std::string>(item.uid) + item.fileExtension;
                 jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
                 jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
                 json.push_back(jentry);
@@ -41,7 +42,7 @@ std::string PlaylistAccess::convertToJson(const std::vector<Database::Playlist> 
     try {
         for(auto item : list) {
             nlohmann::json jentry;
-            jentry[std::string(ServerConstant::Parameter::Database::uid)] = item.getUniqueID();
+            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.getUniqueID());
             jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
             jentry[std::string(ServerConstant::Parameter::Database::interpret)] = ""; // item.getPerformer();
             jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.getCover();
@@ -67,9 +68,9 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
 
     if (urlInfo->parameter == ServerConstant::Command::create) {
         auto ID = m_database.createPlaylist(urlInfo->value, Database::Persistent::isPermanent);
-        if (ID && !ID->empty()) {
+        if (ID && !ID->is_nil()) {
             logger(Level::info) << "create playlist with name <" << urlInfo->value << "> "<<"-> "<<*ID<<" \n";
-            m_database.setCurrentPlaylistUniqueId(*ID);
+            m_database.setCurrentPlaylistUniqueId(std::move(*ID));
             m_database.writeChangedPlaylists();
             return R"({"result": "ok"})";
         } else {
@@ -104,37 +105,57 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
                                  << "> to playlist <"
                                  << *currentPlaylist
                                  << ">\n";
-            std::string uniqueID { urlInfo->value };
+            boost::uuids::uuid uniqueID;
+
+            try {
+                uniqueID = boost::lexical_cast<boost::uuids::uuid>( urlInfo->value );
+
+            } catch (std::exception& ex) {
+                logger(Level::warning) << "cannot read unique ID "<<urlInfo->value<<">: " << ex.what()<<"\n";
+                return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
+            }
+
             if (m_database.addToPlaylistUID(*currentPlaylist, std::move(uniqueID))) {
                 m_database.writeChangedPlaylists();
-                logger(Level::debug) << "adding audio file <" << urlInfo->value <<"> to playlist ID <"<<*currentPlaylist<<">\n";
+                logger(Level::debug) << "adding audio file <" << urlInfo->value
+                                     << "> to playlist ID <" << boost::uuids::to_string(*currentPlaylist)
+                                     << ">\n";
                 return R"({"result": "ok"})";
             }
         }
         else {
             logger(Level::warning)<< "no current playlist to add audio file id <"<<urlInfo->value<<"> to\n";
         }
-        return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + *currentPlaylist + ">}";
+        return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
 
     }
 
     if (urlInfo->parameter == ServerConstant::Command::show) {
 
-        std::string playlistName;
-        if (!urlInfo->value.empty())
-            playlistName = urlInfo->value;
-        else if ( auto playlist = m_database.getCurrentPlaylistUniqueID() ) {
-            auto itemList = m_database.getIdListOfItemsInPlaylistId(*playlist);
-            logger(Level::debug) << "show (" << itemList.size() << ") elements for playlist <" << *playlist << ">\n";
-            return convertToJson(itemList);
+        boost::uuids::uuid playlistName;
+
+        if (!urlInfo->value.empty()) {
+            try {
+            playlistName = boost::lexical_cast<boost::uuids::uuid>(urlInfo->value);
+            } catch (std::exception& ) {
+                playlistName = boost::uuids::uuid();
+            }
         }
-        return "[]";
+        else if ( auto playlist = m_database.getCurrentPlaylistUniqueID() ) {
+            playlistName = *playlist;
+        }
+
+        auto itemList = m_database.getIdListOfItemsInPlaylistId(playlistName);
+
+        logger(Level::debug) << "show (" << itemList.size() << ") elements for playlist <" << boost::uuids::to_string(playlistName) << ">\n";
+        return convertToJson(itemList);
+
     }
 
     /* returns all playlist names */
     if (urlInfo->parameter == ServerConstant::Command::showLists) {
         logger(Level::info) << "show all playlists\n";
-        std::vector<std::pair<std::string, std::string>> lists = m_database.getAllPlaylists();
+        std::vector<std::pair<std::string, boost::uuids::uuid>> lists = m_database.getAllPlaylists();
         if (!lists.empty()) {
             logger(Level::debug) << "playlists are \n";
             nlohmann::json json;
@@ -149,7 +170,7 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
                 }
                 json["playlists"] = jsonList;
                 if (auto currentPlaylistUniqueID = m_database.getCurrentPlaylistUniqueID()) {
-                if (auto playlistRealname = m_database.convertPlaylist(*currentPlaylistUniqueID, Database::NameType::uniqueID))
+                if (auto playlistRealname = m_database.convertPlaylist(*currentPlaylistUniqueID))
                     json["actualPlaylist"] = *playlistRealname;
                 else
                     json["actualPlaylist"] = std::string("");

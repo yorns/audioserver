@@ -10,7 +10,9 @@
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
 #include "common/stringmanipulator.h"
-#include "boost/filesystem.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace filesys =  boost::filesystem;
 
@@ -39,8 +41,9 @@ enum class CoverType {
 };
 
 struct PlaylistItem {
-    PlaylistItem(const std::string& uniqueId) : m_uniqueId (uniqueId) {}
-    std::string m_uniqueId;
+    PlaylistItem(boost::uuids::uuid&& uniqueId) : m_uniqueId (std::move(uniqueId)) {}
+    PlaylistItem() {}
+    boost::uuids::uuid m_uniqueId;
     std::string m_name;
     std::string m_name_lower;
     std::string m_performer;
@@ -48,8 +51,9 @@ struct PlaylistItem {
 };
 
 class Playlist {
+    std::string m_playlistFileName;
     PlaylistItem m_item;
-    std::vector<std::string> m_playlist;
+    std::vector<boost::uuids::uuid> m_playlist;
     std::string m_coverName;
     CoverType m_coverType { CoverType::none };
     Changed m_changed { Changed::isUnchanged };
@@ -60,12 +64,11 @@ public:
 
     Playlist() = delete;
 
-    Playlist(const std::string& uniqueID,
-             ReadType readType = ReadType::isM3u,
+    Playlist(std::string&& filename, ReadType readType = ReadType::isM3u,
              Persistent persistent = Persistent::isPermanent,
              Changed changed = Changed::isUnchanged);
 
-    Playlist(const std::string& uniqueID, std::vector<std::string>&& playlist,
+    Playlist(boost::uuids::uuid&& uniqueID, std::vector<boost::uuids::uuid>&& playlist,
              ReadType readType = ReadType::isM3u,
              Persistent persistent = Persistent::isPermanent,
              Changed changed = Changed::isChanged);
@@ -76,8 +79,8 @@ public:
     Persistent persistent() const;
     void setPersistent(const Persistent &persistent);
 
-    std::string getUniqueID() const;
-    void setUniqueID(const std::string& uniqueID) { m_item.m_uniqueId = uniqueID; setChanged(Changed::isChanged); }
+    boost::uuids::uuid getUniqueID() const;
+    void setUniqueID(boost::uuids::uuid&& uniqueID) { m_item.m_uniqueId = std::move(uniqueID); setChanged(Changed::isChanged); }
 
     void setName(const std::string& name);
     void setPerformer(const std::string& performer);
@@ -88,19 +91,20 @@ public:
     std::string getNameLower() const { return m_item.m_name_lower; }
     std::string getPerformerLower() const { return m_item.m_performer_lower; }
 
-    const std::vector<std::string>& getUniqueIdPlaylist() const;
-    bool addToList(std::string&& audioUID);
-    bool delFromList(const std::string& audioUID);
+    const std::vector<boost::uuids::uuid>& getUniqueIdPlaylist() const;
+    bool addToList(boost::uuids::uuid&& audioUID);
+    bool delFromList(const boost::uuids::uuid& audioUID);
 
     bool readM3u();
-    bool readJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert);
+    bool readJson(std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert);
     bool insertAlbumList();
     bool write();
 
     std::string getCover() const;
 
-    bool setCover(const std::string& coverId, const std::string& extension) {
-        m_coverName = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/" +coverId+extension;
+    bool setCover(const boost::uuids::uuid& coverId, const std::string& extension) {
+        m_coverName = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/"
+                + boost::lexical_cast<std::string>(coverId) + extension;
         return true;
     }
 

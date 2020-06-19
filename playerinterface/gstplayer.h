@@ -6,6 +6,7 @@
 #include <memory>
 #include <thread>
 #include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 #include "common/filesystemadditions.h"
 #include "common/repeattimer.h"
 
@@ -172,9 +173,9 @@ public:
         return true;
     }
 
-    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) final {
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const boost::uuids::uuid& songUID, uint32_t position) final {
 
-        if (needsOnlyUnpause(albumPlaylistAndNames.m_playlistUniqueId)) {
+        if (needsOnlyUnpause(albumPlaylistAndNames.m_playlistUniqueId) && position == 0) {
             logger(LoggerFramework::Level::debug) << "unpause playlist <" << albumPlaylistAndNames.m_playlistName <<">\n";
             auto ret = gst_element_set_state (m_playbin.get(), GST_STATE_PLAYING);
             if (ret == GST_STATE_CHANGE_FAILURE) {
@@ -193,7 +194,7 @@ public:
         m_PlaylistUniqueId = albumPlaylistAndNames.m_playlistUniqueId;
         m_PlaylistName = albumPlaylistAndNames.m_playlistName;
 
-        if (!songUID.empty() && songUID != m_currentItemIterator->m_uniqueId) {
+        if (songUID != m_currentItemIterator->m_uniqueId) {
             m_currentItemIterator = std::find_if(std::begin(m_playlist), std::end(m_playlist), [&songUID](auto& elem){ return elem.m_uniqueId == songUID; });
             if (m_currentItemIterator == std::end(m_playlist))
                 return false;
@@ -201,7 +202,14 @@ public:
 
         logger(LoggerFramework::Level::info) << "start Playing new playlist <"<<m_PlaylistUniqueId<<"> ("<<m_PlaylistName<<")\n";
 
-        return doPlayFile(*m_currentItemIterator);
+        if (position == 0)
+            return doPlayFile(*m_currentItemIterator);
+        else {
+            if (doPlayFile(*m_currentItemIterator)) {
+                return jump_to_position(position/100);
+            }
+            return false;
+        }
     }
 
 
@@ -319,7 +327,7 @@ public:
         return false;
     }
 
-    bool jump_to_fileUID(const std::string& fileId)  final {
+    bool jump_to_fileUID(const boost::uuids::uuid& fileId)  final {
         auto it = std::find_if(std::begin(m_playlist),
                                std::end(m_playlist),
                                [&fileId](const auto& playlistItem){ return playlistItem.m_uniqueId == fileId; });
@@ -339,7 +347,10 @@ public:
     }
 
     const std::string getSongName() const final { return m_songName; }
-    std::string getSongID() const final { if(m_currentItemIterator != std::end(m_playlist)) return m_currentItemIterator->m_uniqueId; return ""; }
+    boost::uuids::uuid getSongID() const final {
+        if(m_currentItemIterator != std::end(m_playlist))
+            return m_currentItemIterator->m_uniqueId;
+        return boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid)); }
 
     int getSongPercentage() const final {
         gint64 pos, len;

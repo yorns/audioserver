@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cstdint>
 #include "common/stringmanipulator.h"
+#include <boost/uuid/uuid.hpp>
 
 class Id3Info {
 
@@ -15,7 +16,7 @@ class Id3Info {
 
 public:
 
-    std::string uid;
+    boost::uuids::uuid uid;
     std::string album_name;
     std::string title_name;
     std::string performer_name;

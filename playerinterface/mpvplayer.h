@@ -67,7 +67,7 @@ public:
 
     virtual ~MpvPlayer() = default;
 
-    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const std::string& songUID) final;
+    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const boost::uuids::uuid& songUID, uint32_t position) final;
     bool stop() final;
     bool stopPlayerConnection() final;
 
@@ -81,10 +81,10 @@ public:
     bool pause_toggle() final;
 
     bool jump_to_position(int percent) final;
-    bool jump_to_fileUID(const std::string& filename) final;
+    bool jump_to_fileUID(const boost::uuids::uuid& filename) final;
 
     const std::string getSongName() const final;
-    std::string getSongID() const final;
+    boost::uuids::uuid getSongID() const final;
     int getSongPercentage() const final;
 
 };

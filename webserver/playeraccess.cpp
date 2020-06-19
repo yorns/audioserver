@@ -21,7 +21,7 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
         auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
 
-        if (m_player->startPlay(albumPlaylistAndNames,""))
+        if (m_player->startPlay(albumPlaylistAndNames,boost::uuids::uuid()))
           return R"({"result": "ok"})";
         else
             return R"({"result": "cannot find playlist"})";
@@ -53,17 +53,21 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
     }
 
     if (urlInfo->parameter == ServerConstant::Parameter::Player::select) {
-        const std::string& fileUrl = urlInfo->value;
-        if (m_player->jump_to_fileUID(fileUrl))
+        try {
+        auto ID = boost::lexical_cast<boost::uuids::uuid>(urlInfo->value);
+        if (m_player->jump_to_fileUID(ID))
             return R"({"result": "ok"})";
         else {
             auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
 
             if (albumPlaylistAndNames.m_playlistUniqueId != m_player->getPlaylistID() &&
-                m_player->startPlay(albumPlaylistAndNames,fileUrl))
+                m_player->startPlay(albumPlaylistAndNames,ID))
               return R"({"result": "ok"})";
             else
                 return R"({"result": "cannot find neither song nor playlist"})";
+        }
+        } catch (std::exception&) {
+            return R"({"result": "wrong ID"})";
         }
     }
 

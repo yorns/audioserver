@@ -154,18 +154,21 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
                 // if not a rest request, try find the file
                 if (reply.empty()) {
+                    logger(Level::debug) << "no reply set - answer with status <not found>\n";
                     answer(generate_result_packet(http::status::not_found,
                                                   requestString->get().target(),
                                                   requestString->get().version(),
                                                   requestString->get().keep_alive()));
                 }
                 else {
+                    logger(Level::debug) << "reply set - answer with status <ok>\n";
                     answer(generate_result_packet(http::status::ok,
                                                   reply,
                                                   requestString->get().version(),
                                                   requestString->get().keep_alive()));
 
                 }
+
 
                 if (requestString->keep_alive())
                     start();
@@ -215,51 +218,36 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
 }
 
-void Session::handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
+void Session::handle_regular_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
 
     std::string path = m_filePath + '/' + target;
     if(target.back() == '/')
         path.append("index.html");
-
-    logger(Level::debug) << "<" << m_runID << "> " << "file request on: <"<< path << ">\n";
-
-    if (path.find("index.html") != std::string::npos) {
-        logger(Level::info) << "index.html requested\n";
-    }
-
-    // read full request (should be empty, however ..)
 
     // Attempt to open the file
     boost::beast::error_code ec;
     http::file_body::value_type body;
     body.open(path.c_str(), boost::beast::file_mode::scan, ec);
 
-    // Handle the case where the file doesn't exist
-    if(ec == boost::system::errc::no_such_file_or_directory) {
-        auto virtualData = m_sessionHandler.getVirtualFileData(target);
-        if ( virtualData && method == http::verb::get) {
-            logger(Level::debug) << "virtual file found as <"<<target<<">\n";
-            // Cache the size since we need it after the move
-            auto const size = virtualData->size();
-            http::response<http::vector_body<char>> res {
-                std::piecewise_construct,
-                        std::make_tuple(std::move(*virtualData)),
-                        std::make_tuple(http::status::ok, version)};
-            res.set(http::field::content_type, mime_type(path));
-            res.content_length(size);
-            res.keep_alive(keep_alive);
-            answer(std::move(res));
-            if (keep_alive)
-                start();
-            return;
-        }
+    // Handle an unknown error
+    if(ec) {
+        answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
+        if (keep_alive)
+            start();
+        return;
+    }
 
+    // Handle the case where the file doesn't exist
+    if(ec == boost::system::errc::no_such_file_or_directory && method == http::verb::get) {
+
+        // this file is nowhere, send unknown file instead
         logger(Level::warning) << "requested regular file <"<< path <<"> not found\n";
         answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
         if (keep_alive)
             start();
         return;
-    }
+      }
+
     // Handle an unknown error
     if(ec) {
         answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
@@ -298,6 +286,45 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
     if (keep_alive)
         start();
     return;
+
+}
+
+void Session::handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
+
+//    std::string path = m_filePath + '/' + target;
+//    if(target.back() == '/')
+//        path.append("index.html");
+
+//    logger(Level::debug) << "<" << m_runID << "> " << "file request on: <"<< path << ">\n";
+
+//    if (path.find("index.html") != std::string::npos) {
+//        logger(Level::info) << "index.html requested\n";
+//    }
+
+    // try finding file within the virtual/cache filesystem
+    if(method == http::verb::get) {
+
+        if ( auto virtualData = m_sessionHandler.getVirtualFileData(target) ) {
+            logger(Level::debug) << "virtual file found as <"<<target<<">\n";
+            // Cache the size since we need it after the move
+            auto const size = virtualData->size();
+            http::response<http::vector_body<char>> res {
+                std::piecewise_construct,
+                        std::make_tuple(std::move(*virtualData)),
+                        std::make_tuple(http::status::ok, version)};
+            res.set(http::field::content_type, mime_type(target));
+            res.content_length(size);
+            res.keep_alive(keep_alive);
+            answer(std::move(res));
+            if (keep_alive)
+                start();
+            return;
+        }
+      }
+
+    handle_regular_file_request(target, method, version, keep_alive);
+
+
 
 }
 

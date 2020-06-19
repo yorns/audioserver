@@ -2,6 +2,7 @@
 #define WEBSOCKETSESSION_H
 
 #include <memory>
+#include <deque>
 #include <boost/beast.hpp>
 #include "common/logger.h"
 #include "sessionhandler.h"
@@ -17,11 +18,23 @@ using namespace LoggerFramework;
 // Echoes back all received WebSocket messages
 class WebsocketSession : public std::enable_shared_from_this<WebsocketSession>
 {
+    enum class State {
+        unconnected,
+        accept,
+        idle,
+//        read,  <- reading all the time
+        write,
+    };
+
     websocket::stream<beast::tcp_stream> m_websocketStream;
     boost::asio::ip::tcp::endpoint m_endpoint;
     SessionHandler& m_sessionHandler;
     beast::flat_buffer m_readBuffer;
     beast::flat_buffer m_writeBuffer;
+
+    std::deque<std::string> m_queue;
+
+    State m_state { State::unconnected };
 
 public:
     // Take ownership of the socket
@@ -58,6 +71,13 @@ public:
 
         m_sessionHandler.addWebsocketConnection(shared_from_this(), m_endpoint);
 
+        if (m_state != State::unconnected) {
+            logger(Level::warning) << "<accept> call on connection, that is not <idle>\n";
+            logger(Level::warning) << "abort connection\n";
+            return;
+        }
+        m_state = State::accept;
+
         // Accept the websocket handshake
         m_websocketStream.async_accept(
             req,
@@ -66,19 +86,16 @@ public:
                 shared_from_this()));
     }
 
-    bool write(const std::string& message) {
+    bool write(std::string&& message) {
 
-        // test if last write has been done successful
-        if (m_writeBuffer.size() != 0)
+        if (m_state == State::unconnected)
             return false;
 
-        beast::ostream(m_writeBuffer) << message;
+        // test queue size and remove oldest packet
 
-        m_websocketStream.async_write(
-            m_writeBuffer.data(),
-            beast::bind_front_handler(
-                &WebsocketSession::on_write,
-                shared_from_this()));
+        m_queue.emplace_back(message);
+
+        sendQueued();
 
         return true;
     }
@@ -91,18 +108,41 @@ private:
         logger(Level::warning) << what << ": " << ec.message() << "\n";
     }
 
+    void sendQueued() {
+
+        if (m_state != State::idle || m_queue.empty())
+            return;
+
+        auto& message = m_queue.front();
+
+        beast::ostream(m_writeBuffer) << message;
+
+        m_state = State::write;
+        m_queue.pop_front();
+
+        m_websocketStream.async_write(
+            m_writeBuffer.data(),
+            beast::bind_front_handler(
+                &WebsocketSession::on_write,
+                shared_from_this()));
+
+
+    }
+
     void
     on_accept(beast::error_code ec)
     {
         if(ec)
             return fail(ec, "accept");
 
-        if (write(R"({"result": "done"})"))
-            logger(Level::info) << "websocket result write successful\n";
-        else
-            logger(Level::info) << "websocket result write failed\n";
+        m_state = State::idle; // accept was successful
 
-        // Read a message
+//        if (write(R"({"result": "done"})"))
+//            logger(Level::info) << "websocket result write successful\n";
+//        else
+//            logger(Level::info) << "websocket result write failed\n";
+
+        // Read a message instandly and write whenever is needed
         do_read();
     }
 
@@ -125,8 +165,10 @@ private:
         boost::ignore_unused(bytes_transferred);
 
         // This indicates that the websocket_session was closed
-        if(ec == websocket::error::closed)
+        if(ec == websocket::error::closed) {
+            logger(Level::info) << "Websocket Session to <" << m_endpoint <<">";
             return;
+        }
 
         if(ec)
             fail(ec, "read");
@@ -146,6 +188,14 @@ private:
 
         // Clear the buffer
         m_writeBuffer.consume(bytes_transferred);
+
+        if (m_state != State::write) {
+            logger(Level::warning) << "write finish handler call on wrong state\n";
+        }
+        m_state = State::idle;
+        sendQueued();
+
+
 
     }
 };

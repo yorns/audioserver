@@ -2,6 +2,8 @@
 #include "common/logger.h"
 #include "common/Constants.h"
 #include <boost/filesystem.hpp>
+#include <boost/uuid/string_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include "common/filesystemadditions.h"
 #include <nlohmann/json.hpp>
 #include "common/base64.h"
@@ -13,7 +15,7 @@ using namespace Common;
 
 namespace filesys =  boost::filesystem;
 
-std::string Playlist::getUniqueID() const
+boost::uuids::uuid Playlist::getUniqueID() const
 {
     return m_item.m_uniqueId;
 }
@@ -33,7 +35,7 @@ void Playlist::setPerformer(const std::string &performer)
 }
 
 
-const std::vector<std::string> &Playlist::getUniqueIdPlaylist() const
+const std::vector<boost::uuids::uuid> &Playlist::getUniqueIdPlaylist() const
 {
     return m_playlist;
 }
@@ -43,18 +45,18 @@ std::string Playlist::getName() const
     return m_item.m_name;
 }
 
-bool Playlist::addToList(std::string &&audioUID) {
+bool Playlist::addToList(boost::uuids::uuid&& audioUID) {
     m_playlist.emplace_back(audioUID);
     setChanged(Changed::isChanged);
     return true;
 }
 
-bool Playlist::delFromList(const std::string &audioUID) {
+bool Playlist::delFromList(const boost::uuids::uuid &audioUID) {
     auto it = std::find_if(std::begin(m_playlist), std::end(m_playlist),
-                           [&audioUID](const std::string& id){ return audioUID == id; });
+                           [&audioUID](const boost::uuids::uuid& id){ return audioUID == id; });
 
     if (it != std::end(m_playlist)) {
-        logger(Level::info) << "removing file <"<<*it<<">\n";
+        logger(Level::info) << "removing file <"<<boost::uuids::to_string(*it)<<">\n";
         m_playlist.erase(it);
         setChanged(Changed::isChanged);
         return true;
@@ -63,18 +65,22 @@ bool Playlist::delFromList(const std::string &audioUID) {
     return false;
 }
 
-Playlist::Playlist(const std::string &uniqueId, ReadType readType, Persistent persistent, Changed changed)
-    : m_item(uniqueId),
+Playlist::Playlist(std::string&& filename, ReadType readType, Persistent persistent, Changed changed)
+    : m_playlistFileName(filename),
       m_changed(changed),
       m_persistent(persistent),
       m_readType(readType)
 {
 }
 
-Playlist::Playlist(const std::string &uniqueId, std::vector<std::string> &&playlist, ReadType readType, Persistent persistent, Changed changed)
-    : m_item(uniqueId), m_playlist(std::move(playlist)),
-      m_changed(changed), m_persistent(persistent), m_readType(readType)
+Playlist::Playlist(boost::uuids::uuid&& uniqueId, std::vector<boost::uuids::uuid> &&playlist, ReadType readType, Persistent persistent, Changed changed)
+    : m_item(std::move(uniqueId)),
+      m_playlist(std::move(playlist)),
+      m_changed(changed),
+      m_persistent(persistent),
+      m_readType(readType)
 {
+    // set playlist filename
 }
 
 Changed Playlist::changed() const
@@ -97,40 +103,45 @@ void Playlist::setPersistent(const Persistent &persistent)
     m_persistent = persistent;
 }
 
-bool Playlist::readJson(std::function<void(std::string uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert)
+bool Playlist::readJson(std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert)
 {
-    std::string filename(Common::FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistJson)+ "/" + m_item.m_uniqueId + ".json");
-    std::vector<std::string> playlist;
+
+    std::vector<boost::uuids::uuid> playlist;
+    boost::uuids::uuid uid;
     std::string playlistName;
     std::string performerName;
     std::string extension;
     std::vector<char> coverData;
 
     try {
-        std::ifstream streamInfoFile(filename.c_str());
+        std::ifstream streamInfoFile(m_playlistFileName.c_str());
         nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
+
+        uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at("Id")));
         playlistName = streamInfo.at("Name");
         performerName = streamInfo.at("Performer");
         extension = streamInfo.at("Extension");
         auto items = streamInfo.at("Items");
         coverData = utility::base64_decode(streamInfo.at("Image"));
         for (auto elem : items) {
-            playlist.emplace_back(elem.at("Id"));
+            playlist.emplace_back(boost::lexical_cast<boost::uuids::uuid>(std::string(elem.at("Id"))));
         }
 
     } catch (std::exception& ex) {
-        logger(Level::warning) << "failed to read file: " << filename << ": " << ex.what() << "\n";
+        logger(Level::warning) << "failed to read file: " << m_playlistFileName << ": " << ex.what() << "\n";
         playlist.clear();
     }
 
     if (playlist.size() > 0) {
         logger(LoggerFramework::Level::debug) << "stream playlist: <"<<playlist.size()<<"> elements read\n";
         auto hash = Common::genHash(coverData);
-        coverInsert(m_item.m_uniqueId, std::move(coverData), hash);
+        auto uid = m_item.m_uniqueId;
+        coverInsert(std::move(uid), std::move(coverData), hash);
         setCover(m_item.m_uniqueId, extension);
         m_playlist = std::move(playlist);
         setName(std::move(playlistName));
         setPerformer(std::move(performerName));
+        setUniqueID(std::move(uid));
         return true;
     }
     return false;
@@ -138,92 +149,97 @@ bool Playlist::readJson(std::function<void(std::string uid, std::vector<char>&& 
 
 bool Playlist::readM3u()
 {
-    std::string fullFilename = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u)+ '/' + getUniqueID() + ".m3u";
+    return false;
+    // read M3u is unavailable
+//    std::string fullFilename = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u)+ '/' +
+//            boost::lexical_cast<std::string>(getUniqueID()) + ".m3u";
 
-    logger(LoggerFramework::Level::debug) << "reading playlist file <"<<fullFilename<<">\n";
+//    logger(LoggerFramework::Level::debug) << "reading playlist file <"<<fullFilename<<">\n";
 
-    std::ifstream stream(fullFilename);
+//    std::ifstream stream(fullFilename);
 
-    std::string line;
-    std::string playlistName;
+//    std::string line;
+//    std::string playlistName;
 
-    if (!stream.good())
-        return false;
+//    if (!stream.good())
+//        return false;
 
-    // read human readable playlist name or only first line
-    if (stream.good() && std::getline(stream, line)) {
-        if (line.length() > 2 && line[0] == '#' && line[1] == ' ') {
-            setName(line.substr(2));
-        } else {
-            filesys::path fullName(line);
-            std::string audioUniqueID { fullName.stem().string() };
-            if (!audioUniqueID.empty()) {
-                if (audioUniqueID.find("https://",0) == std::string::npos) {
-                    addToList(std::move(audioUniqueID));
-                    logger(LoggerFramework::Level::debug) << "  reading: <" << fullName.stem() << ">\n";
-                }
-                else {
-                    // create uniqueID
-                    // add uniqueId and url to list
-                }
-            }
-        }
-    }
+//    // read human readable playlist name or only first line
+//    if (stream.good() && std::getline(stream, line)) {
+//        if (line.length() > 2 && line[0] == '#' && line[1] == ' ') {
+//            setName(line.substr(2));
+//        } else {
+//            filesys::path fullName(line);
+//            std::string audioUniqueID { fullName.stem().string() };
+//            if (!audioUniqueID.empty()) {
+//                if (audioUniqueID.find("https://",0) == std::string::npos) {
+//                    addToList(std::move(audioUniqueID));
+//                    logger(LoggerFramework::Level::debug) << "  reading: <" << fullName.stem() << ">\n";
+//                }
+//                else {
+//                    // create uniqueID
+//                    // add uniqueId and url to list
+//                }
+//            }
+//        }
+//    }
 
-    logger(LoggerFramework::Level::debug) << "playlist name: "<<getUniqueID()<<"\n";
+//    logger(LoggerFramework::Level::debug) << "playlist name: "<<getUniqueID()<<"\n";
 
-    while (stream.good() && std::getline(stream, line)) {
-        filesys::path fullName(line);
-        if (!fullName.stem().empty()) {
-            std::string audioUniqueID { fullName.stem().string() };
-            addToList(std::move(audioUniqueID));
-            logger(LoggerFramework::Level::debug) << "  reading: <" << fullName.stem() << ">\n";
-        }
-    }
+//    while (stream.good() && std::getline(stream, line)) {
+//        filesys::path fullName(line);
+//        if (!fullName.stem().empty()) {
+//            std::string audioUniqueID { fullName.stem().string() };
+//            addToList(std::move(audioUniqueID));
+//            logger(LoggerFramework::Level::debug) << "  reading: <" << fullName.stem() << ">\n";
+//        }
+//    }
 
-    return true;
+//    return true;
 
 }
 
 bool Playlist::write()
 {
-    bool success { false };
-    if ( persistent() == Persistent::isPermanent &&
-         changed() == Changed::isChanged ) {
-        logger(LoggerFramework::Level::debug) << "writeChangedPlaylist <" << getUniqueID()
-                                              << "> realname <" << getName() << ">"
-                                              << " - try write ... \n";
+    return false;
 
-        std::string filename = FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u)
-                + "/" + getUniqueID() + ".m3u";
+//    bool success { false };
+//    if ( persistent() == Persistent::isPermanent &&
+//         changed() == Changed::isChanged ) {
+//        logger(LoggerFramework::Level::debug) << "writeChangedPlaylist <" << getUniqueID()
+//                                              << "> realname <" << getName() << ">"
+//                                              << " - try write ... \n";
 
-        std::ofstream ofs ( filename, std::ios_base::out );
+//        std::string filename = FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u)
+//                + "/" + getUniqueID() + ".m3u";
 
-        if (ofs.good()) {
-            ofs << "# " << getName() << "\n";
+//        std::ofstream ofs ( filename, std::ios_base::out );
 
-            for (const auto &entry : getUniqueIdPlaylist()) {
-                ofs << "../" << ServerConstant::audioPathMp3 << "/" << entry << ".mp3\n";
-            }
-            success = true;
-            logger(LoggerFramework::Level::debug) << " done \n";
+//        if (ofs.good()) {
+//            ofs << "# " << getName() << "\n";
 
-        } else {
-            logger(LoggerFramework::Level::warning) << "writing to file <" << filename << "> failed \n";
-            success = false;
-        }
-    } else {
-        success = true;
-        if (persistent() == Persistent::isTemporal)
-            logger(LoggerFramework::Level::debug) << "Playlist " << getName() << " is temporal and will not persisted\n";
-        else
-            logger(LoggerFramework::Level::debug) << "Playlist " << getName() << " has not been changed\n";
-    }
+//            for (const auto &entry : getUniqueIdPlaylist()) {
+//                ofs << "../" << ServerConstant::audioPathMp3 << "/" << entry << ".mp3\n";
+//            }
+//            success = true;
+//            logger(LoggerFramework::Level::debug) << " done \n";
 
-    if (success)
-        setChanged(Changed::isUnchanged);
+//        } else {
+//            logger(LoggerFramework::Level::warning) << "writing to file <" << filename << "> failed \n";
+//            success = false;
+//        }
+//    } else {
+//        success = true;
+//        if (persistent() == Persistent::isTemporal)
+//            logger(LoggerFramework::Level::debug) << "Playlist " << getName() << " is temporal and will not persisted\n";
+//        else
+//            logger(LoggerFramework::Level::debug) << "Playlist " << getName() << " has not been changed\n";
+//    }
 
-    return success;
+//    if (success)
+//        setChanged(Changed::isUnchanged);
+
+//    return success;
 }
 
 std::string Playlist::getCover() const

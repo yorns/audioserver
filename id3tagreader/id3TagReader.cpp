@@ -4,6 +4,7 @@
 #include "common/base64.h"
 #include <mp4file.h>
 #include <cctype>
+#include <boost/uuid/uuid_io.hpp>
 
 namespace fs = boost::filesystem;
 using namespace LoggerFramework;
@@ -35,7 +36,7 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
             nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
 
             Id3Info info;
-            info.uid = file.name;
+            info.uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at("Id")));
             info.informationSource = "file://" + streamFileName;
             info.title_name = streamInfo.at("Title");
             info.album_name = streamInfo.at("Album");
@@ -59,7 +60,7 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
 
             info.finishEntry();
 
-            logger(LoggerFramework::Level::debug) << "reading <" << info.uid << "> <" << info.title_name << ">\n";
+            logger(LoggerFramework::Level::debug) << "reading <" << boost::uuids::to_string(info.uid) << "> <" << info.title_name << ">\n";
 
             fullInfo.info = std::move(info);
 
@@ -94,7 +95,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             auto id3v2tag = mpegFile.ID3v2Tag();
 
             Id3Info info;
-            info.uid = uid;
+            info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
             info.title_name = id3v2tag->title().to8Bit(true);
             info.performer_name = id3v2tag->artist().to8Bit(true);
             info.album_name = id3v2tag->album().to8Bit(true);
@@ -155,7 +156,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             auto id3v1tag = mpegFile.ID3v1Tag();
 
             Id3Info info;
-            info.uid = uid;
+            info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
             info.title_name = id3v1tag->title().to8Bit(true);
             info.performer_name = id3v1tag->artist().to8Bit(true);
             info.album_name = id3v1tag->album().to8Bit(true);
@@ -187,7 +188,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
             idData->title();
             Id3Info info;
-            info.uid = uid;
+            info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
             info.title_name = idData->title().to8Bit(true);
             info.performer_name = idData->artist().to8Bit(true);
             info.album_name = idData->album().to8Bit(true);
@@ -199,6 +200,9 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                 info.cd_no = static_cast<uint32_t>(disk->second.toInt());
             }
             info.informationSource = fileUrl;
+            info.url = fileUrl;
+
+
             info.finishEntry();     // help search by adding strings on lowercase
 
             FullId3Information fullId3Info;

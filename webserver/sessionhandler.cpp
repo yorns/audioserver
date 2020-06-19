@@ -111,8 +111,10 @@ void SessionHandler::removeWebsocketConnection(const tcp::endpoint &endpoint) {
 void SessionHandler::broadcast(const std::string &message) {
 
     std::for_each(std::begin(m_websocketSessionList), std::end(m_websocketSessionList),[&message](auto elem) {
-        if (auto session = elem.second.lock())
-            session->write(message);
+        if (auto session = elem.second.lock()) {
+            std::string msg {message};
+            session->write(std::move(msg));
+        }
     });
 
 }

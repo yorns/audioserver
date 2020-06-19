@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <tuple>
+#include <boost/uuid/uuid.hpp>
 
 namespace Common {
 
@@ -11,8 +12,8 @@ struct AlbumListEntry {
     std::string m_name;
     std::string m_performer;
     std::string m_coverExtension;
-    std::string m_coverId;
-    std::vector<std::tuple<std::string, uint32_t>> m_playlist;
+    boost::uuids::uuid m_coverId;
+    std::vector<std::tuple<boost::uuids::uuid, uint32_t>> m_playlist;
 };
 
 

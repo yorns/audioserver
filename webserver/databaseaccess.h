@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include <string_view>
+#include <boost/uuid/uuid_io.hpp>
 #include "database/SimpleDatabase.h"
 
 class DatabaseAccess
@@ -18,19 +19,7 @@ public:
     DatabaseAccess(Database::SimpleDatabase& simpleDatabase): m_database(simpleDatabase) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);
-    std::optional<std::vector<char>> getVirtualFile(const std::string_view& target) const {
-        logger(LoggerFramework::Level::debug) << "searching for file: "<<target<<"\n";
-        auto pos1 = target.find_last_of("/");
-        if (pos1 != std::string_view::npos) {
-            auto pos2 = target.find_last_of(".");
-            if (pos2 != std::string_view::npos) {
-                std::string uid = std::string(target.substr(pos1+1, pos2-pos1-1));
-                logger(LoggerFramework::Level::debug) << "searching for cover UID <"<<uid<<">\n";
-                return m_database.getCover(uid);
-            }
-                    }
-        return std::nullopt;
-    }
+    std::optional<std::vector<char>> getVirtualFile(const std::string_view& target) const;
 
     std::string restAPIDefinition();
 
