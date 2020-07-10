@@ -28,54 +28,67 @@ $(document).ready(function () {
             webSocket.onmessage = function (event) {
                 try {
                     var msg = JSON.parse(event.data);
-                    console.log('received: ' + event.data);
                     // TODO: only if song ID is new, request the name
-                    if (songID != msg.SongBroadcastMessage.songID && msg.SongBroadcastMessage.songID != "") {
-                        songID = msg.SongBroadcastMessage.songID;
-                        var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
-                        $.getJSON(url).done(function(response) {
-                            //                    console.log('received: ' + response[0].titel);
-                            if (response) {
-                                $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>" + response[0].titel);
-                                $("#actCover").attr("src", response[0].cover);
-                            }
-                        });
-                        getActualPlaylist();
-                    }
-                    if (playlistID != msg.SongBroadcastMessage.playlistID && msg.SongBroadcastMessage.playlistID != ""
-                       && !msg.SongBroadcastMessage.playing) {
-                        playlistID = msg.SongBroadcastMessage.playlistID;
-                        var url = "/database?uid=" + playlistID;
-                            console.log('<0> request for playlist: ', url);
+                    if (msg.hasOwnProperty('SongBroadcastMessage')) {
+                        console.log('received SongBroadcast: ' + event.data);
+                        if (songID != msg.SongBroadcastMessage.songID && msg.SongBroadcastMessage.songID != "") {
+                            songID = msg.SongBroadcastMessage.songID;
+                            var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
                             $.getJSON(url).done(function(response) {
-                            if (response) {
-                                console.log('<2> received for playlist request: ', response);
-                                $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>");
-                                $("#actCover").attr("src", response[0].cover);
-                            }
-                        });
-                        getActualPlaylist();
+                                //                    console.log('received: ' + response[0].titel);
+                                if (response) {
+                                    $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>" + response[0].titel);
+                                    $("#actCover").attr("src", response[0].cover);
+                                }
+                            });
+                            getActualPlaylist();
+                        }
+                        if (playlistID != msg.SongBroadcastMessage.playlistID && msg.SongBroadcastMessage.playlistID != ""
+                           && !msg.SongBroadcastMessage.playing) {
+                            playlistID = msg.SongBroadcastMessage.playlistID;
+                            var url = "/database?uid=" + playlistID;
+                                console.log('<0> request for playlist: ', url);
+                                $.getJSON(url).done(function(response) {
+                                if (response) {
+                                    console.log('<2> received for playlist request: ', response);
+                                    $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>");
+                                    $("#actCover").attr("src", response[0].cover);
+                                }
+                            });
+                            getActualPlaylist();
+                        }
+                        $("#songProgress").css("width", msg.SongBroadcastMessage.position/100 + "%");
+                        $("#volumeProgress").css("height", msg.SongBroadcastMessage.volume + "%");
+                        if (msg.SongBroadcastMessage.loop) {
+                            $("#btnRepeat").removeClass("btn-gray");
+                            $("#btnRepeat").addClass("btn-black");
+                        }
+                        else {
+                            $("#btnRepeat").removeClass("btn-black");
+                            $("#btnRepeat").addClass("btn-gray");
+                        }
+                        if (msg.SongBroadcastMessage.shuffle) {
+                            $("#btnShuffle").removeClass("btn-gray");
+                            $("#btnShuffle").addClass("btn-black");
+                        } 
+                        else {
+                            $("#btnShuffle").removeClass("btn-black");
+                            $("#btnShuffle").addClass("btn-gray");
+                        }                    
+                    }
+                    if (msg.hasOwnProperty('SsidMessage')) {
+                        console.log('received: SsidMsg ' + event.data);
+
+                        var trHTML ="";
+                        for (var item in msg.SsidMessage) {
+                        console.log('item ' + msg.SsidMessage[item] );
+                            trHTML += '<tr class="table-row" id="'  + msg.SsidMessage[item] + '"><td></td><td>' + msg.SsidMessage[item] + '</td><td></td></tr>';
+                        }
+                        $('#wifiList tbody').empty();
+                        $('#wifiList tbody').append(trHTML);
                     }
                     
                     //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
-                    $("#songProgress").css("width", msg.SongBroadcastMessage.position/100 + "%");
-                    $("#volumeProgress").css("height", msg.SongBroadcastMessage.volume + "%");
-                    if (msg.SongBroadcastMessage.loop) {
-                        $("#btnRepeat").removeClass("btn-gray");
-                        $("#btnRepeat").addClass("btn-black");
-                    }
-                    else {
-                        $("#btnRepeat").removeClass("btn-black");
-                        $("#btnRepeat").addClass("btn-gray");
-                    }
-                    if (msg.SongBroadcastMessage.shuffle) {
-                        $("#btnShuffle").removeClass("btn-gray");
-                        $("#btnShuffle").addClass("btn-black");
-                    } 
-                    else {
-                        $("#btnShuffle").removeClass("btn-black");
-                        $("#btnShuffle").addClass("btn-gray");
-                    }                    
                 } catch (e) {
                     console.log("json parse failed");
                 }
@@ -90,6 +103,22 @@ $(document).ready(function () {
     }
 
     runWebsocket();
+    
+    $("#wifiCredentials").click(function() {
+        url = "wifi";
+        url += "?ssid=" + encodeURIComponent($("#credential_ssid").val());
+        url += "&psk=" + encodeURIComponent($("#credential_psk").val());
+        //alert("wifi url: " + url);
+        $.post(url, "", function(data, textStatus) {}, "json");
+    })
+    
+    $("#wifiList").on("click", ".table-row", function() {
+        //url = "/wifi?select=" + $(this).attr("id");
+        //$.post(url, "", function(data, textStatus) {}, "json");
+        $("#credential_ssid").val($(this).attr("id"));
+        //alert("wifi ssid: " + $(this).attr("id"));
+    });
+
     
     $("#act_playlist").on("click", ".table-row", function() {
         url = "/player?select=" + $(this).attr("id");
@@ -263,7 +292,7 @@ function albumSelect(albumId) {
 }
 
 function getAlbumList(searchString) {
-    var url = "/database?albumList=" + searchString;
+    var url = "/database?albumList=" + encodeURIComponent(searchString);
     $.getJSON(url).done(function(response) {
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
@@ -290,14 +319,13 @@ function getActualPlaylist() {
     console.log("request for show actual playlist: ", url);
     $.getJSON(url).done(function(response) {
     console.log("reply for show actual playlist: ", response);
-        $('#act_playlist tbody').empty();
-        var trHTML ="";
-        $.each(response, function(i, item) {
-            trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
-        });
-        //console.log("print playlist", trHTML);
+    $('#act_playlist tbody').empty();
+    var trHTML ="";
+    $.each(response, function(i, item) {
+        trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.titel + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+    });
 
-        $('#act_playlist tbody').append(trHTML);
+    $('#act_playlist tbody').append(trHTML);
     });
 
 }

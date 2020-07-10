@@ -59,38 +59,41 @@ std::string PlaylistAccess::convertToJson(const std::vector<Database::Playlist> 
 
 std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo) {
-        logger(Level::warning) << "invalid url given for playlist access\n";
+    if (!urlInfo || urlInfo->parameterList.size() != 1) {
+        logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }
 
-    logger(Level::info) << "playlist access - parameter: <"<<urlInfo->parameter<<"> value: <"<<urlInfo->value<<">\n";
+    auto parameter = urlInfo->parameterList.at(0).name;
+    auto value = urlInfo->parameterList.at(0).value;
 
-    if (urlInfo->parameter == ServerConstant::Command::create) {
-        auto ID = m_database.createPlaylist(urlInfo->value, Database::Persistent::isPermanent);
+    logger(Level::info) << "playlist access - parameter: <"<<parameter<<"> value: <"<<value<<">\n";
+
+    if (parameter == ServerConstant::Command::create) {
+        auto ID = m_database.createPlaylist(value, Database::Persistent::isPermanent);
         if (ID && !ID->is_nil()) {
-            logger(Level::info) << "create playlist with name <" << urlInfo->value << "> "<<"-> "<<*ID<<" \n";
+            logger(Level::info) << "create playlist with name <" << value << "> "<<"-> "<<*ID<<" \n";
             m_database.setCurrentPlaylistUniqueId(std::move(*ID));
             m_database.writeChangedPlaylists();
             return R"({"result": "ok"})";
         } else {
-            logger(Level::warning) << "create playlist with name <" << urlInfo->value << "> failed, name is not new\n";
+            logger(Level::warning) << "create playlist with name <" << value << "> failed, name is not new\n";
             return R"({"result": "playlist not new"})";
         }
     }
 
-    if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
-        auto list = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::alike);
+    if (parameter == ServerConstant::Command::getAlbumList) {
+        auto list = m_database.searchPlaylistItems(value, Database::SearchAction::alike);
         return convertToJson(list);
     }
 
     /* change to new playlist */
-    if (urlInfo->parameter == ServerConstant::Command::change) {
+    if (parameter == ServerConstant::Command::change) {
 
-        auto playlistList = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::uniqueId);
+        auto playlistList = m_database.searchPlaylistItems(value, Database::SearchAction::uniqueId);
 
         if (playlistList.size() != 1) {
-            logger(Level::warning) << "playlist with uniqueId <" << urlInfo->value << "> not found\n";
+            logger(Level::warning) << "playlist with uniqueId <" << value << "> not found\n";
             return R"({"result": "playlist not found"})";
         }
 
@@ -98,45 +101,45 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Command::add) {
+    if (parameter == ServerConstant::Command::add) {
         auto currentPlaylist { m_database.getCurrentPlaylistUniqueID() };
         if ( currentPlaylist) {
-            logger(Level::debug) << "add audio file with unique ID <" << urlInfo->value
+            logger(Level::debug) << "add audio file with unique ID <" << value
                                  << "> to playlist <"
                                  << *currentPlaylist
                                  << ">\n";
             boost::uuids::uuid uniqueID;
 
             try {
-                uniqueID = boost::lexical_cast<boost::uuids::uuid>( urlInfo->value );
+                uniqueID = boost::lexical_cast<boost::uuids::uuid>( value );
 
             } catch (std::exception& ex) {
-                logger(Level::warning) << "cannot read unique ID "<<urlInfo->value<<">: " << ex.what()<<"\n";
-                return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
+                logger(Level::warning) << "cannot read unique ID "<<value<<">: " << ex.what()<<"\n";
+                return R"({"result": "cannot add <)" + value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
             }
 
             if (m_database.addToPlaylistUID(*currentPlaylist, std::move(uniqueID))) {
                 m_database.writeChangedPlaylists();
-                logger(Level::debug) << "adding audio file <" << urlInfo->value
+                logger(Level::debug) << "adding audio file <" << value
                                      << "> to playlist ID <" << boost::uuids::to_string(*currentPlaylist)
                                      << ">\n";
                 return R"({"result": "ok"})";
             }
         }
         else {
-            logger(Level::warning)<< "no current playlist to add audio file id <"<<urlInfo->value<<"> to\n";
+            logger(Level::warning)<< "no current playlist to add audio file id <"<<value<<"> to\n";
         }
-        return R"({"result": "cannot add <)" + urlInfo->value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
+        return R"({"result": "cannot add <)" + value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
 
     }
 
-    if (urlInfo->parameter == ServerConstant::Command::show) {
+    if (parameter == ServerConstant::Command::show) {
 
         boost::uuids::uuid playlistName;
 
-        if (!urlInfo->value.empty()) {
+        if (!value.empty()) {
             try {
-            playlistName = boost::lexical_cast<boost::uuids::uuid>(urlInfo->value);
+            playlistName = boost::lexical_cast<boost::uuids::uuid>(value);
             } catch (std::exception& ) {
                 playlistName = boost::uuids::uuid();
             }
@@ -153,7 +156,7 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
     }
 
     /* returns all playlist names */
-    if (urlInfo->parameter == ServerConstant::Command::showLists) {
+    if (parameter == ServerConstant::Command::showLists) {
         logger(Level::info) << "show all playlists\n";
         std::vector<std::pair<std::string, boost::uuids::uuid>> lists = m_database.getAllPlaylists();
         if (!lists.empty()) {
@@ -184,6 +187,6 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         }
     }
 
-    return R"({"result": "cannot find parameter <)" + urlInfo->parameter + "> in playlist\"}";
+    return R"({"result": "cannot find parameter <)" + parameter + "> in playlist\"}";
 
 }

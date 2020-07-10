@@ -32,6 +32,7 @@ namespace ServerConstant {
         static constexpr auto playlist {sv("/playlist")};
         static constexpr auto database {sv("/database")};
         static constexpr auto player {sv("/player")};
+        static constexpr auto wifi {sv("/wifi")};
         static constexpr auto upload {sv("/upload")};
         static constexpr auto websocket {sv("/dynamic")};
     }
@@ -75,6 +76,11 @@ namespace ServerConstant {
             static constexpr auto select {sv("select")};
             static constexpr auto toPosition {sv("toPosition")};
             static constexpr auto volume {sv("volume")};
+        }
+        namespace Wifi {
+        static constexpr auto ssid { sv("ssid") };
+        static constexpr auto psk { sv("psk") };
+
         }
     }
 

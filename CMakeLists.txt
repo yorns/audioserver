@@ -52,6 +52,8 @@ set(WEBSERVER
     ${CMAKE_SOURCE_DIR}/webserver/playlistaccess.h
     ${CMAKE_SOURCE_DIR}/webserver/playeraccess.cpp
     ${CMAKE_SOURCE_DIR}/webserver/playeraccess.h
+    ${CMAKE_SOURCE_DIR}/webserver/wifiaccess.cpp
+    ${CMAKE_SOURCE_DIR}/webserver/wifiaccess.h
     ${CMAKE_SOURCE_DIR}/webserver/websocketsession.cpp
     ${CMAKE_SOURCE_DIR}/webserver/websocketsession.h
     )
@@ -60,6 +62,11 @@ set(ID3INTERFACE
     ${CMAKE_SOURCE_DIR}/id3tagreader/Id3Info.h
     ${CMAKE_SOURCE_DIR}/id3tagreader/id3TagReader.cpp
     ${CMAKE_SOURCE_DIR}/id3tagreader/id3TagReader.h
+    )
+
+set(WIFI
+    ${CMAKE_SOURCE_DIR}/wifi/wifi.h
+    ${CMAKE_SOURCE_DIR}/wifi/wifi.cpp
     )
 
 set(DATABASE
@@ -109,6 +116,7 @@ add_executable(${PROJECT_NAME}
                ${WEBSERVER}
                ${ID3INTERFACE}
                ${DATABASE}
+               ${WIFI}
                ${COMMONCOMPONENTS}
                )
 
@@ -313,6 +321,29 @@ if (WITH_ADD)
             ${Boost_LIBRARIES}
             Threads::Threads
     )
+
+
+#
+# url Test
+#
+add_executable( urlTest
+    ${COMMONCOMPONENTS}
+    ${CMAKE_SOURCE_DIR}/test/urlTest.cpp
+    )
+set_target_properties( urlTest PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_compile_options( urlTest PUBLIC -O0 -g)
+target_include_directories(
+        urlTest
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
+)
+target_link_libraries(
+        urlTest
+        ${Boost_LIBRARIES}
+        Threads::Threads
+)
+
 endif(WITH_ADD)
 
 install(

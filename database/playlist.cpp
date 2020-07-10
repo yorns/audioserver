@@ -133,15 +133,15 @@ bool Playlist::readJson(std::function<void(boost::uuids::uuid&& uid, std::vector
     }
 
     if (playlist.size() > 0) {
-        logger(LoggerFramework::Level::debug) << "stream playlist: <"<<playlist.size()<<"> elements read\n";
+        logger(Level::debug) << "stream playlist: <" << uid <<"> (" << playlistName << ") <"<<playlist.size()<<"> elements read\n";
         auto hash = Common::genHash(coverData);
-        auto uid = m_item.m_uniqueId;
-        coverInsert(std::move(uid), std::move(coverData), hash);
+        auto coverUid = uid;
+        setUniqueID(std::move(uid));
+        coverInsert(std::move(coverUid), std::move(coverData), hash);
         setCover(m_item.m_uniqueId, extension);
         m_playlist = std::move(playlist);
         setName(std::move(playlistName));
         setPerformer(std::move(performerName));
-        setUniqueID(std::move(uid));
         return true;
     }
     return false;

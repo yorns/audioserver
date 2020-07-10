@@ -7,15 +7,18 @@ using namespace LoggerFramework;
 
 std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo) {
-        logger(Level::warning) << "invalid url given for playlist access\n";
+    if (!urlInfo || urlInfo->parameterList.size() != 1) {
+        logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }
 
-    logger(Level::info) << "player access - parameter: <"<<urlInfo->parameter<<"> value: <"<<urlInfo->value<<">\n";
+    auto parameter = urlInfo->parameterList.at(0).name;
+    auto value = urlInfo->parameterList.at(0).value;
 
-    if ( urlInfo->parameter == ServerConstant::Command::play &&
-         urlInfo->value == ServerConstant::Value::_true) {
+    logger(Level::info) << "player access - parameter: <"<<parameter<<"> value: <"<<value<<">\n";
+
+    if ( parameter == ServerConstant::Command::play &&
+         value == ServerConstant::Value::_true) {
 
         logger(Level::info) << "Play request\n";
 
@@ -28,33 +31,33 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::next &&
-            urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::next &&
+            value == ServerConstant::Value::_true) {
         m_player->next_file();
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::previous &&
-            urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::previous &&
+            value == ServerConstant::Value::_true) {
         m_player->prev_file();
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::stop &&
-            urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::stop &&
+            value == ServerConstant::Value::_true) {
         m_player->stop();
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::pause &&
-            urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::pause &&
+            value == ServerConstant::Value::_true) {
         m_player->pause_toggle();
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::select) {
+    if (parameter == ServerConstant::Parameter::Player::select) {
         try {
-        auto ID = boost::lexical_cast<boost::uuids::uuid>(urlInfo->value);
+        auto ID = boost::lexical_cast<boost::uuids::uuid>(value);
         if (m_player->jump_to_fileUID(ID))
             return R"({"result": "ok"})";
         else {
@@ -71,13 +74,13 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         }
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::toPosition) {
+    if (parameter == ServerConstant::Parameter::Player::toPosition) {
         int position {0};
         try {
-            position = std::stoi(urlInfo->value);
+            position = std::stoi(value);
         } catch (const std::exception& ex) {
             logger(Level::warning) << "toPosition request with value <"
-                                   << urlInfo->value
+                                   << value
                                    << "> could not be parsed ("
                                    << ex.what() << ")";
             return R"({"result": "jump to position: position could not be parsed"})";
@@ -86,13 +89,13 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::volume) {
+    if (parameter == ServerConstant::Parameter::Player::volume) {
         uint32_t volume {0};
         try {
-            volume = static_cast<uint32_t>(std::stoi(urlInfo->value));
+            volume = static_cast<uint32_t>(std::stoi(value));
         } catch (const std::exception& ex) {
             logger(Level::warning) << "volume request with value <"
-                                   << urlInfo->value
+                                   << value
                                    << "> could not be parsed ("
                                    << ex.what() << ")";
             return R"({"result": "jump to position: position could not be parsed"})";
@@ -101,28 +104,28 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::fastForward &&
-            urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::fastForward &&
+            value == ServerConstant::Value::_true) {
         m_player->seek_forward();
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::fastBackward &&
-            urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::fastBackward &&
+            value == ServerConstant::Value::_true) {
         m_player->seek_backward();
         return R"({"result": "ok"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::toggleShuffle) {
-        if (urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::toggleShuffle) {
+        if (value == ServerConstant::Value::_true) {
             m_player->toggleShuffle();
             return R"({"result": "ok"})";
         }
         return R"({"result": "unknown value set; allowed <true|false>"})";
     }
 
-    if (urlInfo->parameter == ServerConstant::Parameter::Player::toggleLoop) {
-        if (urlInfo->value == ServerConstant::Value::_true) {
+    if (parameter == ServerConstant::Parameter::Player::toggleLoop) {
+        if (value == ServerConstant::Value::_true) {
             m_player->toogleLoop();
             return R"({"result": "ok"})";
         }

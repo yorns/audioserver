@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Zero Player</title>
-    <link rel="stylesheet" href="css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/fontello.css" >
     <!-- <link rel="stylesheet" href="css/fontello-codes.css" > -->
     <script src="js/jquery-3.4.1.min.js"></script>
@@ -151,7 +151,8 @@
 
     <!-- Trigger the modal with a button -->
     <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal">Open Player</button>
-    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#upload">Upload</button>
+    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#upload">Open Upload</button>
+    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#wifi">Open Wifi</button>
 
     <!-- Modal -->
     <div id="myModal" class="modal fade" role="dialog" tabindex="-1">
@@ -269,6 +270,53 @@
                     </div>
 
                 </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="wifi" class="modal fade" role="dialog">
+        <div class="modal-dialog modal-lg">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Wifi</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+
+                    <h2>Wifi Configuration</h2>
+                    <form>
+                        <div class="form-group">
+                            <label>SSID:</label>
+                            <input type="text" name="ssid" id="credential_ssid" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Password:</label>
+                            <input type="password" id="credential_psk" name="psk" class="form-control">
+                        </div>
+                    </form>
+                    <button type="button" class="btn btn-success" id="wifiCredentials">Submit</button>
+                    
+                    <table class="table w-auto table-hover" id="wifiList">
+                      <thead>
+                        <tr>
+                            <th scope="col">Configured</th>
+                          <th scope="col">SSID</th>
+                          <th scope="col">Strength</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                      </tbody>
+                    </table>
+                </div>
+                    
+                    
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+
             </div>
 
         </div>

@@ -52,38 +52,41 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
 
 std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo) {
+    if (!urlInfo || urlInfo->parameterList.size() != 1) {
         logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }
 
-    logger(Level::info) << "database access - parameter:<"<<urlInfo->parameter<<"> value:<"<<urlInfo->value<<">\n";
-    if (urlInfo->parameter == ServerConstant::Command::getAlbumList) {
+    auto parameter = urlInfo->parameterList.at(0).name;
+    auto value = urlInfo->parameterList.at(0).value;
+
+    logger(Level::info) << "database access - parameter:<"<<parameter<<"> value:<"<<value<<">\n";
+    if (parameter == ServerConstant::Command::getAlbumList) {
         // get all albums and sort/reduce
-        auto infoList = m_database.searchPlaylistItems(urlInfo->value, Database::SearchAction::alike);
+        auto infoList = m_database.searchPlaylistItems(value, Database::SearchAction::alike);
 
         return convertToJson(infoList);
     }
 
-    if ( urlInfo->parameter == ServerConstant::Parameter::Database::overall )
-        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::overall, Database::SearchAction::exact));
+    if ( parameter == ServerConstant::Parameter::Database::overall )
+        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::overall, Database::SearchAction::exact));
 
-    if ( urlInfo->parameter == ServerConstant::Parameter::Database::interpret )
-        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::interpret, Database::SearchAction::exact));
+    if ( parameter == ServerConstant::Parameter::Database::interpret )
+        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::interpret, Database::SearchAction::exact));
 
-    if ( urlInfo->parameter == ServerConstant::Parameter::Database::titel )
-        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::titel, Database::SearchAction::exact));
+    if ( parameter == ServerConstant::Parameter::Database::titel )
+        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::titel, Database::SearchAction::exact));
 
-    if ( urlInfo->parameter == ServerConstant::Parameter::Database::album )
-        return convertToJson(m_database.searchAudioItems(urlInfo->value, Database::SearchItem::album, Database::SearchAction::exact));
+    if ( parameter == ServerConstant::Parameter::Database::album )
+        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::album, Database::SearchAction::exact));
 
-    if ( urlInfo->parameter == ServerConstant::Parameter::Database::uid ){
-        auto uidData = m_database.searchAudioItems(urlInfo->value, Database::SearchItem::uid , Database::SearchAction::uniqueId);
+    if ( parameter == ServerConstant::Parameter::Database::uid ){
+        auto uidData = m_database.searchAudioItems(value, Database::SearchItem::uid , Database::SearchAction::uniqueId);
         logger(Level::debug) << "audio item uid found <"<<uidData.size()<<"> elements\n";
         if (uidData.size()>0)
             return convertToJson(uidData);
 
-        auto plData = m_database.searchPlaylistItems(urlInfo->value);
+        auto plData = m_database.searchPlaylistItems(value);
         logger(Level::debug) << "playlist uid found <"<<uidData.size()<<"> elements\n";
         if (plData.size() > 0)
             return convertToJson(plData);

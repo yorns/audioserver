@@ -21,6 +21,7 @@
 #include "webserver/databaseaccess.h"
 #include "webserver/playlistaccess.h"
 #include "webserver/playeraccess.h"
+#include "webserver/wifiaccess.h"
 #include "playerinterface/mpvplayer.h"
 #include "playerinterface/gstplayer.h"
 #include "database/SimpleDatabase.h"
@@ -147,10 +148,12 @@ int main(int argc, char* argv[])
     auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
 
     Database::SimpleDatabase database(config->m_enableCache);
+    WifiManager wifiManager;
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
     PlaylistAccess playlistWrapper(database);
+    WifiAccess wifiAccess(wifiManager);
 
     auto updateUI = [&sessionHandler, &sncClient]( const boost::uuids::uuid& songID, const boost::uuids::uuid& playlistID, const boost::uuids::uuid& currPlaylistID,
                   int position, bool doLoop, bool doShuffle, bool playing, double volume) {
@@ -170,38 +173,48 @@ int main(int argc, char* argv[])
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
         sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());
+
     };
 
-    auto externalSelect = [&database, &player](const std::string& raw_msg) {
+
+
+    auto externalSelect = [&database, &player, &sessionHandler](const std::string& raw_msg) {
         try {
-        nlohmann::json msg = nlohmann::json::parse(raw_msg);
-        auto command = msg.at("Cmd");
-        if (command == "start") {
-            logger(Level::info) << "start new album <"<<msg.at("AlbumID")<<">\n";
-            boost::uuids::uuid albumId, titleID;
-            try {
-                albumId = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("AlbumID")));
-            } catch (std::exception& ex) {
-                logger(Level::warning) << "cannot extract album id: "<< ex.what() << "\n";
-                return;
+            nlohmann::json msg = nlohmann::json::parse(raw_msg);
+            if (msg.find("Cmd") != msg.end()) {
+                auto command = msg.at("Cmd");
+                if (command == "start") {
+                    logger(Level::info) << "start new album <"<<msg.at("AlbumID")<<">\n";
+                    boost::uuids::uuid albumId, titleID;
+                    try {
+                        albumId = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("AlbumID")));
+                    } catch (std::exception& ex) {
+                        logger(Level::warning) << "cannot extract album id: "<< ex.what() << "\n";
+                        return;
+                    }
+
+                    database.setCurrentPlaylistUniqueId(std::move(albumId));
+                    auto albumPlaylistAndNames = database.getAlbumPlaylistAndNames();
+                    try {
+                        titleID = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("TitleID")));
+                    } catch (std::exception& ex) {
+                        logger(Level::warning) << "cannot extract title id: "<< ex.what() << "\n";
+                        return;
+                    }
+                    player->startPlay(albumPlaylistAndNames,
+                                      titleID,
+                                      msg.at("Position"));
+                }
+                if (command == "stop") {
+                    logger(Level::info) << "stop album <"<<msg.at("AlbumID")<<">\n";
+                    player->stop();
+                }
+            }
+            if (msg.find("SsidMessage") != msg.end()) {
+                sessionHandler.broadcast(msg.dump());
+
             }
 
-            database.setCurrentPlaylistUniqueId(std::move(albumId));
-            auto albumPlaylistAndNames = database.getAlbumPlaylistAndNames();
-            try {
-                titleID = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("TitleID")));
-            } catch (std::exception& ex) {
-                logger(Level::warning) << "cannot extract title id: "<< ex.what() << "\n";
-                return;
-            }
-            player->startPlay(albumPlaylistAndNames,
-                              titleID,
-                              msg.at("Position"));
-        }
-        if (command == "stop") {
-            logger(Level::info) << "stop album <"<<msg.at("AlbumID")<<">\n";
-            player->stop();
-        }
         } catch (std::exception& exp) {
             logger(Level::warning) << "Cannot parse message (Error is > " << exp.what() << "):\n " << raw_msg << "\n";
         }
@@ -243,6 +256,12 @@ int main(int argc, char* argv[])
                                  [&playerWrapper](const http::request_parser<http::string_body>& request) -> std::string {
         auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
         return playerWrapper.access(url);
+    });
+
+    sessionHandler.addUrlHandler(ServerConstant::AccessPoints::wifi, http::verb::post, PathCompare::exact,
+                                 [&wifiAccess](const http::request_parser<http::string_body>& request) -> std::string {
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        return wifiAccess.access(url);
     });
 
     sessionHandler.addVirtualFileHandler([&databaseWrapper](const std::string_view& _target) -> std::optional<std::vector<char>> {

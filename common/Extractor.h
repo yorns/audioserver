@@ -6,10 +6,16 @@
 #include <tuple>
 #include <regex>
 #include <optional>
+#include <algorithm>
 #include "urlDecode.h"
+#include <boost/tokenizer.hpp>
 
 namespace utility {
 
+struct Parameter {
+    std::string name;
+    std::string value;
+};
 
     static std::string urlConvert(const std::string& url) {
 
@@ -26,33 +32,119 @@ namespace utility {
     }
 
 
+    static std::string findCommand(const std::string& name, const std::string& startValue = "/", const std::string& endValue = "?") {
+        auto lastPos = name.find_first_of(endValue);
+        if (lastPos != std::string::npos)
+            lastPos -=1;
+        auto firstPos = name.find_last_of(startValue,lastPos);
+        if (lastPos > firstPos) {
+            return name.substr(firstPos+1, lastPos-firstPos);
+        }
+        return "";
+    }
+
+    static std::vector<Parameter> findParameters(const std::string& _name, const std::string& startValue = "?", const std::string& separator = "&") {
+
+        auto startPos = _name.find_first_of(startValue);
+
+        if (startPos == std::string::npos)
+            return  {};
+
+        auto name = _name.substr(startPos+1);
+
+        // try to use tockenizer again. This is no real solution (no .size() .at(), constructor does not work with arbitrary input (e.g. _name.substr(startPos+1) gives nonsens))
+        typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
+        boost::char_separator<char> sep{separator.c_str()};
+
+        std::vector<Parameter> parameterList;
+
+        tokenizer tok{name, sep};
+        for (const auto &t : tok) {
+            std::string tmp = t;
+            auto pos = tmp.find_first_of("=");
+            if (pos != std::string::npos) {
+                Parameter parameter;
+                parameter.name = tmp.substr(0,pos);
+                parameter.value = urlConvert(tmp.substr(pos+1));
+                parameterList.emplace_back(std::move(parameter));
+            }
+        }
+
+        return parameterList;
+    }
+
     struct Extractor {
 
         struct UrlInfo {
             std::string command;
-            std::string parameter;
-            std::string value;
+            std::vector<Parameter> parameterList;
+
+            bool parsed {false};
+
+            bool parse(const std::string& url) {
+                command = findCommand(url);
+                parameterList = findParameters(url);
+                parsed = true;
+                return !command.empty();
+            }
+
+            bool hasParameter(const std::string& parameterName) const {
+                return std::find_if(std::begin(parameterList), std::end(parameterList),
+                                    [&parameterName](const Parameter& param){ return param.name == parameterName; })
+                        != std::end(parameterList);
+            }
+
+            bool hasParameter(std::string_view parameterName) const {
+                return std::find_if(std::begin(parameterList), std::end(parameterList),
+                                    [&parameterName](const Parameter& param){ return param.name == parameterName; })
+                        != std::end(parameterList);
+            }
+
+            bool hasParameter(const char* parameterName) const {
+                return std::find_if(std::begin(parameterList), std::end(parameterList),
+                                    [&parameterName](const Parameter& param){ return param.name == parameterName; })
+                        != std::end(parameterList);
+            }
+
+            std::string getValueOfParameter(const std::string& parameterName) const {
+                auto it = std::find_if(std::begin(parameterList), std::end(parameterList),
+                                    [&parameterName](const Parameter& param){ return param.name == parameterName; });
+                if (it != std::end(parameterList))
+                    return it->value;
+
+                return "";
+
+            }
+
+            std::string getValueOfParameter(std::string_view parameterName) const {
+                auto it = std::find_if(std::begin(parameterList), std::end(parameterList),
+                                    [&parameterName](const Parameter& param){ return param.name == parameterName; });
+                if (it != std::end(parameterList))
+                    return it->value;
+
+                return "";
+
+            }
+
+            std::string getValueOfParameter(const char* parameterName) const {
+                auto it = std::find_if(std::begin(parameterList), std::end(parameterList),
+                                    [&parameterName](const Parameter& param){ return param.name == parameterName; });
+                if (it != std::end(parameterList))
+                    return it->value;
+
+                return "";
+
+            }
+
         };
 
         using UrlInformation = std::optional<UrlInfo>;
 
         static UrlInformation getUrlInformation(const std::string& url) {
 
-            const std::regex pattern{".*/([^\\?]*)\\?([^=]*)=([^&]*)$"};
-
-            std::smatch match{};
-            if (std::regex_search(url, match, pattern)) { /* no regex string_view with c++17 */
-                UrlInfo info;
-                try {
-                    info.command = match[1].str();
-                    info.parameter = match[2].str();
-                    std::string m = match[3].str();
-                    info.value = urlConvert(m);
-                } catch (...) {
-                    return std::nullopt;
-                }
-                return UrlInformation(info);
-            }
+            UrlInfo info;
+            if (info.parse(url))
+                return info;
 
             return std::nullopt;
         }
