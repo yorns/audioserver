@@ -47,7 +47,7 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
         logger(Level::error) << "conversion to json failed: " << ex.what();
     }
 
-    return json.dump();
+    return json.dump(2);
 }
 
 std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
@@ -85,9 +85,11 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
         logger(Level::debug) << "audio item uid found <"<<uidData.size()<<"> elements\n";
         if (uidData.size()>0)
             return convertToJson(uidData);
+    }
 
+    if (parameter == ServerConstant::Parameter::Database::playlist ) {
         auto plData = m_database.searchPlaylistItems(value);
-        logger(Level::debug) << "playlist uid found <"<<uidData.size()<<"> elements\n";
+        logger(Level::debug) << "playlist uid found <"<<plData.size()<<"> elements\n";
         if (plData.size() > 0)
             return convertToJson(plData);
     }

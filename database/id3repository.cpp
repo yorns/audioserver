@@ -395,7 +395,7 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
 
     std::vector<Id3Info> findData;
 
-    if (action == SearchAction::uniqueId) {
+    if (action == SearchAction::uniqueId || item == SearchItem::uid) {
         try {
             auto whatUuid = boost::lexical_cast<boost::uuids::uuid>(what);
             std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
@@ -415,7 +415,12 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
         std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
                       [&whatList, &what, &findData, item, action](const Id3Info &info) {
             if (action == SearchAction::alike) {
-                if ( info.isAlike(whatList) ) {
+                if (((item == SearchItem::titel || item == SearchItem::overall) &&
+                     (info.isAlikeTitle(whatList))) ||
+                    ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                     (info.isAlikeAlbum(whatList))) ||
+                    ((item == SearchItem::interpret || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                     (info.isAlikePerformer(whatList)))) {
                     findData.push_back(info);
                 }
             }
@@ -426,8 +431,9 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
                         ((item == SearchItem::album || item == SearchItem::overall) &&
                          (info.album_name.find(what) != std::string::npos)) ||
                         ((item == SearchItem::interpret || item == SearchItem::overall) &&
-                         (info.performer_name.find(what) != std::string::npos)))
+                         (info.performer_name.find(what) != std::string::npos))) {
                     findData.push_back(info);
+                }
             }
         });
     }

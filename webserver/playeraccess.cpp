@@ -64,12 +64,17 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
             auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
 
             if (albumPlaylistAndNames.m_playlistUniqueId != m_player->getPlaylistID() &&
-                m_player->startPlay(albumPlaylistAndNames,ID))
-              return R"({"result": "ok"})";
-            else
+                m_player->startPlay(albumPlaylistAndNames,ID)) {
+                logger(Level::info) << "start playing "<< albumPlaylistAndNames.m_playlistUniqueId << " -> "<< ID <<"\n";
+                return R"({"result": "ok"})";
+            }
+            else {
+                logger(Level::warning) << "cannot find neither song nor playlist\n";
                 return R"({"result": "cannot find neither song nor playlist"})";
+            }
         }
         } catch (std::exception&) {
+            logger(Level::warning) << "wrong audio UID: cannot be extracted\n";
             return R"({"result": "wrong ID"})";
         }
     }

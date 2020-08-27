@@ -6,9 +6,25 @@ using namespace Database;
 
 void SimpleDatabase::loadDatabase() {
 
+    logger(Level::info) << "Read audio id3 data\n"; 
     m_id3Repository.read();
+    
+    // some helper lambdas
+    auto addPlaylistCover = [this](boost::uuids::uuid uid, 
+            std::vector<char>&& data, std::size_t hash)
+    { m_id3Repository.addCover(std::move(uid), std::move(data), hash); };
+    
+    auto findAudioIds = [this](const std::string& what, SearchItem searchItem) {
+        std::vector<boost::uuids::uuid> uuidsFound;
+        auto list = m_id3Repository.search(what, searchItem, SearchAction::alike);
+        for(const auto& i : list) {
+            uuidsFound.push_back(i.uid);
+        }
+        return uuidsFound;
+    };
+    
     m_playlistContainer.readPlaylistsM3U();
-    m_playlistContainer.readPlaylistsJson([this](boost::uuids::uuid uid, std::vector<char>&& data, std::size_t hash){ m_id3Repository.addCover(std::move(uid), std::move(data), hash); });
+    m_playlistContainer.readPlaylistsJson(findAudioIds, addPlaylistCover);
     m_playlistContainer.insertAlbumPlaylists(m_id3Repository.extractAlbumList());
 
 }
@@ -17,6 +33,11 @@ void SimpleDatabase::loadDatabase() {
 std::vector<Id3Info> SimpleDatabase::searchAudioItems(const std::string &what, SearchItem item, SearchAction action) {
         return m_id3Repository.search(what, item, action);
 }
+
+std::vector<Id3Info> SimpleDatabase::searchAudioItems(const boost::uuids::uuid &what, SearchItem item, SearchAction action) {
+        return m_id3Repository.search(what, item, action);
+}
+
 
 std::optional<boost::uuids::uuid> SimpleDatabase::createPlaylist(const std::string &name, Persistent ) {
 
@@ -129,6 +150,8 @@ Common::AlbumPlaylistAndNames SimpleDatabase::getAlbumPlaylistAndNames() {
                              << "> (" << albumPlaylistAndNames.m_playlistName << ") with "
                              << albumPlaylistAndNames.m_playlist.size() << " elements\n";
 
+    } else {
+        logger(Level::warning) << "no current playlist set\n";
     }
 
     return albumPlaylistAndNames;

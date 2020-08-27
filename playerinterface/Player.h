@@ -92,6 +92,9 @@ public:
     virtual boost::uuids::uuid getSongID() const = 0;
     std::string getSongIDStr() const { return boost::uuids::to_string(getSongID()); }
     virtual int getSongPercentage() const = 0;
+    virtual const std::string getTitle() const = 0;
+    virtual const std::string getAlbum() const = 0;
+    virtual const std::string getPerformer() const = 0;
 
     void onUiChange(OnUiChangeHandler&& onUiChangeFunc) { m_onUiChangeHandler = std::move(onUiChangeFunc); }
 

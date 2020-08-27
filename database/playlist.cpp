@@ -103,7 +103,7 @@ void Playlist::setPersistent(const Persistent &persistent)
     m_persistent = persistent;
 }
 
-bool Playlist::readJson(std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert)
+bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert)
 {
 
     std::vector<boost::uuids::uuid> playlist;
@@ -124,7 +124,29 @@ bool Playlist::readJson(std::function<void(boost::uuids::uuid&& uid, std::vector
         auto items = streamInfo.at("Items");
         coverData = utility::base64_decode(streamInfo.at("Image"));
         for (auto elem : items) {
-            playlist.emplace_back(boost::lexical_cast<boost::uuids::uuid>(std::string(elem.at("Id"))));
+            if (elem.find("Id") != elem.end()) {
+                auto audioItemList = findAlgo(elem.at("Id"), SearchItem::uid);
+                if (audioItemList.size() == 1)
+                    playlist.emplace_back(audioItemList.at(0));
+            }
+            else if (elem.find("Album") != elem.end()) {
+                auto audioItemList = findAlgo(elem.at("Album"), SearchItem::album);
+                for (const auto& UuidItem : audioItemList) {
+                    playlist.emplace_back(UuidItem);
+                }
+            }
+            else if (elem.find("Performer") != elem.end()) {
+                auto audioItemList = findAlgo(elem.at("Performer"), SearchItem::interpret);
+                for (const auto& UuidItem : audioItemList) {
+                    playlist.emplace_back(UuidItem);
+                }
+            }
+            else if (elem.find("Title") != elem.end()) {
+                auto audioItemList = findAlgo(elem.at("Title"), SearchItem::titel);
+                for (const auto& UuidItem : audioItemList) {
+                    playlist.emplace_back(UuidItem);
+                }
+            }
         }
 
     } catch (std::exception& ex) {

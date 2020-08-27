@@ -19,6 +19,9 @@ class GstPlayer  : public BasePlayer
 
     RepeatTimer m_gstLoop;
     std::string m_songName;
+    std::string m_title; // empty as long as no data is set from gstreamer;
+    std::string m_album;
+    std::string m_performer;
 
     gboolean _handle_message (GstBus *, GstMessage *msg) {
 
@@ -59,14 +62,16 @@ class GstPlayer  : public BasePlayer
           gchar* value; // memory management unclear!!
           if (gst_tag_list_get_string_index (tags, titleTagName, 0, &value)) {
               logger(LoggerFramework::Level::debug)<< "tag: "<<titleTagName<<" = " << value <<"\n";
-              m_songName = value;
+              m_title = value;
+              m_songName = m_title;
               m_songName += " - ";
           }
 
           const gchar* albumTagName = "album";
           if (gst_tag_list_get_string_index (tags, albumTagName, 0, &value)) {
               logger(LoggerFramework::Level::debug)<< "tag: "<<albumTagName<<" = " << value <<"\n";
-              m_songName += value;
+              m_album = value;
+              m_songName += m_album;
           }
 
           gst_tag_list_unref (tags);
@@ -185,8 +190,10 @@ public:
             return true;
         }
 
-        if (albumPlaylistAndNames.m_playlist.empty())
+        if (albumPlaylistAndNames.m_playlist.empty()) {
+            logger(LoggerFramework::Level::warning) << "playing failed, no album list set\n";
             return false;
+        }
 
         m_playlist = albumPlaylistAndNames.m_playlist;
         m_playlist_orig = albumPlaylistAndNames.m_playlist;
@@ -194,10 +201,13 @@ public:
         m_PlaylistUniqueId = albumPlaylistAndNames.m_playlistUniqueId;
         m_PlaylistName = albumPlaylistAndNames.m_playlistName;
 
-        if (songUID != m_currentItemIterator->m_uniqueId) {
+        if (!songUID.is_nil() && songUID != m_currentItemIterator->m_uniqueId) {
             m_currentItemIterator = std::find_if(std::begin(m_playlist), std::end(m_playlist), [&songUID](auto& elem){ return elem.m_uniqueId == songUID; });
-            if (m_currentItemIterator == std::end(m_playlist))
+            if (m_currentItemIterator == std::end(m_playlist)) {
+                logger(LoggerFramework::Level::warning) << "cannot set anyone title from playlist <" << m_PlaylistName
+                                                        << ">\n (searching for <"<< songUID <<"> in <"<<m_playlist.size()<<"> elemenents\n";
                 return false;
+            }
         }
 
         logger(LoggerFramework::Level::info) << "start Playing new playlist <"<<m_PlaylistUniqueId<<"> ("<<m_PlaylistName<<")\n";
@@ -328,6 +338,7 @@ public:
     }
 
     bool jump_to_fileUID(const boost::uuids::uuid& fileId)  final {
+
         auto it = std::find_if(std::begin(m_playlist),
                                std::end(m_playlist),
                                [&fileId](const auto& playlistItem){ return playlistItem.m_uniqueId == fileId; });
@@ -345,6 +356,10 @@ public:
         }
         return true;
     }
+
+    const std::string getTitle() const final { return m_title; }
+    const std::string getAlbum() const final { return m_album; }
+    const std::string getPerformer() const final { return m_performer; }
 
     const std::string getSongName() const final { return m_songName; }
     boost::uuids::uuid getSongID() const final {

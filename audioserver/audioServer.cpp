@@ -155,10 +155,56 @@ int main(int argc, char* argv[])
     PlaylistAccess playlistWrapper(database);
     WifiAccess wifiAccess(wifiManager);
 
-    auto updateUI = [&sessionHandler, &sncClient]( const boost::uuids::uuid& songID, const boost::uuids::uuid& playlistID, const boost::uuids::uuid& currPlaylistID,
-                  int position, bool doLoop, bool doShuffle, bool playing, double volume) {
+    auto updateUI = [&sessionHandler, &sncClient, &player, &database]( const boost::uuids::uuid& songID, const boost::uuids::uuid& playlistID, const boost::uuids::uuid& currPlaylistID,
+                  int position) {
 
-        //logger(Level::debug) << "send updateUID json with with songID: <"<<songID<<"> playlistID: <"<<playlistID<<">\n";
+
+        std::string title;
+        std::string album;
+        std::string performer;
+        std::string cover = "/img/unknown.png";
+
+        if (player->isPlaying()) {
+
+            auto songData = database.searchAudioItems(songID, Database::SearchItem::uid , Database::SearchAction::uniqueId);
+
+            if (!player->getTitle().empty()) {
+                title = player->getTitle();
+            }
+            else if (songData.size() > 0) {
+                title = songData[0].title_name;
+            }
+
+            if (!player->getAlbum().empty()) {
+                album = player->getAlbum();
+            }
+            else if (songData.size() > 0) {
+                album = songData[0].album_name;
+            }
+
+            if (!player->getPerformer().empty()) {
+                performer = player->getPerformer();
+            }
+            else if (songData.size() > 0) {
+                performer = songData[0].performer_name;
+            }
+
+            if (songData.size() > 0) {
+            cover = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
+                    "/" + boost::uuids::to_string(songID) + songData[0].fileExtension;
+            }
+
+        } else {
+            auto playlistData = database.searchPlaylistItems(playlistID);
+
+            if (playlistData.size() > 0) {
+                album = playlistData[0].getName();
+                performer = playlistData[0].getPerformer();
+
+                cover = playlistData[0].getCover();
+            }
+        }
+
 
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
@@ -166,10 +212,14 @@ int main(int argc, char* argv[])
         songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
         songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
         songInfo["position"] = position;
-        songInfo["loop"] = doLoop;
-        songInfo["shuffle"] = doShuffle;
-        songInfo["playing"] = playing;
-        songInfo["volume"] = volume;
+        songInfo["loop"] = player->getLoop();
+        songInfo["shuffle"] = player->getShuffle();
+        songInfo["playing"] = player->isPlaying();
+        songInfo["volume"] = player->getVolume();
+        songInfo["title"] = title;
+        songInfo["album"] = album;
+        songInfo["performer"] = performer;
+        songInfo["cover"] = cover;
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
         sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());
@@ -227,9 +277,13 @@ int main(int argc, char* argv[])
 
     //player->onUiChange(updateUI);
 
-    player->setSongEndCB([&player, &updateUI](const boost::uuids::uuid& songID){
+    player->setSongEndCB([&database, &updateUI](const boost::uuids::uuid& songID){
         boost::ignore_unused(songID);
-        updateUI(boost::uuids::uuid(), player->getPlaylistID(), player->getPlaylistID(), 0, player->getLoop(), player->getShuffle(), false, player->getVolume());
+        auto currentPlaylistUniqueIDOptional = database.getCurrentPlaylistUniqueID();
+        boost::uuids::uuid currentPlaylistUniqueID;
+        if (currentPlaylistUniqueIDOptional)
+            currentPlaylistUniqueID = *currentPlaylistUniqueIDOptional;
+        updateUI(boost::uuids::uuid(), currentPlaylistUniqueID , currentPlaylistUniqueID, 0);
         logger(Level::info) << "end handler called for current song\n";
     });
 
@@ -314,16 +368,13 @@ int main(int argc, char* argv[])
             if (auto _playlistID = database.getCurrentPlaylistUniqueID())
                 playlistID = *_playlistID;
 
-            bool loop = player->getLoop();
-            bool shuffle = player->getShuffle();
-
             if (player->isPlaying()) {
                 songID = player->getSongID();
                 currPlaylistID = player->getPlaylistID();
                 timePercent = player->getSongPercentage(); // getSongPercentage is in 1/100 (e.g. 7843 is 78.43%)
             }
 
-            updateUI(songID, playlistID, currPlaylistID, timePercent, loop, shuffle, player->isPlaying(), player->getVolume());
+            updateUI(songID, playlistID, currPlaylistID, timePercent);
         }
     });
 

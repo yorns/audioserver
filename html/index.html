@@ -7,11 +7,9 @@
     <title>Zero Player</title>
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/fontello.css" >
-    <!-- <link rel="stylesheet" href="css/fontello-codes.css" > -->
     <script src="js/jquery-3.4.1.min.js"></script>
     <script src="js/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    <script src="js.cookie.min.js"></script>
     <style>
         .bild {
             position: relative;
@@ -57,7 +55,7 @@
         .btn-gray {
             /*  */
             background-color: transparent;
-            color: gainsboro;
+            color: white;
             border:0 !important;
             outline: none !important;
             font-size: 20px !important;
@@ -65,7 +63,7 @@
         .btn-black {
             /*  */
             background-color: transparent;
-            color: black;
+            color: #777777;
             border:0 !important;
             outline: none !important;
             font-size: 20px !important;
@@ -85,6 +83,7 @@
   border-radius: 0;
 }
 .modal .modal-body {
+    height: 40%;
   overflow-y: auto;
 }
 	.card-title {
@@ -94,6 +93,7 @@
     .card {
        width: 300px;
     }
+        
     h5.card-title {
            font-size: 20pt;
        }
@@ -101,13 +101,13 @@
 
     @media (max-width:768px) {
         .card {
-          width: 140px;
+          width: 130px;
          }
          h5.card-title {
-           font-size: 10pt;
+           font-size: 9pt;
        }
          h5 {
-           font-size: 10pt;
+           font-size: 9pt;
        }
 
         p {
@@ -115,47 +115,90 @@
        }
     }
 	
-    .table {
+.table {
         font-size:14px !important;
     }
-.progress-bar-vertical {
-  width: 20px;
-  min-height: 100px;
-  display: flex;
-  align-items: flex-end;
-  margin-right: 20px;
-  float: left;
+
+.slidecontainer {
+  width: 100%; /* Width of the outside container */
 }
 
-.progress-bar-vertical .progress-bar {
-  width: 100%;
-  height: 0;
-  -webkit-transition: height 0.6s ease;
-  -o-transition: height 0.6s ease;
-  transition: height 0.6s ease;
+/* The slider itself */
+.slider {
+  -webkit-appearance: none;  /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 25px; /* Specified height */
+  background: #d3d3d3; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+  transition: opacity .2s;
 }
 
-    </style>
+/* Mouse-over effects */
+.slider:hover {
+  opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #4CAF50; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+  width: 25px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #4CAF50; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}       
+        
+input[type=range][orient=vertical]
+{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    width: 8px;
+    height: 100%;
+    padding: 0 5px;
+}
+
+.modal-dialog{
+    overflow-y: initial !important
+}
+.border-3 {
+    border-width:1px !important;
+    border-color: #777777 !important;
+}
+.bg-black-1 {
+    background-color: #222222;
+}
+.mt-5 {
+  margin-top: 5px !important;
+}
+
+</style>
     
-    <script src="js/audioserver.js"></script>
+<script src="js/audioserver.js"></script>
 
 </head>
 
 <body>
-    <div class="jumbotron text-center">
-        <h1>Zero Audio Player</h1>
-        <p>small, efficient, independent</p>
+    <div class="col-xs-12" style="height:5px;"></div>
+    <div class="container-fluid">
+        <!-- Trigger the modal with a button -->
+        <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#player" id="playerBtn">Player</button>
+        <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#upload" id="uploadBtn">Upload</button>
+        <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#wifi" id="wifiBtn">Wifi</button>
     </div>
 
-    <!--<h1>Playlist <span id="actPlaylistName" class="badge badge-secondary">nothing</span></h1>-->
-
-    <!-- Trigger the modal with a button -->
-    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal">Open Player</button>
-    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#upload">Open Upload</button>
-    <button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#wifi">Open Wifi</button>
-
     <!-- Modal -->
-    <div id="myModal" class="modal fade" role="dialog" tabindex="-1">
+    <div class="container-fluid">
+    <div id="player" class="modal fade" role="dialog" tabindex="-1">
         <div class="modal-dialog modal-lg">
 
             <!-- Modal content-->
@@ -172,15 +215,14 @@
                         </div>
                         <div class="row">
                             <div class="col-3">
-                                <img class="img-rounded" id="actCover" style="width: 100%" src="img/unknown.png" alt="1234" />
+                                <img class="img-rounded" id="actCover" style="width: 100%; max-width: 300px;" src="/img/unknown.png" alt="" />
                             </div>
                             <div class="col-7">
                                 <h5 id="actSong">nothing</h5>
                             </div>
                             <div class="col-1">
-                                <div class="progress progress-bar-vertical" id="volume-box">
-                                    <div class="progress-bar" role="progressbar" aria-valuenow="00" aria-valuemin="0" aria-valuemax="100" id="volumeProgress" style="height: 100%;">
-                                    </div>
+                               <div class="slidecontainer">
+                                  <input type="range" min="1" max="100" style="height: 100%;" value="50" class="slider" id="volume-box" orient="vertical" />
                                 </div>
                             </div>
                             <div class="col-1">
@@ -189,39 +231,53 @@
                         <div class="row" style="margin-top: 10px">
                             <div class="col-sm-1"></div>
                             <div class="col-sm-10">
-                                <div class="progress" id="progress-box">
-                                    <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="songProgress" style="width:0%">
-                                    </div>
+                                <div class="slidecontainer">
+                                  <input type="range" min="1" max="100" value="50" class="slider" id="progress-box2">
                                 </div>
                             </div>
                             <div class="col-sm-1"></div>
                         </div>
-                        <div class="row" style="margin-top: 20px">
-                            <div class="col-sm-12">
-
-                                <div id='toolbar' class="col-">
-                                    <!--<div class='wrapper text-center'> -->
-                                    <div class="btn-group btn-group" role="group" aria-label="Player" id="Player">
+                        <div class="row" style="margin-top: 2%">
+                            <div class="col-">
                                         <button id="btnRepeat" class="btn-gray"><i class="icon-loop"></i></button>
-                                        <button id="btnShuffle" class="btn-gray"><i class="icon-shuffle"></i></button>
-                                        <button id="btnPlay" class="btn-black"><i class="icon-play"></i></button>
-                                        <button id="btnPause" class="btn-black"><i class="icon-pause"></i></button>                                       
-                                        <button id="btnStop" class="btn-black"><i class="icon-stop"></i></button>
-                                        <button id="btnPrevious" class="btn-black"><i class="icon-to-start"></i></button>
-                                        <button id="btnNext" class="btn-black"><i class="icon-to-end"></i></button>
-                                        <!--
-                                        <button id="btnFastBackward" class="btn-black"><i class="icon-fast-backward"></i></button>
-                                        <button id="btnFastForward" class="btn-black"><i class="icon-fast-forward"></i></button>
-                                        -->
-                                    </div>
-                                    <!--</div>-->
-                                </div>
                             </div>
+                            <div class="col-">
+                                        <button id="btnShuffle" class="btn-gray"><i class="icon-shuffle"></i></button>
+                            </div>
+                            <div class="col-">
+                                        <button id="btnPlay" class="btn-black"><i class="icon-play"></i></button>
+                            </div>
+                            <div class="col-">
+                                        <button id="btnPause" class="btn-black"><i class="icon-pause"></i></button>
+                            </div>
+
+                            <div class="col-">
+                                        <button id="btnStop" class="btn-black"><i class="icon-stop"></i></button>
+                            </div>
+                            <div class="col-">
+                                        <button id="btnPrevious" class="btn-black"><i class="icon-to-start"></i></button>
+                            </div>
+                            <div class="col-">
+                                        <button id="btnNext" class="btn-black"><i class="icon-to-end"></i></button>
+                            </div>
+                            <div class="col-">
+                                        <button id="btnFastBackward" class="btn-black"><i class="icon-fast-backward"></i></button>
+                            </div>
+                            <div class="col-">
+                                        <button id="btnFastForward" class="btn-black"><i class="icon-fast-forward"></i></button>
+                            </div>
+                            <div class="col-">
+                            </div>
+
                         </div>
                     </div>
                 </div>
                 <div class="modal-body">
-                    <div class="row" style="margin-top: 20px"></div>
+                    <div class="container-fluid">
+
+                    <div class="row"></div>
+                    <!-- <div class="col-sm-1"></div> -->
+                    <div class="col-sm-12">
                     <table class="table w-auto table-hover" id="act_playlist">
                         <thead>
                             <tr>
@@ -233,11 +289,17 @@
                         <tbody>
                         </tbody>
                     </table>
+                    </div>
+                    <!-- <div class="col-sm-1"></div> -->
+                        
+                    </div>
+                    
                 </div>
+                <div class="modal-footer" hidden="true"></div>
             </div>
         </div>
     </div>
-
+    
     <div id="upload" class="modal fade" role="dialog">
         <div class="modal-dialog modal-lg">
 
@@ -323,7 +385,7 @@
     </div>
 
     <div class="form-group">
-        <label for="albumSearch">Select:</label>
+        <label for="albumSearch">Search:</label>
         <input type="text" class="form-control form-group-lg" id="albumSearch">
     </div>
 

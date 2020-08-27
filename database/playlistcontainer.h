@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cctype>
 #include <functional>
+#include <string>
 #include <boost/uuid/uuid.hpp>
 
 #include "common/logger.h"
@@ -33,7 +34,7 @@ public:
     bool removePlaylistName(const std::string& playlistName);
 
     bool readPlaylistsM3U();
-    bool readPlaylistsJson(std::function<void(const boost::uuids::uuid& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert);
+    bool readPlaylistsJson(Database::FindAlgo&& findUuidList, Database::InsertCover&& coverInsert);
     bool insertAlbumPlaylists(const std::vector<Common::AlbumListEntry>& albumList);
 
     bool writeChangedPlaylists();
@@ -57,6 +58,7 @@ public:
     std::vector<std::pair<std::string, boost::uuids::uuid>> getAllPlaylists();
 
     std::vector<Playlist> searchPlaylists(const std::string& what, SearchAction action = SearchAction::exact);
+    std::vector<Playlist> searchPlaylists(const boost::uuids::uuid& what, SearchAction action = SearchAction::exact);
 
 
 };

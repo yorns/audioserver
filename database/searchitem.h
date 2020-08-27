@@ -9,7 +9,8 @@ enum class SearchItem {
     album,
     interpret,
     uid,
-    overall
+    overall,
+    album_and_interpret
 };
 
 }

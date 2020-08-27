@@ -97,6 +97,9 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
             return R"({"result": "playlist not found"})";
         }
 
+        auto blub = playlistList[0].getUniqueID();
+        logger(Level::info) << "set current playlist to <" << boost::lexical_cast<std::string>(blub) << ">\n";
+
         m_database.setCurrentPlaylistUniqueId(playlistList[0].getUniqueID());
         return R"({"result": "ok"})";
     }

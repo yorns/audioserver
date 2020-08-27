@@ -34,11 +34,15 @@ public:
     bool writeChangedPlaylists();
 
     std::vector<Id3Info> searchAudioItems(const std::string &what, SearchItem item, SearchAction action);
+    std::vector<Id3Info> searchAudioItems(const boost::uuids::uuid &what, SearchItem item, SearchAction action);
 
     std::vector<Playlist> searchPlaylistItems(const std::string &what, SearchAction action = SearchAction::exact) {
         return  m_playlistContainer.searchPlaylists(what, action);
     }
-    
+    std::vector<Playlist> searchPlaylistItems(const boost::uuids::uuid &what, SearchAction action = SearchAction::exact) {
+        return  m_playlistContainer.searchPlaylists(what, action);
+    }
+
     std::optional<boost::uuids::uuid> createPlaylist(const std::string &name, Database::Persistent persistent);
 
     bool addToPlaylistUID(const boost::uuids::uuid &playlistUid, boost::uuids::uuid &&uid);

@@ -63,15 +63,33 @@ public:
         return tmp.str();
     }
 
-    bool isAlike(const std::vector<std::string>& whatList) const {
+    bool isAlikeAlbum(const std::vector<std::string>& whatList) const {
         for (auto& part : whatList) {
-            if ( albumName_lower.find(part) != std::string::npos ||
-                 performerName_lower.find(part) != std::string::npos ) {
+            if ( albumName_lower.find(part) != std::string::npos ) {
                 return true;
             }
         }
         return false;
     }
+
+    bool isAlikePerformer(const std::vector<std::string>& whatList) const {
+        for (auto& part : whatList) {
+            if ( performerName_lower.find(part) != std::string::npos ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isAlikeTitle(const std::vector<std::string>& whatList) const {
+        for (auto& part : whatList) {
+            if ( titleName_lower.find(part) != std::string::npos ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 };
 
 

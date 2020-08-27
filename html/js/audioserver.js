@@ -5,9 +5,30 @@ var playlistID = "";
 var name_typed;
 var interval = 3000; // Interval for calling the function in milliseconds (seconds * 1000)
 var safety = 500; // This is the allowed divergence to the interval
+var broadcastMsg = "";
 
 $(document).ready(function () {
 
+    $('#player').on('show.bs.modal', function(e) {
+        playlistID="";
+        window.location.hash = "modal";
+    });
+    $('#upload').on('show.bs.modal', function(e) {
+        window.location.hash = "modal";
+    });
+    $('#wifi').on('show.bs.modal', function(e) {
+        window.location.hash = "modal";
+    });
+
+    $(window).on('hashchange', function (event) {
+        if(window.location.hash != "#modal") {
+            $('#player').modal('hide');
+            $('#upload').modal('hide');
+            $('#wifi').modal('hide');
+            location.reload();
+        }
+    });
+    
     name_typed = "";
     
     function runWebsocket() {
@@ -17,12 +38,15 @@ $(document).ready(function () {
             webSocket = new WebSocket("ws://" + location.host + "/dynamic");
 
             webSocket.onerror = function (event) {
-                //onError(event)
                 alert("ws error" + event.data);
             };
 
             webSocket.onopen = function (event) {
-                //onOpen(event)
+                console.log('open websocket connection');
+            };
+
+            webSocket.onclose = function (event) {
+                console.log('close websocket connection');
             };
 
             webSocket.onmessage = function (event) {
@@ -30,35 +54,24 @@ $(document).ready(function () {
                     var msg = JSON.parse(event.data);
                     // TODO: only if song ID is new, request the name
                     if (msg.hasOwnProperty('SongBroadcastMessage')) {
-                        console.log('received SongBroadcast: ' + event.data);
-                        if (songID != msg.SongBroadcastMessage.songID && msg.SongBroadcastMessage.songID != "") {
-                            songID = msg.SongBroadcastMessage.songID;
-                            var url = "/database?uid=" + msg.SongBroadcastMessage.songID;
-                            $.getJSON(url).done(function(response) {
-                                //                    console.log('received: ' + response[0].titel);
-                                if (response) {
-                                    $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>" + response[0].titel);
-                                    $("#actCover").attr("src", response[0].cover);
-                                }
-                            });
+
+                        if (broadcastMsg.playlistID != msg.SongBroadcastMessage.playlistID) {
                             getActualPlaylist();
-                        }
-                        if (playlistID != msg.SongBroadcastMessage.playlistID && msg.SongBroadcastMessage.playlistID != ""
-                           && !msg.SongBroadcastMessage.playing) {
-                            playlistID = msg.SongBroadcastMessage.playlistID;
-                            var url = "/database?uid=" + playlistID;
-                                console.log('<0> request for playlist: ', url);
-                                $.getJSON(url).done(function(response) {
-                                if (response) {
-                                    console.log('<2> received for playlist request: ', response);
-                                    $("#actSong").html(response[0].performer + "<br>" + response[0].album + "<br>");
-                                    $("#actCover").attr("src", response[0].cover);
-                                }
-                            });
-                            getActualPlaylist();
-                        }
-                        $("#songProgress").css("width", msg.SongBroadcastMessage.position/100 + "%");
-                        $("#volumeProgress").css("height", msg.SongBroadcastMessage.volume + "%");
+                        } 
+                        
+                        broadcastMsg = msg.SongBroadcastMessage;
+
+                        allTitle = msg.SongBroadcastMessage.performer + "<br>" 
+                                 + msg.SongBroadcastMessage.album + "<br>" 
+                                 + msg.SongBroadcastMessage.title;
+
+                        $("#actSong").html(allTitle);
+                        $("#actCover").attr("src", msg.SongBroadcastMessage.cover);
+
+                        document.getElementById("progress-box2").value = msg.SongBroadcastMessage.position/100;
+
+                        document.getElementById("volume-box").value = msg.SongBroadcastMessage.volume;
+
                         if (msg.SongBroadcastMessage.loop) {
                             $("#btnRepeat").removeClass("btn-gray");
                             $("#btnRepeat").addClass("btn-black");
@@ -74,10 +87,10 @@ $(document).ready(function () {
                         else {
                             $("#btnShuffle").removeClass("btn-black");
                             $("#btnShuffle").addClass("btn-gray");
-                        }                    
+                        } 
                     }
                     if (msg.hasOwnProperty('SsidMessage')) {
-                        console.log('received: SsidMsg ' + event.data);
+                        //console.log('received: SsidMsg ' + event.data);
 
                         var trHTML ="";
                         for (var item in msg.SsidMessage) {
@@ -113,8 +126,6 @@ $(document).ready(function () {
     })
     
     $("#wifiList").on("click", ".table-row", function() {
-        //url = "/wifi?select=" + $(this).attr("id");
-        //$.post(url, "", function(data, textStatus) {}, "json");
         $("#credential_ssid").val($(this).attr("id"));
         //alert("wifi ssid: " + $(this).attr("id"));
     });
@@ -175,26 +186,15 @@ $(document).ready(function () {
         fastBackwardPlayer();
     });
 
-    $("#progress-box").click(function(e) {
-        var posX = $(this).offset().left;
-        var width = $("#progress-box").width();
-        //alert("progress "+ (e.pageX - posX)*100/width);
-        var toPosition = parseInt((e.pageX - posX)*100/width);
-            url = "/player?toPosition="+toPosition;
+    document.getElementById("progress-box2").oninput = function () {
+        url = "/player?toPosition="+this.value;
+        $.post(url, "", function (data, textStatus) {}, "json");
+    };
+
+    document.getElementById("volume-box").oninput = function () {
+            url = "/player?volume="+this.value;
             $.post(url, "", function (data, textStatus) {}, "json");
-
-    });
-
-    $("#volume-box").click(function(e) {
-        var posY = $(this).offset().top;
-        var height = $("#volume-box").height();
-//        alert("volume "+ (e.pageY - posY)*100/height);
-//        alert("volume " + e.pageY + " - " + posY + "*100 / " + height);
-        var volume = 100 - parseInt((e.pageY - posY)*100/height);
-            url = "/player?volume="+volume;
-            $.post(url, "", function (data, textStatus) {}, "json");
-
-    });
+    };
 
     $("#albumSearch").keyup(function() {
         //            if (console && console.log)
@@ -208,31 +208,6 @@ $(document).ready(function () {
     $('#albumSearch').val("");
     
 });
-
-Cookies.set('timeCookie', Date.now());
-
-setInterval(doCheck, interval); // Call the doCheck function every interval
-
-function doCheck() {
-  timePrev = Cookies.get('timeCookie'); // Fetch the cookie with the previously saves timestamp
-
-  if (typeof timePrev !== 'undefined') { // May be undefined, if timestamp was never saved before to cookie
-//   console.log('Previousliy saved timestamp is '+ timePrev);
-   diff =  Date.now() - timePrev; // Calcluate the difference
-//   console.log('Difference is '+ diff);
-   if (diff < (interval + safety)) { // Check if difference is ok
-//     console.log('Everything is ok');
-//     $(document.body).append('Everything is ok. Difference: '+diff+'<br>');
-   } else {
-	   runWebsocket();
-       alert ("Wake up!\nDifference is too big: " + diff); // Call a function if the difference is too big
-       Cookies.set('timeCookie', Date.now()); // Save actual timestamp to a cookie
-
-     }
-   }
-   Cookies.set('timeCookie', Date.now()); // Save actual timestamp to a cookie
-  }
-
 
 function stopPlayer() {
     url = "/player?stop=true";
@@ -286,20 +261,29 @@ function albumSelect(albumId) {
             if (response.result != "ok") {
                 alert(response.result);
             } else {
-                $('#myModal').modal('show'); 
+                $('#player').modal('show'); 
             }
         });
 }
 
 function getAlbumList(searchString) {
+    if (searchString == "") {
+        searchString = "Playlist:";
+    }
+    if (searchString == "*") {
+        searchString = "";
+    }
+        
     var url = "/database?albumList=" + encodeURIComponent(searchString);
     $.getJSON(url).done(function(response) {
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         $.each(response, function(i, item) {
             trHTML += `
-                        <div class="card card-custom mx-2 mb-3 style="width: 18rem;""> 
-                        <img class="card-img-top" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                        <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' > 
+                        <div class="text-center">
+                        <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                        </div>
                         <div class="card-body" >
                           <h5 class="card-title">${item.album}</h5>
                           <p class="card-text">${item.performer}</p>

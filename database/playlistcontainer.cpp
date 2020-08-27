@@ -1,6 +1,7 @@
 #include "playlistcontainer.h"
 
 #include <boost/filesystem.hpp>
+#include <functional>
 #include <boost/uuid/uuid_io.hpp>
 
 #include "common/filesystemadditions.h"
@@ -128,7 +129,8 @@ bool PlaylistContainer::readPlaylistsM3U() {
 //    return true;
 }
 
-bool PlaylistContainer::readPlaylistsJson(std::function<void(const boost::uuids::uuid& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert) {
+bool PlaylistContainer::readPlaylistsJson(Database::FindAlgo&& findUuidList,
+                                          Database::InsertCover&& coverInsert) {
     auto streamList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistJson);
 
     for (auto file : streamList) {
@@ -137,7 +139,7 @@ bool PlaylistContainer::readPlaylistsJson(std::function<void(const boost::uuids:
         fileName += file.name + file.extension;
         if (file.extension == ".json") {
             Playlist playlist(std::move(fileName), ReadType::isJson, Persistent::isPermanent, Changed::isConst);
-            if (playlist.readJson(std::move(coverInsert))) {
+            if (playlist.readJson(std::move(findUuidList), std::move(coverInsert))) {
                 m_playlists.emplace_back(playlist);
             }
             else
@@ -235,6 +237,17 @@ std::vector<std::pair<std::string, boost::uuids::uuid> > PlaylistContainer::getA
         list.push_back(std::make_pair(elem.getName(), elem.getUniqueID()));
     }
     return list;
+}
+
+std::vector<Playlist> PlaylistContainer::searchPlaylists(const boost::uuids::uuid &whatUid, SearchAction action) {
+
+    std::vector<Playlist> playlist;
+    auto playlist_it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
+                                    [&whatUid](const Playlist& playlist){ return playlist.getUniqueID() == whatUid; });
+    if (playlist_it != std::end(m_playlists))
+        playlist.push_back(*playlist_it);
+
+    return playlist;
 }
 
 std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what, SearchAction action) {

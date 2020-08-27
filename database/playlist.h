@@ -13,6 +13,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/lexical_cast.hpp>
+#include "searchitem.h"
 
 namespace filesys =  boost::filesystem;
 
@@ -50,6 +51,9 @@ struct PlaylistItem {
     std::string m_performer_lower ;
 };
 
+typedef std::function<std::vector<boost::uuids::uuid>(const std::string& what, SearchItem searchItem)> FindAlgo;
+typedef std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)> InsertCover;
+
 class Playlist {
     std::string m_playlistFileName;
     PlaylistItem m_item;
@@ -59,7 +63,7 @@ class Playlist {
     Changed m_changed { Changed::isUnchanged };
     Persistent m_persistent { Persistent::isPermanent };
     ReadType m_readType { ReadType::isM3u };
-
+    
 public:
 
     Playlist() = delete;
@@ -96,7 +100,7 @@ public:
     bool delFromList(const boost::uuids::uuid& audioUID);
 
     bool readM3u();
-    bool readJson(std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert);
+    bool readJson(FindAlgo&& findAlgo, InsertCover&& insertCover);
     bool insertAlbumList();
     bool write();
 

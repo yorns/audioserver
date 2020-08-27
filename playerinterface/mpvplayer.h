@@ -87,6 +87,10 @@ public:
     boost::uuids::uuid getSongID() const final;
     int getSongPercentage() const final;
 
+    const std::string getTitle() const final { return ""; }
+    const std::string getAlbum() const final { return ""; }
+    const std::string getPerformer() const final { return ""; }
+
 };
 
 #endif // MPVPLAYER_H
