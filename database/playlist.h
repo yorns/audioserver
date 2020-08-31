@@ -10,6 +10,7 @@
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
 #include "common/stringmanipulator.h"
+#include "common/logger.h"
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/lexical_cast.hpp>
@@ -107,8 +108,14 @@ public:
     std::string getCover() const;
 
     bool setCover(const boost::uuids::uuid& coverId, const std::string& extension) {
+        try {
         m_coverName = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/"
                 + boost::lexical_cast<std::string>(coverId) + extension;
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+            return false;
+        }
+
         return true;
     }
 

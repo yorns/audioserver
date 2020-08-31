@@ -20,15 +20,17 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
     if ( parameter == ServerConstant::Command::play &&
          value == ServerConstant::Value::_true) {
 
-        logger(Level::info) << "Play request\n";
+        if (m_player->isPlaying()) {
+            logger(Level::info) << "Pause request\n";
+            m_player->pause_toggle();
+        } else {
+            logger(Level::info) << "Play request\n";
 
-        auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
-
-        if (m_player->startPlay(albumPlaylistAndNames,boost::uuids::uuid()))
-          return R"({"result": "ok"})";
+        if (m_player->startPlay())
+            return R"({"result": "ok"})";
         else
             return R"({"result": "cannot find playlist"})";
-
+        }
     }
 
     if (parameter == ServerConstant::Parameter::Player::next &&
@@ -49,6 +51,12 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         return R"({"result": "ok"})";
     }
 
+    if (parameter == ServerConstant::Parameter::Player::reset &&
+            value == ServerConstant::Value::_true) {
+        m_player->resetPlayer();
+        return R"({"result": "ok"})";
+    }
+
     if (parameter == ServerConstant::Parameter::Player::pause &&
             value == ServerConstant::Value::_true) {
         m_player->pause_toggle();
@@ -57,22 +65,13 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
     if (parameter == ServerConstant::Parameter::Player::select) {
         try {
-        auto ID = boost::lexical_cast<boost::uuids::uuid>(value);
-        if (m_player->jump_to_fileUID(ID))
-            return R"({"result": "ok"})";
-        else {
-            auto albumPlaylistAndNames = m_getAlbumPlaylistAndNames();
-
-            if (albumPlaylistAndNames.m_playlistUniqueId != m_player->getPlaylistID() &&
-                m_player->startPlay(albumPlaylistAndNames,ID)) {
-                logger(Level::info) << "start playing "<< albumPlaylistAndNames.m_playlistUniqueId << " -> "<< ID <<"\n";
+            auto ID = boost::lexical_cast<boost::uuids::uuid>(value);
+            if (m_player->jump_to_fileUID(ID))
                 return R"({"result": "ok"})";
-            }
             else {
                 logger(Level::warning) << "cannot find neither song nor playlist\n";
                 return R"({"result": "cannot find neither song nor playlist"})";
             }
-        }
         } catch (std::exception&) {
             logger(Level::warning) << "wrong audio UID: cannot be extracted\n";
             return R"({"result": "wrong ID"})";

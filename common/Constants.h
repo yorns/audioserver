@@ -68,6 +68,7 @@ namespace ServerConstant {
             static constexpr auto seek_backward {sv("seek_backward")};
             static constexpr auto play {sv("play")};
             static constexpr auto stop {sv("stop")};
+            static constexpr auto reset {sv("reset")};
             static constexpr auto pause {sv("pause")};
             static constexpr auto fastForward {sv("fastForward")};
             static constexpr auto fastBackward {sv("fastBackward")};

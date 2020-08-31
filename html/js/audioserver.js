@@ -73,21 +73,42 @@ $(document).ready(function () {
                         document.getElementById("volume-box").value = msg.SongBroadcastMessage.volume;
 
                         if (msg.SongBroadcastMessage.loop) {
-                            $("#btnRepeat").removeClass("btn-gray");
-                            $("#btnRepeat").addClass("btn-black");
-                        }
-                        else {
                             $("#btnRepeat").removeClass("btn-black");
                             $("#btnRepeat").addClass("btn-gray");
                         }
-                        if (msg.SongBroadcastMessage.shuffle) {
-                            $("#btnShuffle").removeClass("btn-gray");
-                            $("#btnShuffle").addClass("btn-black");
-                        } 
                         else {
+                            $("#btnRepeat").removeClass("btn-gray");
+                            $("#btnRepeat").addClass("btn-black");
+                        }
+                        if (msg.SongBroadcastMessage.shuffle) {
                             $("#btnShuffle").removeClass("btn-black");
                             $("#btnShuffle").addClass("btn-gray");
                         } 
+                        else {
+                            $("#btnShuffle").removeClass("btn-gray");
+                            $("#btnShuffle").addClass("btn-black");
+                        } 
+                        if (msg.SongBroadcastMessage.paused) {
+                            $("#playSymbol").removeClass("icon-play");
+                            $("#playSymbol").addClass("icon-pause");
+                            $("#btnPlay").removeClass("btn-black");
+                            $("#btnPlay").addClass("btn-gray");
+                        }
+                        else {
+                            if (msg.SongBroadcastMessage.playing) {
+                                $("#playSymbol").removeClass("icon-pause");
+                                $("#playSymbol").addClass("icon-play");
+                                $("#btnPlay").removeClass("btn-black");
+                                $("#btnPlay").addClass("btn-gray");
+                            } else {
+                                $("#playSymbol").removeClass("icon-pause");
+                                $("#playSymbol").addClass("icon-play");
+                                $("#btnPlay").removeClass("btn-gray");
+                                $("#btnPlay").addClass("btn-black");
+                            }
+                        }
+                            
+                        
                     }
                     if (msg.hasOwnProperty('SsidMessage')) {
                         //console.log('received: SsidMsg ' + event.data);
@@ -250,10 +271,8 @@ function albumSelect(albumId) {
         console.log("albumSelect:" + albumId);
     }
     
-    stopPlayer();
-
     // open overlay / new page
-    // create playlist with all album titles
+    // show playlist with all album titles
     var url = "/playlist?change=" + encodeURIComponent(albumId);
     if (console && console.log)
         console.log("request: " + url);
@@ -278,11 +297,20 @@ function getAlbumList(searchString) {
     $.getJSON(url).done(function(response) {
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
+        response.sort(function(a,b){
+            if (a.uid == b.uid) 
+                return 0;
+            if (a.uid > b.uid) 
+                return -1;
+            if (a.uid < b.uid)
+                return 1;
+        })
+        
         $.each(response, function(i, item) {
             trHTML += `
-                        <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' > 
+                        <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}")' > 
                         <div class="text-center">
-                        <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" id="${item.uid}">
+                        <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" >
                         </div>
                         <div class="card-body" >
                           <h5 class="card-title">${item.album}</h5>
@@ -292,9 +320,6 @@ function getAlbumList(searchString) {
         });
         trHTML += '</div>';
         $('#cover').append(trHTML);
-        $("#myimg div img").on("click", function() {
-            albumSelect($(this).attr("id"));
-        }); //??
     })
 }
 

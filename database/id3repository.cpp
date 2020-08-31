@@ -189,8 +189,12 @@ bool Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
 
     if (audioItem) {
         auto uniqueID = audioItem->info.uid;
+        try {
         logger(Level::debug) << "adding audio file <" << boost::lexical_cast<std::string>(uniqueID)
                              << "> ("<<audioItem->info.title_name <<"/" << audioItem->info.album_name << ") to database\n";
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+        }
         m_simpleDatabase.emplace_back(std::move(audioItem->info));
         if (audioItem->pictureAvailable) {
             if (addCover(std::move(uniqueID), std::move(audioItem->data), audioItem->hash))
@@ -379,7 +383,7 @@ std::vector<Id3Info> Id3Repository::search(const boost::uuids::uuid &what, Searc
             std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
                           [&what, &findData](const Id3Info &info) {
                 if (info.uid == what) {
-                    logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
+                    //logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
                     findData.push_back(info);
                 }
             });

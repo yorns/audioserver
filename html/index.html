@@ -123,50 +123,167 @@
   width: 100%; /* Width of the outside container */
 }
 
-/* The slider itself */
-.slider {
-  -webkit-appearance: none;  /* Override default CSS styles */
-  appearance: none;
-  width: 100%; /* Full-width */
-  height: 25px; /* Specified height */
-  background: #d3d3d3; /* Grey background */
-  outline: none; /* Remove outline */
-  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
-  -webkit-transition: .2s; /* 0.2 seconds transition on hover */
-  transition: opacity .2s;
-}
-
-/* Mouse-over effects */
-.slider:hover {
-  opacity: 1; /* Fully shown on mouse-over */
-}
-
-/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none; /* Override default look */
-  appearance: none;
-  width: 25px; /* Set a specific slider handle width */
-  height: 25px; /* Slider handle height */
-  background: #4CAF50; /* Green background */
-  cursor: pointer; /* Cursor on hover */
-}
-
-.slider::-moz-range-thumb {
-  width: 25px; /* Set a specific slider handle width */
-  height: 25px; /* Slider handle height */
-  background: #4CAF50; /* Green background */
-  cursor: pointer; /* Cursor on hover */
-}       
         
+input[type=range] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 100%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
+input[type=range][orient=vertical] {
+  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+  width: 100%; /* Specific width is required for Firefox. */
+  background: transparent; /* Otherwise white in Chrome */
+}
+
+input[type=range][orient=vertical]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+}
+
 input[type=range][orient=vertical]
 {
     writing-mode: bt-lr; /* IE */
     -webkit-appearance: slider-vertical; /* WebKit */
-    width: 8px;
+    width: 6px;
     height: 100%;
-    padding: 0 5px;
+    padding: 0 0px;
 }
 
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #bbbbbb;
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+
+input[type=range][orient=vertical]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #bbbbbb;
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: ##dddddd;
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #bbbbbb;
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+input[type=range][orient=vertical]::-moz-range-track {
+  width: 8.4px;
+  height: 100%;
+  cursor: pointer;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  background: #bbbbbb;
+  border-radius: 1.3px;
+  border: 0.2px solid #010101;
+}
+
+        
+        
+input[type=range]::-ms-track {
+  width: 100%;
+  height: 8.4px;
+  cursor: pointer;
+  background: transparent;
+  border-color: transparent;
+  border-width: 16px 0;
+  color: transparent;
+}
+input[type=range]::-ms-fill-lower {
+  background: #2a6495;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input[type=range]:focus::-ms-fill-lower {
+  background: #3071a9;
+}
+input[type=range]::-ms-fill-upper {
+  background: #3071a9;
+  border: 0.2px solid #010101;
+  border-radius: 2.6px;
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+input[type=range]:focus::-ms-fill-upper {
+  background: #367ebd;
+}
+        
+input[type=range][orient=vertical]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* WebKit */
+  border: 1px solid #000000;
+  height: 10px;
+  width: 24px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -3px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 1px solid #000000;
+  height: 24px;
+  width: 10px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -9px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+}
+
+        
+/* All the same stuff for Firefox */
+input[type=range]::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 24px;
+  width: 10px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+}
+input[type=range][orient=vertical]::-moz-range-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 10px;
+  width: 24px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+        
+/* All the same stuff for IE */
+input[type=range]::-ms-thumb {
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+  border: 1px solid #000000;
+  height: 36px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+}        
+
+
+        
 .modal-dialog{
     overflow-y: initial !important
 }
@@ -214,14 +331,14 @@ input[type=range][orient=vertical]
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-3">
+                            <div class="col-4">
                                 <img class="img-rounded" id="actCover" style="width: 100%; max-width: 300px;" src="/img/unknown.png" alt="" />
                             </div>
-                            <div class="col-7">
+                            <div class="col-6">
                                 <h5 id="actSong">nothing</h5>
                             </div>
                             <div class="col-1">
-                               <div class="slidecontainer">
+                               <div class="slidecontainer" style="height: 100%;">
                                   <input type="range" min="1" max="100" style="height: 100%;" value="50" class="slider" id="volume-box" orient="vertical" />
                                 </div>
                             </div>
@@ -245,22 +362,22 @@ input[type=range][orient=vertical]
                                         <button id="btnShuffle" class="btn-gray"><i class="icon-shuffle"></i></button>
                             </div>
                             <div class="col-">
-                                        <button id="btnPlay" class="btn-black"><i class="icon-play"></i></button>
+                                        <button id="btnPrevious" class="btn-black"><i class="icon-to-start"></i></button>
                             </div>
                             <div class="col-">
+                                        <button id="btnPlay" class="btn-black"><i id="playSymbol" class="icon-play"></i></button>
+                            </div>
+<!--                            <div class="col-">
                                         <button id="btnPause" class="btn-black"><i class="icon-pause"></i></button>
                             </div>
-
+-->
                             <div class="col-">
                                         <button id="btnStop" class="btn-black"><i class="icon-stop"></i></button>
                             </div>
                             <div class="col-">
-                                        <button id="btnPrevious" class="btn-black"><i class="icon-to-start"></i></button>
-                            </div>
-                            <div class="col-">
                                         <button id="btnNext" class="btn-black"><i class="icon-to-end"></i></button>
                             </div>
-                            <div class="col-">
+<!--                            <div class="col-">
                                         <button id="btnFastBackward" class="btn-black"><i class="icon-fast-backward"></i></button>
                             </div>
                             <div class="col-">
@@ -268,31 +385,30 @@ input[type=range][orient=vertical]
                             </div>
                             <div class="col-">
                             </div>
-
+-->
                         </div>
                     </div>
                 </div>
                 <div class="modal-body">
-                    <div class="container-fluid">
 
-                    <div class="row"></div>
+                    <div class="row">
                     <!-- <div class="col-sm-1"></div> -->
-                    <div class="col-sm-12">
-                    <table class="table w-auto table-hover" id="act_playlist">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Artist</th>
-                                <th>Album</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                    </div>
+                        <div class="col-sm-12">
+                        <table class="table w-auto table-hover" id="act_playlist">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Artist</th>
+                                    <th>Album</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        </div>
                     <!-- <div class="col-sm-1"></div> -->
-                        
                     </div>
+                    <!--</div>-->
                     
                 </div>
                 <div class="modal-footer" hidden="true"></div>
@@ -364,7 +480,7 @@ input[type=range][orient=vertical]
                     <table class="table w-auto table-hover" id="wifiList">
                       <thead>
                         <tr>
-                            <th scope="col">Configured</th>
+                          <th scope="col">Configured</th>
                           <th scope="col">SSID</th>
                           <th scope="col">Strength</th>
                         </tr>

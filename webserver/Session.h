@@ -49,13 +49,20 @@ class Session : public std::enable_shared_from_this<Session>
                                                              std::string_view mime_type = {"text/html"});
 
     template <class Body>
-    void answer(http::response<Body>&& response) {
+    bool answer(http::response<Body>&& response) {
         auto self { shared_from_this() };
         // do answer synchron, so we do not need to keep the resonse message until end of connection
-        http::write(m_socket, response);
-        if (!response.keep_alive())
+        boost::beast::error_code ec;
+        http::write(m_socket, response, ec);
+        if (ec) {
             do_close();
+            return false;
+        }
+        if (!response.keep_alive()) {
+            do_close();
+        }
         logger(Level::debug) << "resonse send without an error\n";
+        return true;
     }
 
 public:

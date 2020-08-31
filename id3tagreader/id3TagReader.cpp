@@ -95,21 +95,26 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             auto id3v2tag = mpegFile.ID3v2Tag();
 
             Id3Info info;
-            info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
-            info.title_name = id3v2tag->title().to8Bit(true);
-            info.performer_name = id3v2tag->artist().to8Bit(true);
-            info.album_name = id3v2tag->album().to8Bit(true);
-            info.track_no = id3v2tag->track();
-            info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
-            // TRCK (Track number/Position in set): 14/14
-            auto diskNoItem = id3v2tag->frameListMap().find(idDiskNo);
-            if (diskNoItem != id3v2tag->frameListMap().end() && !diskNoItem->second.isEmpty()) {
-                auto frameTagDiskNo = diskNoItem->second.front();
-                std::stringstream(frameTagDiskNo->toString().to8Bit(true)) >> info.cd_no;
+            try {
+                info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
+                info.title_name = id3v2tag->title().to8Bit(true);
+                info.performer_name = id3v2tag->artist().to8Bit(true);
+                info.album_name = id3v2tag->album().to8Bit(true);
+                info.track_no = id3v2tag->track();
+                info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+                // TRCK (Track number/Position in set): 14/14
+                auto diskNoItem = id3v2tag->frameListMap().find(idDiskNo);
+                if (diskNoItem != id3v2tag->frameListMap().end() && !diskNoItem->second.isEmpty()) {
+                    auto frameTagDiskNo = diskNoItem->second.front();
+                    std::stringstream(frameTagDiskNo->toString().to8Bit(true)) >> info.cd_no;
+                }
+                info.url = fileUrl;
+                info.informationSource = fileUrl;
+                info.finishEntry();     // help search by adding strings on lowercase
+
+            } catch (std::exception& ex) {
+                logger(LoggerFramework::Level::warning) << ex.what() << "\n";
             }
-            info.url = fileUrl;
-            info.informationSource = fileUrl;
-            info.finishEntry();     // help search by adding strings on lowercase
 
             FullId3Information fullId3Info;
             fullId3Info.info = std::move(info);
@@ -156,17 +161,21 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             auto id3v1tag = mpegFile.ID3v1Tag();
 
             Id3Info info;
-            info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
-            info.title_name = id3v1tag->title().to8Bit(true);
-            info.performer_name = id3v1tag->artist().to8Bit(true);
-            info.album_name = id3v1tag->album().to8Bit(true);
-            info.track_no = id3v1tag->track();
-            info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
-            // TRCK (Track number/Position in set): 14/14
-            // TODO read CD number information
-            info.url = fileUrl;
-            info.informationSource = fileUrl;
-            info.finishEntry();     // help search by adding strings on lowercase
+            try {
+                info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
+                info.title_name = id3v1tag->title().to8Bit(true);
+                info.performer_name = id3v1tag->artist().to8Bit(true);
+                info.album_name = id3v1tag->album().to8Bit(true);
+                info.track_no = id3v1tag->track();
+                info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+                // TRCK (Track number/Position in set): 14/14
+                // TODO read CD number information
+                info.url = fileUrl;
+                info.informationSource = fileUrl;
+                info.finishEntry();     // help search by adding strings on lowercase
+            } catch (std::exception& ex) {
+                logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+            }
 
             FullId3Information fullId3Info;
             fullId3Info.info = std::move(info);
@@ -188,22 +197,26 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
             idData->title();
             Id3Info info;
-            info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
-            info.title_name = idData->title().to8Bit(true);
-            info.performer_name = idData->artist().to8Bit(true);
-            info.album_name = idData->album().to8Bit(true);
-            info.track_no = idData->track();
-            info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
-            // TRCK (Track number/Position in set): 14/14
-            auto disk = idData->itemListMap().find("disk");
-            if (disk != idData->itemListMap().end()) {
-                info.cd_no = static_cast<uint32_t>(disk->second.toInt());
+            try {
+                info.uid = boost::lexical_cast<boost::uuids::uuid>(uid);
+                info.title_name = idData->title().to8Bit(true);
+                info.performer_name = idData->artist().to8Bit(true);
+                info.album_name = idData->album().to8Bit(true);
+                info.track_no = idData->track();
+                info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
+                // TRCK (Track number/Position in set): 14/14
+                auto disk = idData->itemListMap().find("disk");
+                if (disk != idData->itemListMap().end()) {
+                    info.cd_no = static_cast<uint32_t>(disk->second.toInt());
+                }
+                info.informationSource = fileUrl;
+                info.url = fileUrl;
+
+                info.finishEntry();     // help search by adding strings on lowercase
+
+            } catch (std::exception& ex) {
+                logger(LoggerFramework::Level::warning) << ex.what() << "\n";
             }
-            info.informationSource = fileUrl;
-            info.url = fileUrl;
-
-
-            info.finishEntry();     // help search by adding strings on lowercase
 
             FullId3Information fullId3Info;
             fullId3Info.info = std::move(info);
@@ -258,7 +271,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
     }
 
     if (fileName.extension == ".mp3" || fileName.extension == ".m4a")
-       logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 available\n";
+        logger(Level::info) << "extracting data from file <"<<mp3File<<"> - no id3 available\n";
 
     return std::nullopt;
 }

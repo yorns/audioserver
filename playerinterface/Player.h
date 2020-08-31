@@ -28,8 +28,8 @@ protected:
 
     std::vector<Common::PlaylistItem> m_playlist;
     std::vector<Common::PlaylistItem> m_playlist_orig;
-    boost::uuids::uuid m_PlaylistUniqueId;
-    std::string m_PlaylistName;
+    boost::uuids::uuid m_playlistUniqueId;
+    std::string m_playlistName;
 
     std::vector<Common::PlaylistItem>::const_iterator m_currentItemIterator { m_playlist.end() };
 
@@ -44,7 +44,6 @@ protected:
 
     bool needsOnlyUnpause(const boost::uuids::uuid &playlist);
     bool needsStop();
-    bool isPause() const { return m_pause; }
 
     bool calculatePreviousFileInList();
     bool calculateNextFileInList();
@@ -64,15 +63,47 @@ public:
     bool toogleLoop();
     bool getLoop() const { return m_doCycle; }
     bool getShuffle() const { return m_shuffle; }
-    std::string getPlaylistIDStr() const { return boost::uuids::to_string(m_PlaylistUniqueId); }
-    boost::uuids::uuid getPlaylistID() const { return m_PlaylistUniqueId; }
+    std::string getPlaylistIDStr() const { return boost::uuids::to_string(m_playlistUniqueId); }
+    boost::uuids::uuid getPlaylistID() const { return m_playlistUniqueId; }
     uint32_t getVolume() { return m_volume; }
 
     void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
 
-    bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const boost::uuids::uuid& songUID) { return startPlay(albumPlaylistAndNames, songUID, 0); }
-    virtual bool startPlay(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames, const boost::uuids::uuid& songUID, uint32_t position) = 0;
+    void resetPlayer() {
+
+        m_shuffle = false;
+        m_doCycle = false;
+        m_isPlaying = false;
+        m_pause = false;
+
+        m_playlist.clear();
+        m_playlist_orig.clear();
+        m_currentItemIterator = m_playlist.end();
+        m_playlistUniqueId = boost::uuids::uuid();
+        m_playlistName = "";
+
+    }
+
+    bool setPlaylist(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) {
+
+        if (albumPlaylistAndNames.m_playlist.empty()) {
+            logger(LoggerFramework::Level::warning) << "playing failed, no album list set\n";
+            return false;
+        }
+
+        m_playlist = albumPlaylistAndNames.m_playlist;
+        m_playlist_orig = albumPlaylistAndNames.m_playlist;
+        m_currentItemIterator = m_playlist.begin();
+        m_playlistUniqueId = albumPlaylistAndNames.m_playlistUniqueId;
+        m_playlistName = albumPlaylistAndNames.m_playlistName;
+
+        return true;
+    }
+
+    bool startPlay() { return startPlay(boost::uuids::uuid()); }
+    bool startPlay(const boost::uuids::uuid& songUID) { return startPlay(songUID, 0); }
+    virtual bool startPlay(const boost::uuids::uuid& songUID, uint32_t position) = 0;
     virtual bool stop() = 0;
     virtual bool stopPlayerConnection() = 0;
     virtual bool setVolume(uint32_t volume) = 0;
@@ -87,6 +118,8 @@ public:
     virtual bool jump_to_fileUID(const boost::uuids::uuid& uniqueId) = 0;
 
     bool isPlaying() const { return m_isPlaying; }
+    bool isPause() const { return m_pause; }
+    void resetPause() { m_pause = false; }
 
     virtual const std::string getSongName() const = 0;
     virtual boost::uuids::uuid getSongID() const = 0;

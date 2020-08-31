@@ -63,26 +63,15 @@ MpvPlayer::MpvPlayer(boost::asio::io_context &context)
     init_MpvCommandHandling();
 }
 
-bool MpvPlayer::startPlay(const Common::AlbumPlaylistAndNames &list, const boost::uuids::uuid& , uint32_t )
+bool MpvPlayer::startPlay(const boost::uuids::uuid& , uint32_t )
 {
 
     // just unpause if player is in playing state and paused
-    if (needsOnlyUnpause(list.m_playlistUniqueId))
+    if (needsOnlyUnpause(m_playlistUniqueId))
         return pause_toggle();
 
-    m_PlaylistName = list.m_playlistName;
-    m_PlaylistUniqueId = list.m_playlistUniqueId;
-    m_playlist_orig.clear();
-    m_playlist_orig.insert(std::begin(m_playlist_orig), std::cbegin(list.m_playlist), std::cend(list.m_playlist));
-    m_playlist.clear();
-    m_playlist.insert(std::begin(m_playlist), std::cbegin(m_playlist_orig), std::cend(m_playlist_orig));
     bool shuffelingNeeded = m_shuffle;
     m_shuffle = false;
-
-    if (m_playlist.empty()) {
-        logger(LoggerFramework::Level::warning) << "playlist <"<<list.m_playlistUniqueId<<"> (" << list.m_playlistName <<") is empty\n";
-        return false;
-    }
 
     if (shuffelingNeeded) {
         logger(LoggerFramework::Level::debug) << "shuffeling enabled. New playlist needs shuffeling\n";
@@ -163,8 +152,23 @@ bool MpvPlayer::stopPlayerConnection()
 const std::string MpvPlayer::getSongName() const { return m_AudioFileName; }
 
 boost::uuids::uuid MpvPlayer::getSongID() const
-{ return (m_currentItemIterator != std::end(m_playlist))?m_currentItemIterator->m_uniqueId:
-                                                         boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid)); }
+{
+    boost::uuids::uuid retValue;
+    try {
+        if (m_currentItemIterator != std::end(m_playlist)) {
+            retValue = m_currentItemIterator->m_uniqueId;
+        }
+        else {
+            retValue = boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid));
+        }
+    } catch (std::exception& ex) {
+        logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+        return boost::uuids::uuid();
+    }
+
+    return retValue;
+
+}
 
 int MpvPlayer::getSongPercentage() const  { int time { static_cast<int>(m_actTime) }; if (time > 100.0) time = 100.0; return time*100; }
 
@@ -231,7 +235,7 @@ void MpvPlayer::read_handler(const boost::system::error_code &error, std::size_t
                             if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
                             if (m_playlistEndCallback) m_playlistEndCallback();
                             m_isPlaying = false;
-                            m_currentItemIterator = m_playlist.end();
+                            m_currentItemIterator = m_playlist.begin();
                             }
                             else
                                 logger(Level::info) << "player not in playing mode for <play next>\n";

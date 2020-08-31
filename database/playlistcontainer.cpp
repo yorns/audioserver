@@ -49,7 +49,13 @@ bool PlaylistContainer::removePlaylistUID(const boost::uuids::uuid &playlistUniq
 
     if (it != std::end(m_playlists) ) {
         m_playlists.erase(it);
-        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
+        try {
+        auto rmResult = FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
+        return rmResult;
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+            return false;
+        }
     }
     return false;
 }
@@ -62,7 +68,14 @@ bool PlaylistContainer::removePlaylistName(const std::string &playlistName) {
     if (it != std::end(m_playlists) ) {
         auto playlistUniqueId { it->getUniqueID() };
         m_playlists.erase(it);
-        return FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
+        try {
+        auto rmFile = FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
+        return rmFile;
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+            return false;
+        }
+
     }
     return false;
 }
@@ -153,17 +166,21 @@ bool PlaylistContainer::readPlaylistsJson(Database::FindAlgo&& findUuidList,
 bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &albumList) {
 
     for(auto& elem : albumList) {
-        auto uniqueID = boost::lexical_cast<boost::uuids::uuid>(NameGenerator::create("", "").unique_id);
-        Playlist playlist("", ReadType::isM3u, Persistent::isTemporal);
-        playlist.setName(elem.m_name);
-        playlist.setPerformer(elem.m_performer);
-        playlist.setCover(elem.m_coverId, elem.m_coverExtension);
-        playlist.setUniqueID(std::move(uniqueID));
-        for(auto& uid : elem.m_playlist) {
-            auto addUid = std::get<boost::uuids::uuid>(uid);
-            playlist.addToList(std::move(addUid));
+        try {
+            auto uniqueID = boost::lexical_cast<boost::uuids::uuid>(NameGenerator::create("", "").unique_id);
+            Playlist playlist("", ReadType::isM3u, Persistent::isTemporal);
+            playlist.setName(elem.m_name);
+            playlist.setPerformer(elem.m_performer);
+            playlist.setCover(elem.m_coverId, elem.m_coverExtension);
+            playlist.setUniqueID(std::move(uniqueID));
+            for(auto& uid : elem.m_playlist) {
+                auto addUid = std::get<boost::uuids::uuid>(uid);
+                playlist.addToList(std::move(addUid));
+            }
+            m_playlists.emplace_back(playlist);
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
         }
-        m_playlists.emplace_back(playlist);
     }
 
     return true;

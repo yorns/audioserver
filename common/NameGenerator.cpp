@@ -1,4 +1,5 @@
 #include "NameGenerator.h"
+#include "common/logger.h"
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -12,7 +13,12 @@ NameGenerator::GenerationName NameGenerator::create(const std::string &prefix, c
     GenerationName retName;
     boost::uuids::random_generator generator;
     boost::uuids::uuid name = generator();
-    retName.unique_id = boost::lexical_cast<std::string>(name);
+    try {
+        retName.unique_id = boost::lexical_cast<std::string>(name);
+    } catch (std::exception& ex) {
+        logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+    }
+
     if (!prefix.empty()) {
         retName.filename = prefix + "/" + retName.unique_id + suffix;
     }

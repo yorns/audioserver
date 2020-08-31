@@ -76,6 +76,8 @@ Playlist::Playlist(std::string&& filename, ReadType readType, Persistent persist
 Playlist::Playlist(boost::uuids::uuid&& uniqueId, std::vector<boost::uuids::uuid> &&playlist, ReadType readType, Persistent persistent, Changed changed)
     : m_item(std::move(uniqueId)),
       m_playlist(std::move(playlist)),
+      m_coverName("/img/unknown.png"),
+      m_coverType(CoverType::none),
       m_changed(changed),
       m_persistent(persistent),
       m_readType(readType)

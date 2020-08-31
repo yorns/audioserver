@@ -213,6 +213,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         }
         else {
             logger(Level::warning) << "<" << m_runID << "> " << "failed to read: "<< ec << "\n";
+            // todo: answer with something
         }
     });
 
@@ -229,16 +230,8 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     http::file_body::value_type body;
     body.open(path.c_str(), boost::beast::file_mode::scan, ec);
 
-    // Handle an unknown error
-    if(ec) {
-        answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
-        if (keep_alive)
-            start();
-        return;
-    }
-
     // Handle the case where the file doesn't exist
-    if(ec == boost::system::errc::no_such_file_or_directory && method == http::verb::get) {
+    if((ec == boost::system::errc::no_such_file_or_directory && ( method == http::verb::get || method == http::verb::head))) {
 
         // this file is nowhere, send unknown file instead
         logger(Level::warning) << "requested regular file <"<< path <<"> not found\n";
@@ -248,8 +241,9 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
         return;
       }
 
-    // Handle an unknown error
-    if(ec) {
+    // Handle an unknown error on file search
+    if(ec || ( method != http::verb::get && method != http::verb::head)) {
+            logger(Level::warning) << "requested regular file <"<< path <<"> read failed\n";
         answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
         if (keep_alive)
             start();
@@ -262,6 +256,8 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     // Respond to HEAD request
     if(method == http::verb::head)
     {
+        logger(Level::debug) << "returning header for file <"<< path <<">\n";
+
         http::response<http::empty_body> res{http::status::ok, version};
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, mime_type(path));
@@ -273,6 +269,7 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
         return;
     }
 
+    logger(Level::debug) << "returning reguar file <"<< path <<">\n";
     // Respond to GET request
     http::response<http::file_body> res{
         std::piecewise_construct,
@@ -319,12 +316,14 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
             if (keep_alive)
                 start();
             return;
+        } {
+            logger(Level::debug) << "file <"<<target<<"> is not in virtual database\n";
+
         }
-      }
+
+    }
 
     handle_regular_file_request(target, method, version, keep_alive);
-
-
 
 }
 

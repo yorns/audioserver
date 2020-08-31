@@ -9,13 +9,23 @@ using namespace LoggerFramework;
 bool BasePlayer::doShuffle(bool shuffleRequest) {
     if (shuffleRequest) {
         if (m_shuffle)
+            try {
             logger(Level::debug) << "Shuffeling playlist <"
-                                 << boost::lexical_cast<std::string>(m_PlaylistUniqueId) << "> ("
-                                 << m_PlaylistName << ") again\n";
+                                 << boost::lexical_cast<std::string>(m_playlistUniqueId) << "> ("
+                                 << m_playlistName << ") again\n";
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+        }
+
         else {
-            logger(Level::debug) << "Shuffeling playlist <"
-                                 <<   boost::lexical_cast<std::string>(m_PlaylistUniqueId) << "> ("
-                                 << m_PlaylistName << ")\n";
+            try {
+                logger(Level::debug) << "Shuffeling playlist <"
+                                     <<   boost::lexical_cast<std::string>(m_playlistUniqueId) << "> ("
+                                       << m_playlistName << ")\n";
+            } catch (std::exception& ex) {
+                logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+            }
+
             m_playlist.clear();
             m_playlist.insert(std::begin(m_playlist), std::cbegin(m_playlist_orig), std::cend(m_playlist_orig));
         }
@@ -24,27 +34,32 @@ bool BasePlayer::doShuffle(bool shuffleRequest) {
 
         logger(LoggerFramework::Level::debug) << "Nr) /t original /t->  shuffled\n";
         for(uint32_t i{0}; i < m_playlist.size(); ++i) {
+            try {
             logger(LoggerFramework::Level::debug) << i << ") /t"
                                                   << boost::lexical_cast<std::string>(m_playlist_orig[i].m_uniqueId)
                                                   << " \t-> "
                                                   << boost::lexical_cast<std::string>(m_playlist[i].m_uniqueId)
                                                   << "\n";
+            } catch (std::exception& ex) {
+                logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+            }
+
         }
 
         return true;
     }
     else if (!shuffleRequest && m_shuffle) {
         logger(Level::debug) << "Reset Shuffling for playlist <"
-                             << boost::lexical_cast<std::string>(m_PlaylistUniqueId)
-                             << "> (" << m_PlaylistName << ")\n";
+                             << boost::lexical_cast<std::string>(m_playlistUniqueId)
+                             << "> (" << m_playlistName << ")\n";
         m_shuffle = false;
         m_playlist.clear();
         m_playlist.insert(std::begin(m_playlist), std::cbegin(m_playlist_orig), std::cend(m_playlist_orig));
         return true;
     }
     logger(Level::warning) << "Shuffling request for playlist <"
-                           << boost::lexical_cast<std::string>(m_PlaylistUniqueId)
-                           << "> (" << m_PlaylistName << ") failed (request: "
+                           << boost::lexical_cast<std::string>(m_playlistUniqueId)
+                           << "> (" << m_playlistName << ") failed (request: "
                            << (shuffleRequest?"doShuffle":"doUnshuffle") << " and state: "
                            << (m_shuffle?"shuffel":"normal") << "\n";
     return false;
@@ -57,11 +72,20 @@ void BasePlayer::updateUi() const {
     }
 
     if (isPlaying()) {
+        try {
         logger(Level::debug) << "Websocket playlist Update with SongID <"<< boost::lexical_cast<std::string>(getSongID()) << "> and playlistID <"<< boost::lexical_cast<std::string>(getPlaylistID())<<">\n";
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+        }
+
         m_onUiChangeHandler(getSongID(), getPlaylistID(), getSongPercentage()/100, getLoop(), getShuffle());
     }
     else {
+        try {
         logger(Level::debug) << "Websocket playlist Update with playlistID <"<<boost::lexical_cast<std::string>(getPlaylistID())<<">\n";
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+        }
         boost::uuids::uuid unknown; // = boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid));
         m_onUiChangeHandler(unknown,
                             getPlaylistID(), 0, getLoop(), getShuffle());
@@ -69,7 +93,7 @@ void BasePlayer::updateUi() const {
 }
 
 bool BasePlayer::needsOnlyUnpause(const boost::uuids::uuid &playlist){
-    return m_PlaylistUniqueId == playlist && m_isPlaying && m_pause;
+    return m_playlistUniqueId == playlist && m_isPlaying && m_pause;
 }
 
 bool BasePlayer::needsStop() {
@@ -99,8 +123,8 @@ bool BasePlayer::calculateNextFileInList() {
     if (++m_currentItemIterator == m_playlist.end())
     {
         logger(LoggerFramework::Level::debug) << "Playlist <"
-                                              << boost::uuids::to_string(m_PlaylistUniqueId)
-                                              << "> (" << m_PlaylistName << ") ends\n";
+                                              << boost::uuids::to_string(m_playlistUniqueId)
+                                              << "> (" << m_playlistName << ") ends\n";
         if (m_doCycle) {
             logger(LoggerFramework::Level::debug) << "do cycle and play playlist from start again\n";
             if (m_shuffle) {
@@ -108,18 +132,22 @@ bool BasePlayer::calculateNextFileInList() {
             }
             m_currentItemIterator = m_playlist.begin();
             logger(LoggerFramework::Level::debug) << "Playlist <"
-                                                  << boost::uuids::to_string(m_PlaylistUniqueId)
-                                                  << "> (" << m_PlaylistName << ") playing first sond <"
+                                                  << boost::uuids::to_string(m_playlistUniqueId)
+                                                  << "> (" << m_playlistName << ") playing first sond <"
                                                   << boost::uuids::to_string(m_currentItemIterator->m_uniqueId)
                                                   << ">\n";
             return  true;
+        }
+        else {
+            // keep last audio item
+            m_currentItemIterator--;
         }
 
         return false;
     }
     else {
-        logger(LoggerFramework::Level::debug) << "Playlist <"<<boost::uuids::to_string(m_PlaylistUniqueId)<<"> ("
-                                              << m_PlaylistName << ") playing next song <"
+        logger(LoggerFramework::Level::debug) << "Playlist <"<<boost::uuids::to_string(m_playlistUniqueId)<<"> ("
+                                              << m_playlistName << ") playing next song <"
                                               << boost::uuids::to_string(m_currentItemIterator->m_uniqueId)
                                               << ">\n";
         return true;
@@ -127,7 +155,10 @@ bool BasePlayer::calculateNextFileInList() {
 }
 
 bool BasePlayer::toggleShuffle() {
+
     doShuffle(!m_shuffle);
+
+    // in case, player is playing, end this song and use next song from
     if (isPlaying()) {
         stopAndRestart();
     }

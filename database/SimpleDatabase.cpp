@@ -59,9 +59,11 @@ bool SimpleDatabase::addToPlaylistName(const std::string &playlistName, std::str
     boost::uuids::uuid uid;
     try {
         uid = boost::lexical_cast<boost::uuids::uuid>(uniqueID);
-    } catch(std::exception&) {
+    } catch (std::exception& ex) {
+        logger(LoggerFramework::Level::warning) << ex.what() << "\n";
         return false;
     }
+
     return m_playlistContainer.addItemToPlaylistName(playlistName, std::move(uid));
 }
 

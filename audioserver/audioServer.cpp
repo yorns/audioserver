@@ -106,6 +106,18 @@ int helpOutput(const char* command) {
     return EXIT_FAILURE;
 }
 
+boost::uuids::uuid extractUUID (const std::string& uuidString) {
+    boost::uuids::uuid extract;
+    try {
+        extract = boost::lexical_cast<boost::uuids::uuid>(uuidString);
+    } catch (std::exception& ex) {
+        logger(Level::warning) << "cannot extract id "<< uuidString <<": "<< ex.what() << "\n";
+    }
+
+    return extract;
+}
+
+
 int main(int argc, char* argv[])
 {
     std::string configFileName {"/etc/audioserver.json"};
@@ -152,12 +164,14 @@ int main(int argc, char* argv[])
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
-    PlaylistAccess playlistWrapper(database);
+    PlaylistAccess playlistWrapper(database, player);
     WifiAccess wifiAccess(wifiManager);
 
-    auto updateUI = [&sessionHandler, &sncClient, &player, &database]( const boost::uuids::uuid& songID, const boost::uuids::uuid& playlistID, const boost::uuids::uuid& currPlaylistID,
-                  int position) {
-
+    auto updateUI = [&sessionHandler, &sncClient, &player, &database]
+            ( const boost::uuids::uuid& songID,
+              const boost::uuids::uuid& playlistID,
+              const boost::uuids::uuid& currPlaylistID,
+              int position) {
 
         std::string title;
         std::string album;
@@ -208,13 +222,18 @@ int main(int argc, char* argv[])
 
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
-        songInfo["songID"] = boost::lexical_cast<std::string>(songID);
-        songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
-        songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
+        try {
+            songInfo["songID"] = boost::lexical_cast<std::string>(songID);
+            songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
+            songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
+        } catch (std::exception& ) {
+            logger(Level::warning) << "cannot convert ID to string\n";
+        }
         songInfo["position"] = position;
         songInfo["loop"] = player->getLoop();
         songInfo["shuffle"] = player->getShuffle();
         songInfo["playing"] = player->isPlaying();
+        songInfo["paused"] = player->isPause();
         songInfo["volume"] = player->getVolume();
         songInfo["title"] = title;
         songInfo["album"] = album;
@@ -236,24 +255,13 @@ int main(int argc, char* argv[])
                 if (command == "start") {
                     logger(Level::info) << "start new album <"<<msg.at("AlbumID")<<">\n";
                     boost::uuids::uuid albumId, titleID;
-                    try {
-                        albumId = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("AlbumID")));
-                    } catch (std::exception& ex) {
-                        logger(Level::warning) << "cannot extract album id: "<< ex.what() << "\n";
-                        return;
-                    }
+                    albumId = extractUUID(std::string(msg.at("AlbumID")));
+                    titleID = extractUUID(std::string(msg.at("TitleID")));
 
                     database.setCurrentPlaylistUniqueId(std::move(albumId));
-                    auto albumPlaylistAndNames = database.getAlbumPlaylistAndNames();
-                    try {
-                        titleID = boost::lexical_cast<boost::uuids::uuid>(std::string(msg.at("TitleID")));
-                    } catch (std::exception& ex) {
-                        logger(Level::warning) << "cannot extract title id: "<< ex.what() << "\n";
-                        return;
-                    }
-                    player->startPlay(albumPlaylistAndNames,
-                                      titleID,
-                                      msg.at("Position"));
+
+                    player->setPlaylist(database.getAlbumPlaylistAndNames());
+                    player->startPlay(titleID, msg.at("Position"));
                 }
                 if (command == "stop") {
                     logger(Level::info) << "stop album <"<<msg.at("AlbumID")<<">\n";

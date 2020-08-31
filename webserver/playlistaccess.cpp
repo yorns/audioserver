@@ -27,7 +27,7 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
                 json.push_back(jentry);
             }
         }
-    } catch (const nlohmann::json::exception& ex) {
+    } catch (const std::exception& ex) {
         logger(Level::error) << "conversion to json failed: " << ex.what();
         return "[]";
     }
@@ -84,6 +84,9 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
 
     if (parameter == ServerConstant::Command::getAlbumList) {
         auto list = m_database.searchPlaylistItems(value, Database::SearchAction::alike);
+
+        std::sort(std::begin(list), std::end(list), [](Database::Playlist& item1, Database::Playlist& item2) { return item1.getUniqueID() > item2.getUniqueID(); });
+
         return convertToJson(list);
     }
 
@@ -98,9 +101,17 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         }
 
         auto blub = playlistList[0].getUniqueID();
+        try {
         logger(Level::info) << "set current playlist to <" << boost::lexical_cast<std::string>(blub) << ">\n";
+        } catch (std::exception& ex) {
+            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
+        }
 
+        m_player->stop();
+        m_player->resetPlayer();
         m_database.setCurrentPlaylistUniqueId(playlistList[0].getUniqueID());
+        m_player->setPlaylist(m_database.getAlbumPlaylistAndNames());
+
         return R"({"result": "ok"})";
     }
 
