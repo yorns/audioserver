@@ -173,6 +173,7 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
             playlist.setPerformer(elem.m_performer);
             playlist.setCover(elem.m_coverId, elem.m_coverExtension);
             playlist.setUniqueID(std::move(uniqueID));
+            playlist.setTagList(elem.m_tagList);
             for(auto& uid : elem.m_playlist) {
                 auto addUid = std::get<boost::uuids::uuid>(uid);
                 playlist.addToList(std::move(addUid));
@@ -312,6 +313,12 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
                     break;
                 }
             }
+            logger(Level::debug) << "check against <"<<playlistItem->strTag() <<">\n";
+            if (playlistItem->isTagAlike(whatList)) {
+                logger(Level::debug) << "found <"<<playlistItem->strTag() <<">\n";
+                found = true;
+            }
+
             if (found)
                 playlist.push_back(*playlistItem);
         }

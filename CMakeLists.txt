@@ -62,6 +62,8 @@ set(ID3INTERFACE
     ${CMAKE_SOURCE_DIR}/id3tagreader/Id3Info.h
     ${CMAKE_SOURCE_DIR}/id3tagreader/id3TagReader.cpp
     ${CMAKE_SOURCE_DIR}/id3tagreader/id3TagReader.h
+    ${CMAKE_SOURCE_DIR}/id3tagreader/idtag.cpp
+    ${CMAKE_SOURCE_DIR}/id3tagreader/idtag.h
     )
 
 set(WIFI
@@ -81,6 +83,8 @@ set(DATABASE
     ${CMAKE_SOURCE_DIR}/database/playlistcontainer.h
     ${CMAKE_SOURCE_DIR}/database/SimpleDatabase.cpp
     ${CMAKE_SOURCE_DIR}/database/SimpleDatabase.h
+    ${CMAKE_SOURCE_DIR}/database/songtagreader.cpp
+    ${CMAKE_SOURCE_DIR}/database/songtagreader.h
     )
 
 set(COMMONCOMPONENTS

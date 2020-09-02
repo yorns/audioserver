@@ -13,6 +13,7 @@
 #include "common/base64.h"
 #include "common/filesystemadditions.h"
 #include "nlohmann/json.hpp"
+#include "songtagreader.h"
 
 using namespace LoggerFramework;
 
@@ -46,6 +47,7 @@ class Id3Repository
     std::vector<CoverElement> m_simpleCoverDatabase;
 
     id3TagReader m_tagReader;
+    SongTagReader m_songTagReader;
 
     const CoverElement emptyElement;
 

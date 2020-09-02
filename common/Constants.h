@@ -17,6 +17,7 @@ namespace ServerConstant {
     static constexpr auto coverPathWeb {sv("img")};
     static constexpr auto coverPathWebAlien {sv("img_alien")};
     static constexpr auto cachePath {sv("cache")};
+    static constexpr auto tagPath {sv("tag")};
     static constexpr auto tmpPath {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
     static constexpr auto mp3Extension{sv(".mp3")};

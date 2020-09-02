@@ -423,6 +423,8 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
                      (info.isAlikeTitle(whatList))) ||
                     ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
                      (info.isAlikeAlbum(whatList))) ||
+                    ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                     (info.isAlikeTag(whatList))) ||
                     ((item == SearchItem::interpret || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
                      (info.isAlikePerformer(whatList)))) {
                     findData.push_back(info);
@@ -447,6 +449,8 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
 std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
     std::vector<AlbumListEntry> albumList;
 
+    logger(Level::debug) << "------------- EXTRACT ALBUM LIST ---------\n";
+
     for(auto it {std::cbegin(m_simpleDatabase)}; it != std::cend(m_simpleDatabase); ++it) {
 
         if (it->albumCreation) {
@@ -461,6 +465,9 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
                 AlbumListEntry entry;
                 entry.m_name = it->album_name;
                 entry.m_performer = it->performer_name;
+                entry.m_tagList = it->tags;
+                if (it->tags.size() > 0)
+                    logger(Level::debug) << "------------- FOUND ------" << it->album_name << "---------\n";
                 if (!it->fileExtension.empty() ) {
                     entry.m_coverExtension = it->fileExtension;
                     entry.m_coverId = it->uid;
@@ -482,12 +489,15 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
                 }
 
                 albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
+                albumIt->m_tagList = it->tags;
+                if (it->tags.size() > 0)
+                    logger(Level::debug) << "----NEW --------- FOUND ------" << it->album_name << "---------\n";
             }
         }
     }
     logger(Level::info) << "extracted <"<<albumList.size()<<"> album playlists\n";
     for (auto& i : albumList) {
-        logger(Level::debug) << "  - <"<<i.m_name<<">\n";
+        logger(Level::debug) << "  - <"<<i.m_name<<"> # " << TagConverter::getTagName(i.m_tagList) <<"\n";
 
         std::sort(std::begin(i.m_playlist), std::end(i.m_playlist), [](const auto& t1, const auto& t2){ return std::get<uint32_t>(t1) < std::get<uint32_t>(t2); });
 
@@ -545,6 +555,23 @@ bool Id3Repository::read() {
     logger(Level::info) << "database read completed\n";
 
     writeCacheInternal();
+
+    logger(Level::info) << "database handling external tags\n";
+    m_songTagReader.readSongTagFile();
+
+    for (auto& elem : m_simpleDatabase) {
+        auto tagList = m_songTagReader.findSongTagList( elem.getNormalizedAlbum(),
+                                                        elem.getNormalizedTitle(),
+                                                        elem.getNormalizedPerformer() );
+        if (tagList.size() > 0) {
+            std::string tagString;
+            for (const auto& str : tagList) {
+                tagString += "<" + TagConverter::getTagName(str) + ">";
+            }
+            logger(Level::debug) << "adding tags ("<<tagString<<") to "<<elem.toString()<<"\n";
+            elem.setTags(std::move(tagList));
+        }
+    }
 
     return true;
 }

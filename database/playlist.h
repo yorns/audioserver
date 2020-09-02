@@ -15,6 +15,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/lexical_cast.hpp>
 #include "searchitem.h"
+#include "id3tagreader/idtag.h"
 
 namespace filesys =  boost::filesystem;
 
@@ -49,7 +50,9 @@ struct PlaylistItem {
     std::string m_name;
     std::string m_name_lower;
     std::string m_performer;
-    std::string m_performer_lower ;
+    std::string m_performer_lower;
+    std::vector<Tag> m_tagList;
+
 };
 
 typedef std::function<std::vector<boost::uuids::uuid>(const std::string& what, SearchItem searchItem)> FindAlgo;
@@ -64,7 +67,13 @@ class Playlist {
     Changed m_changed { Changed::isUnchanged };
     Persistent m_persistent { Persistent::isPermanent };
     ReadType m_readType { ReadType::isM3u };
-    
+
+    bool findInTagList(Tag tagElement) {
+        return std::find_if(std::begin(m_item.m_tagList),
+                         std::end(m_item.m_tagList),
+                         [&tagElement](const Tag& tag){ return tag == tagElement; })
+                != std::end(m_item.m_tagList);
+    }
 public:
 
     Playlist() = delete;
@@ -89,6 +98,36 @@ public:
 
     void setName(const std::string& name);
     void setPerformer(const std::string& performer);
+    void setTagList(std::vector<Tag> tagList) {
+        for (const auto& elem : tagList) {
+            if (!findInTagList(elem)) {
+                m_item.m_tagList.push_back(elem);
+            }
+        }
+    }
+
+    bool isTagAlike(const std::vector<std::string>& whatList ) const {
+        if (whatList.size() > 0) {
+            logger(LoggerFramework::Level::debug) << "isTagAlike makes sense\n";
+            for (const auto& elem : whatList) {
+                for (const auto& tag : m_item.m_tagList) {
+                    if (TagConverter::getTagIdAlike(elem) == tag) {
+                        return true;
+                    }
+                }
+
+            }
+        }
+        return false;
+    }
+
+    std::string strTag() const {
+        std::stringstream retStr;
+        for(const auto& elem : m_item.m_tagList) {
+            retStr << TagConverter::getTagName(elem);
+        }
+        return retStr.str();
+    }
 
     std::string getName() const;
     std::string getPerformer() const { return m_item.m_performer; }

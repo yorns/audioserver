@@ -5,8 +5,15 @@
 #include <vector>
 #include <sstream>
 #include <cstdint>
+#include <fstream>
+#include <algorithm>
 #include "common/stringmanipulator.h"
+#include "common/filesystemadditions.h"
+#include "common/logger.h"
 #include <boost/uuid/uuid.hpp>
+
+#include "idtag.h"
+
 
 class Id3Info {
 
@@ -24,6 +31,7 @@ public:
     uint32_t all_tracks_no {0};
     uint32_t cd_no {0};
     uint32_t genreId;
+    std::vector<Tag> tags;
     bool albumCreation { true };
 
     std::string informationSource;
@@ -51,7 +59,12 @@ public:
         albumName_lower = Common::str_tolower(album_name);
         performerName_lower = Common::str_tolower(performer_name);
         titleName_lower = Common::str_tolower(title_name);
+
         return true;
+    }
+
+    void setTags(std::vector<Tag>&& tagList) {
+        tags = std::move(tagList);
     }
 
     Id3Info& operator=(const Id3Info& info) = default;
@@ -90,6 +103,33 @@ public:
         return false;
     }
 
+    bool isAlikeTag(const std::vector<std::string>& whatList) const {
+        for (auto& part : whatList) {
+            std::string tagName = Common::str_tolower(part);
+
+            auto tag = TagConverter::getTagIdAlike(tagName);
+
+            if (tag != Tag::unknown) {
+                if (std::find_if(std::begin(tags), std::end(tags),
+                                 [&tag](const Tag& elem) { return elem == tag; }
+                                 ) != std::end(tags))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    std::string getNormalizedAlbum() const {
+        return albumName_lower;
+    }
+
+    std::string getNormalizedTitle() const {
+        return titleName_lower;
+    }
+
+    std::string getNormalizedPerformer() const {
+        return performerName_lower;
+    }
 };
 
 

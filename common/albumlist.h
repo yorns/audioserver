@@ -5,6 +5,7 @@
 #include <vector>
 #include <tuple>
 #include <boost/uuid/uuid.hpp>
+#include "id3tagreader/idtag.h"
 
 namespace Common {
 
@@ -13,6 +14,7 @@ struct AlbumListEntry {
     std::string m_performer;
     std::string m_coverExtension;
     boost::uuids::uuid m_coverId;
+    std::vector<Tag> m_tagList;
     std::vector<std::tuple<boost::uuids::uuid, uint32_t>> m_playlist;
 };
 
