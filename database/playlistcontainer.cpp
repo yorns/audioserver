@@ -187,6 +187,21 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
     return true;
 }
 
+std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid) const {
+    const auto& list = getPlaylistByUID(playlistUuid);
+    std::stringstream m3uOutput;
+    if (list) {
+        if (list->size() > 0) {
+            for (const auto& elem : *list) {
+                m3uOutput << "/audio/" << elem << ".mp3\n";
+            }
+            logger(Level::debug) << "created M3U file: " << m3uOutput.str() << "\n";
+            return m3uOutput.str();
+        }
+    }
+    return std::nullopt;
+}
+
 std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlaylistByName(const std::string& playlistName) const {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                            [playlistName](const Playlist& elem) { return elem.getName() == playlistName; });
@@ -200,9 +215,11 @@ std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlayl
 
 std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlaylistByUID(const boost::uuids::uuid &uid) const {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
-                           [uid](const Playlist& elem) { return elem.getUniqueID() == uid; });
+                           [uid](const Playlist& elem) {
+        return elem.getUniqueID() == uid; });
 
     if (it != std::end(m_playlists)) {
+        logger(Level::debug) << "playlist found with <"<<it->getUniqueIdPlaylist().size()<<"> elements\n";
         return it->getUniqueIdPlaylist();
     }
     return std::nullopt;

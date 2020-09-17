@@ -11,6 +11,7 @@ mime_type(boost::beast::string_view path)
             return boost::beast::string_view{};
         return path.substr(pos);
     }();
+    if(iequals(ext, ".m3u"))  return "audio/mpegurl";
     if(iequals(ext, ".htm"))  return "text/html";
     if(iequals(ext, ".html")) return "text/html";
     if(iequals(ext, ".php"))  return "text/html";

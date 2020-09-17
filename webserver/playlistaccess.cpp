@@ -59,13 +59,13 @@ std::string PlaylistAccess::convertToJson(const std::vector<Database::Playlist> 
 
 std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo || urlInfo->parameterList.size() != 1) {
+    if (!urlInfo || urlInfo->m_parameterList.size() != 1) {
         logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }
 
-    auto parameter = urlInfo->parameterList.at(0).name;
-    auto value = urlInfo->parameterList.at(0).value;
+    auto parameter = urlInfo->m_parameterList.at(0).name;
+    auto value = std::string(urlInfo->m_parameterList.at(0).value);
 
     logger(Level::info) << "playlist access - parameter: <"<<parameter<<"> value: <"<<value<<">\n";
 
@@ -110,9 +110,11 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         m_player->stop();
         m_player->resetPlayer();
         m_database.setCurrentPlaylistUniqueId(playlistList[0].getUniqueID());
-        m_player->setPlaylist(m_database.getAlbumPlaylistAndNames());
 
-        return R"({"result": "ok"})";
+        if (m_player->setPlaylist(m_database.getAlbumPlaylistAndNames()))
+            return R"({"result": "ok"})";
+        else
+            return R"({"result": "could not set playlist"})";
     }
 
     if (parameter == ServerConstant::Command::add) {
@@ -201,6 +203,6 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
         }
     }
 
-    return R"({"result": "cannot find parameter <)" + parameter + "> in playlist\"}";
+    return R"({"result": "cannot find parameter <)" + std::string(parameter) + "> in playlist\"}";
 
 }

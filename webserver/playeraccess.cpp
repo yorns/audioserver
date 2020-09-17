@@ -7,13 +7,13 @@ using namespace LoggerFramework;
 
 std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo || urlInfo->parameterList.size() != 1) {
+    if (!urlInfo || urlInfo->m_parameterList.size() != 1) {
         logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }
 
-    auto parameter = urlInfo->parameterList.at(0).name;
-    auto value = urlInfo->parameterList.at(0).value;
+    auto parameter = urlInfo->m_parameterList.at(0).name;
+    auto value = std::string(urlInfo->m_parameterList.at(0).value);
 
     logger(Level::info) << "player access - parameter: <"<<parameter<<"> value: <"<<value<<">\n";
 

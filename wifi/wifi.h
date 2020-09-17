@@ -104,9 +104,9 @@ public:
         system("wpa_generator");
     }
 
-    void setSsid(const std::string& ssid, const std::string& psk) {
-        NetworkEntry entry(ssid, psk);
-        removeEntry(ssid);
+    void setSsid(std::string_view ssid, std::string_view psk) {
+        NetworkEntry entry {std::string(ssid), std::string(psk)};
+        removeEntry(std::string(ssid));
         networkList.emplace_back(std::move(entry));
         writeConfigFile();
     }

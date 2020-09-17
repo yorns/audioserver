@@ -298,11 +298,18 @@ function getAlbumList(searchString) {
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         response.sort(function(a,b){
-            if (a.uid == b.uid) 
+            if (a.performer == b.performer) {
+              if (a.album == b.album)    
                 return 0;
-            if (a.uid > b.uid) 
+            if (a.album < b.album) 
                 return -1;
-            if (a.uid < b.uid)
+            if (a.album > b.album)
+                return 1;                
+
+            }
+            if (a.performer < b.performer) 
+                return -1;
+            if (a.performer > b.performer)
                 return 1;
         })
         

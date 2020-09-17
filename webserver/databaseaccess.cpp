@@ -52,15 +52,18 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
 
 std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo || urlInfo->parameterList.size() != 1) {
+    if (!urlInfo || !urlInfo->m_parsed || urlInfo->m_parameterList.size() != 1) {
         logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }
 
-    auto parameter = urlInfo->parameterList.at(0).name;
-    auto value = urlInfo->parameterList.at(0).value;
+    auto& parameter = urlInfo->m_parameterList.at(0).name;
+    auto& value = urlInfo->m_parameterList.at(0).value;
+    auto command = urlInfo->getCommand();
+    auto base = urlInfo->getBase();
 
-    logger(Level::info) << "database access - parameter:<"<<parameter<<"> value:<"<<value<<">\n";
+    logger(Level::info) << "database access cmd <"<<command<<"> parameter:<"<<parameter<<"> value:<"<<value<<">\n";
+
     if (parameter == ServerConstant::Command::getAlbumList) {
         // get all albums and sort/reduce
         auto infoList = m_database.searchPlaylistItems(value, Database::SearchAction::alike);

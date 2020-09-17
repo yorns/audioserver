@@ -93,9 +93,10 @@ std::optional<const std::vector<boost::uuids::uuid> > SimpleDatabase::getPlaylis
     return m_playlistContainer.getPlaylistByUID(playlistName);
 }
 
-bool SimpleDatabase::setCurrentPlaylistUniqueId(boost::uuids::uuid &&uniqueID) {
+bool SimpleDatabase::setCurrentPlaylistUniqueId(boost::uuids::uuid uniqueID) {
     return m_playlistContainer.setCurrentPlaylist(std::move(uniqueID));
 }
+
 
 std::optional<const boost::uuids::uuid> SimpleDatabase::getCurrentPlaylistUniqueID() {
     return m_playlistContainer.getCurrentPlaylistUniqueID();
@@ -158,4 +159,53 @@ Common::AlbumPlaylistAndNames SimpleDatabase::getAlbumPlaylistAndNames() {
 
     return albumPlaylistAndNames;
 
+}
+
+std::optional<std::vector<boost::uuids::uuid> > SimpleDatabase::getSongInPlaylistByName(const std::string &_songName, const boost::uuids::uuid &albumUuid) {
+
+    std::vector<boost::uuids::uuid> songList;
+
+    auto infoList = getIdListOfItemsInPlaylistId(albumUuid);
+    std::string songName = Common::str_tolower(_songName);
+
+    for (const auto& infoElem : infoList) {
+        if (infoElem.getNormalizedTitle() == songName) {
+            songList.push_back(infoElem.uid);
+        }
+    }
+
+    if (songList.empty())
+        return std::nullopt;
+
+    return songList;
+}
+
+std::optional<std::vector<char> > SimpleDatabase::getCover(const boost::uuids::uuid &uid) {
+
+    auto& coverElement = m_id3Repository.getCover(uid);
+    if (coverElement.rawData.size()>0) {
+        logger(LoggerFramework::Level::debug) << "found cover for cover id <" << boost::uuids::to_string(uid) << "> in database\n";
+        return coverElement.rawData;
+    }
+    else
+        logger(LoggerFramework::Level::debug) << "NO cover in database found for cover id <" << uid << ">\n";
+    return std::nullopt;
+}
+
+std::optional<std::string> SimpleDatabase::getFileFromUUID(boost::uuids::uuid &uuid) {
+    auto id3Info = m_id3Repository.search(uuid, SearchItem::uid, SearchAction::uniqueId);
+    if (id3Info.size() == 1) {
+        // test if this is a local file
+        logger(Level::warning) << "requested uuid <" << uuid << "> found url: "<<id3Info[0].url <<"\n";
+        auto filename = id3Info[0].url;
+        const std::string filePrefix("file://");
+        if (filename.substr(0,filePrefix.length()) == filePrefix) {
+            //               filename = filename.substr(filePrefix.length());
+            return filename;
+        }
+        logger(Level::warning) << "requested uuid <" << uuid << "> has no file prefix\n";
+        return std::nullopt;
+    }
+    logger(Level::warning) << "requested uuid <" << uuid << "> not found\n";
+    return std::nullopt;
 }

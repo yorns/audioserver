@@ -9,6 +9,7 @@
 #include <functional>
 #include <string>
 #include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include "common/logger.h"
 #include "common/Constants.h"
@@ -36,6 +37,8 @@ public:
     bool readPlaylistsM3U();
     bool readPlaylistsJson(Database::FindAlgo&& findUuidList, Database::InsertCover&& coverInsert);
     bool insertAlbumPlaylists(const std::vector<Common::AlbumListEntry>& albumList);
+
+    std::optional<std::string> createvirtual_m3u(const boost::uuids::uuid& playlistUuid) const;
 
     bool writeChangedPlaylists();
 

@@ -36,6 +36,10 @@ namespace ServerConstant {
         static constexpr auto wifi {sv("/wifi")};
         static constexpr auto upload {sv("/upload")};
         static constexpr auto websocket {sv("/dynamic")};
+        namespace Virtual {
+            static constexpr auto image {sv("/img")};
+            static constexpr auto audio {sv("/audio")};
+        }
     }
 
     namespace Command {

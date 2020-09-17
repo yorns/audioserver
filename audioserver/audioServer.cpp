@@ -7,6 +7,7 @@
 #include <vector>
 #include <optional>
 #include <snc/client.h>
+#include <boost/uuid/uuid_io.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include "nlohmann/json.hpp"
@@ -171,8 +172,8 @@ int main(int argc, char* argv[])
             ( const boost::uuids::uuid& songID,
               const boost::uuids::uuid& playlistID,
               const boost::uuids::uuid& currPlaylistID,
-              int position) {
-
+              int position)
+    {
         std::string title;
         std::string album;
         std::string performer;
@@ -247,30 +248,87 @@ int main(int argc, char* argv[])
 
 
 
-    auto externalSelect = [&database, &player, &sessionHandler](const std::string& raw_msg) {
+    auto externalSelect = [&database, &player, &sessionHandler, &sncClient](const std::string& other, const std::string& raw_msg) {
         try {
             nlohmann::json msg = nlohmann::json::parse(raw_msg);
-            if (msg.find("Cmd") != msg.end()) {
-                auto command = msg.at("Cmd");
-                if (command == "start") {
-                    logger(Level::info) << "start new album <"<<msg.at("AlbumID")<<">\n";
-                    boost::uuids::uuid albumId, titleID;
-                    albumId = extractUUID(std::string(msg.at("AlbumID")));
-                    titleID = extractUUID(std::string(msg.at("TitleID")));
+            if (msg.find("CmdMsg") != msg.end()) {
+                auto command = msg.at("CmdMsg");
+                if (command == "start" && msg.find("data") != msg.end()) {
+                    auto data = msg.at("data");
+                    boost::uuids::uuid albumId{0}, titleId{0};
+                    uint32_t position {0};
+                    if (data.find("albumID") != data.end() && data.find("titleID") != data.end()) {
+                        albumId = extractUUID(std::string(data.at("albumID")));
+                        titleId = extractUUID(std::string(data.at("titleID")));
+                        logger(Level::debug) << "received album <" << albumId << "> and title <" << titleId << ">\n";
+                    }
+                    else if (data.find("album") != data.end() && data.find("title") != data.end()) {
 
-                    database.setCurrentPlaylistUniqueId(std::move(albumId));
+                        const auto& albumName = std::string(data.at("album"));
+                        const auto& titleName = std::string(data.at("title"));
 
-                    player->setPlaylist(database.getAlbumPlaylistAndNames());
-                    player->startPlay(titleID, msg.at("Position"));
+                        logger(Level::debug) << "received album <" << albumName << "> and title <" << titleName << ">\n";
+
+                        const auto& albumPlaylists = database.searchPlaylistItems(albumName);
+
+                        if (albumPlaylists.size() == 1) {
+                            const std::string& title_low = Common::str_tolower(titleName);
+                            for (const auto& elem : database.getIdListOfItemsInPlaylistId(albumPlaylists[0].getUniqueID())) {
+
+                                if (elem.getNormalizedTitle() == title_low) {
+                                    logger(Level::info) << "External request found for <"<<albumName<<":"<<titleName<<"> - " << albumPlaylists[0].getUniqueID() << " " << elem.uid <<"\n";
+
+                                    albumId = albumPlaylists[0].getUniqueID();
+                                    titleId = elem.uid;
+                                }
+                            }
+                        }
+
+                    }
+
+                    if (!albumId.is_nil() && !titleId.is_nil() ) {
+                      database.setCurrentPlaylistUniqueId(std::move(albumId));
+                      position = data.at("position");
+
+                      player->setPlaylist(database.getAlbumPlaylistAndNames());
+                      player->startPlay(titleId, position);
+                    }
+                    else {
+                        logger(Level::warning) << "could not set album and/or title\n";
+                    }
                 }
                 if (command == "stop") {
-                    logger(Level::info) << "stop album <"<<msg.at("AlbumID")<<">\n";
+                    logger(Level::info) << "stop play\n";
                     player->stop();
                 }
             }
             if (msg.find("SsidMessage") != msg.end()) {
                 sessionHandler.broadcast(msg.dump());
 
+            }
+            if (msg.find("Request") != msg.end()) {
+                logger(Level::info) << "request for album and song id\n";
+                auto request = msg.at("Request");
+                const auto& albumName = std::string(request.at("album"));
+                const auto& titleName = std::string(request.at("title"));
+
+                const auto& albumPlaylists = database.searchPlaylistItems(albumName);
+
+                if (albumPlaylists.size() == 1) {
+                    const std::string& title_low = Common::str_tolower(titleName);
+                    for (const auto& elem : database.getIdListOfItemsInPlaylistId(albumPlaylists[0].getUniqueID())) {
+
+                        if (elem.getNormalizedTitle() == title_low) {
+                            logger(Level::info) << "External request found for <"<<albumName<<":"<<titleName<<"> - " << albumPlaylists[0].getUniqueID() << " " << elem.uid <<"\n";
+                            nlohmann::json msg;
+                            nlohmann::json reply;
+                            reply["albumID"] = boost::uuids::to_string(albumPlaylists[0].getUniqueID());
+                            reply["titleID"] = boost::uuids::to_string(elem.uid);
+                            msg["reply"] = reply;
+                            sncClient.send(snc::Client::SendType::cl_send, other, msg.dump());
+                        }
+                    }
+                }
             }
 
         } catch (std::exception& exp) {
@@ -279,11 +337,9 @@ int main(int argc, char* argv[])
     };
 
     sncClient.recvHandler([externalSelect](const std::string& other, const std::string& raw_msg) {
-        logger(Level::info) << "received Message from <" << other << ">\n";
-        externalSelect(raw_msg);
+        logger(Level::info) << "received Message from <" << other << ">: "<<raw_msg<<"\n";
+        externalSelect(other, raw_msg);
     });
-
-    //player->onUiChange(updateUI);
 
     player->setSongEndCB([&database, &updateUI](const boost::uuids::uuid& songID){
         boost::ignore_unused(songID);
@@ -302,13 +358,13 @@ int main(int argc, char* argv[])
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::database, http::verb::get, PathCompare::exact,
                                  [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        auto url = utility::Extractor::getUrlInformation(request.get().target(), ServerConstant::AccessPoints::database);
         return databaseWrapper.access(url);
     });
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::playlist, http::verb::get, PathCompare::exact,
                                  [&playlistWrapper](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        auto url = utility::Extractor::getUrlInformation(request.get().target(), ServerConstant::AccessPoints::playlist);
         if (!url)
             logger(Level::debug) << "url not set correctly\n";
         return playlistWrapper.access(url);
@@ -316,27 +372,98 @@ int main(int argc, char* argv[])
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::player, http::verb::post, PathCompare::exact,
                                  [&playerWrapper](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()), ServerConstant::AccessPoints::player);
         return playerWrapper.access(url);
     });
 
     sessionHandler.addUrlHandler(ServerConstant::AccessPoints::wifi, http::verb::post, PathCompare::exact,
                                  [&wifiAccess](const http::request_parser<http::string_body>& request) -> std::string {
-        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()), ServerConstant::AccessPoints::wifi);
         return wifiAccess.access(url);
     });
 
-    sessionHandler.addVirtualFileHandler([&databaseWrapper](const std::string_view& _target) -> std::optional<std::vector<char>> {
+    /*
+    sessionHandler.addUrlHandler(ServerConstant::AccessPoints::Virtual::image, http::verb::get, PathCompare::prefix,
+                                 [&databaseWrapper](const http::request_parser<http::string_body>& request) -> std::string {
+        // handle virtual image requests
+        auto url = utility::Extractor::getUrlInformation(std::string(request.get().target()));
+        return databaseWrapper.access(url);        
+    });
+    */
+    
+    sessionHandler.addVirtualImageHandler([&databaseWrapper, &database](const std::string_view& _target) -> std::optional<std::vector<char>> {
         // split target
         auto target = utility::urlConvert(std::string(_target));
-        logger(Level::debug) << "virtual file request for <"<<target<<">\n";
+        logger(Level::debug) << "virtual image request for <"<<target<<">\n";
 
         if (target.substr(0,5) == "/img/") {
-            return databaseWrapper.getVirtualFile(target);
+            if (auto virtualFile = databaseWrapper.getVirtualFile(target)) {
+               return virtualFile;
+            } else {
+                boost::uuids::uuid unknownCover;
+                try {
+                    unknownCover = boost::lexical_cast<boost::uuids::uuid>(ServerConstant::unknownCoverFileUid);
+                } catch(std::exception& ex) {
+                    logger(Level::error) << " ERROR: cannot convert unknown cover uuid string: " << ex.what() << "\n";
+                }
+               return database.getCover(unknownCover);
+            }
         }
-//        else
         return std::nullopt;
     });
+
+    sessionHandler.addVirtualAudioHandler([&database](const std::string_view& _target) -> std::optional<std::string> {
+        auto target = utility::urlConvert(std::string(_target));
+        logger(Level::debug) << "virtual audio request for <"<<target<<">\n";
+
+        if (target.substr(0,7) == "/audio/") {
+            auto pos1 = target.find_last_of("/");
+            if (pos1 != std::string_view::npos) {
+                auto pos2 = target.find_last_of(".");
+                if (pos2 != std::string_view::npos) {
+                    std::string uidStr = std::string(target.substr(pos1+1, pos2-pos1-1));
+                    logger(LoggerFramework::Level::debug) << "searching for audio UID <"<<uidStr<<">\n";
+                    boost::uuids::uuid uid;
+                    try {
+                        uid = boost::lexical_cast<boost::uuids::uuid>(uidStr);
+                    } catch(std::exception& ex) {
+                        logger(Level::warning) << "could not interpret <"<<uidStr<<">: "<< ex.what()<<"\n";
+                        return std::nullopt;
+                    }
+
+                    return database.getFileFromUUID(uid);
+                }
+            }
+        }
+        return std::nullopt;
+    });
+
+    sessionHandler.addVirtualPlaylistHandler([&database](const std::string_view& _target) -> std::optional<std::string> {
+        auto target = utility::urlConvert(std::string(_target));
+        logger(Level::debug) << "virtual playlist request for <"<<target<<">\n";
+
+        if (target.substr(0,4) == "/pl/") {
+            auto pos1 = target.find_last_of("/");
+            if (pos1 != std::string_view::npos) {
+                auto pos2 = target.find_last_of(".");
+                if (pos2 != std::string_view::npos) {
+                    std::string uidStr = std::string(target.substr(pos1+1, pos2-pos1-1));
+                    logger(LoggerFramework::Level::debug) << "searching for playlist UID <"<<uidStr<<">\n";
+                    boost::uuids::uuid uid;
+                    try {
+                        uid = boost::lexical_cast<boost::uuids::uuid>(uidStr);
+                    } catch(std::exception& ex) {
+                        logger(Level::warning) << "could not interpret <"<<uidStr<<">: "<< ex.what()<<"\n";
+                        return std::nullopt;
+                    }
+                    return database.getM3UPlaylistFromUUID(uid);
+                }
+            }
+        }
+        return std::nullopt;
+    });
+
+
 
     auto generateName = []() -> Common::NameGenerator::GenerationName
     {
@@ -363,7 +490,7 @@ int main(int argc, char* argv[])
     RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
 
     // create a timer service to request actual player information and send them to the session handlers
-    websocketSonginfoSenderTimer.setHandler( [&player, &database, &updateUI](){
+    websocketSonginfoSenderTimer.setHandler([&player, &database, &updateUI](){
 
         if (player) {
 
@@ -387,7 +514,6 @@ int main(int argc, char* argv[])
     });
 
     websocketSonginfoSenderTimer.start();
-
 
     auto sessionCreator = [&sessionHandler](tcp::socket&& socket) {
         static uint32_t sessionId { 0 };

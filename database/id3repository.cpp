@@ -449,8 +449,6 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
 std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
     std::vector<AlbumListEntry> albumList;
 
-    logger(Level::debug) << "------------- EXTRACT ALBUM LIST ---------\n";
-
     for(auto it {std::cbegin(m_simpleDatabase)}; it != std::cend(m_simpleDatabase); ++it) {
 
         if (it->albumCreation) {
@@ -466,8 +464,6 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
                 entry.m_name = it->album_name;
                 entry.m_performer = it->performer_name;
                 entry.m_tagList = it->tags;
-                if (it->tags.size() > 0)
-                    logger(Level::debug) << "------------- FOUND ------" << it->album_name << "---------\n";
                 if (!it->fileExtension.empty() ) {
                     entry.m_coverExtension = it->fileExtension;
                     entry.m_coverId = it->uid;
@@ -480,7 +476,6 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
             }
             else {
                 if (it->performer_name != albumIt->m_performer) {
-                    logger(Level::debug) << "found multiple performers <"<<it->performer_name<<"> - <" <<albumIt->m_performer <<">\n";
                     albumIt->m_performer = "multiple performer";
                 }
                 if (albumIt->m_coverId == unknownUid && !it->fileExtension.empty()) {
@@ -490,16 +485,13 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
 
                 albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
                 albumIt->m_tagList = it->tags;
-                if (it->tags.size() > 0)
-                    logger(Level::debug) << "----NEW --------- FOUND ------" << it->album_name << "---------\n";
             }
         }
     }
     logger(Level::info) << "extracted <"<<albumList.size()<<"> album playlists\n";
     for (auto& i : albumList) {
-        logger(Level::debug) << "  - <"<<i.m_name<<"> # " << TagConverter::getTagName(i.m_tagList) <<"\n";
-
-        std::sort(std::begin(i.m_playlist), std::end(i.m_playlist), [](const auto& t1, const auto& t2){ return std::get<uint32_t>(t1) < std::get<uint32_t>(t2); });
+        std::sort(std::begin(i.m_playlist), std::end(i.m_playlist), [](const auto& t1, const auto& t2)
+        { return std::get<uint32_t>(t1) < std::get<uint32_t>(t2); });
 
     }
 

@@ -35,10 +35,21 @@ public:
 
     std::vector<Id3Info> searchAudioItems(const std::string &what, SearchItem item, SearchAction action);
     std::vector<Id3Info> searchAudioItems(const boost::uuids::uuid &what, SearchItem item, SearchAction action);
+    std::vector<Id3Info> searchAudioItems(std::string_view what, SearchItem item, SearchAction action) {
+        return searchAudioItems(std::string(what), item, action);
+    }
+    std::vector<Id3Info> searchAudioItems(const char* what, SearchItem item, SearchAction action) {
+        return searchAudioItems(std::string(what), item, action);
+    }
 
     std::vector<Playlist> searchPlaylistItems(const std::string &what, SearchAction action = SearchAction::exact) {
         return  m_playlistContainer.searchPlaylists(what, action);
     }
+    std::vector<Playlist> searchPlaylistItems(const std::string_view &what, SearchAction action = SearchAction::exact) {
+        return  m_playlistContainer.searchPlaylists(std::string(what), action);
+    }
+
+
     std::vector<Playlist> searchPlaylistItems(const boost::uuids::uuid &what, SearchAction action = SearchAction::exact) {
         return  m_playlistContainer.searchPlaylists(what, action);
     }
@@ -52,7 +63,8 @@ public:
     std::optional<const std::vector<boost::uuids::uuid>> getPlaylistByName(const std::string& playlistName) const;
     std::optional<const std::vector<boost::uuids::uuid>> getPlaylistByUID(const boost::uuids::uuid& playlistUniqueId) const;
 
-    bool setCurrentPlaylistUniqueId(boost::uuids::uuid&& uniqueID);
+    bool setCurrentPlaylistUniqueId(boost::uuids::uuid uniqueID);
+
     std::optional<const boost::uuids::uuid> getCurrentPlaylistUniqueID();
 
     std::vector<std::pair<std::string, boost::uuids::uuid>> getAllPlaylists();
@@ -63,18 +75,17 @@ public:
     std::vector<Id3Info> getIdListOfItemsInPlaylistId(const boost::uuids::uuid& uniqueId);
     Common::AlbumPlaylistAndNames getAlbumPlaylistAndNames();
 
-    std::optional<std::vector<char>> getCover(const boost::uuids::uuid& uid) {
+    std::optional<std::vector<boost::uuids::uuid>> getSongInPlaylistByName(const std::string& _songName, const boost::uuids::uuid& albumUuid);
 
-        auto& coverElement = m_id3Repository.getCover(uid);
-        if (coverElement.rawData.size()>0) {
-            logger(LoggerFramework::Level::debug) << "found cover for cover id <" << boost::uuids::to_string(uid) << "> in database\n";
-            return coverElement.rawData;
-        }
-        else
-            logger(LoggerFramework::Level::debug) << "NO cover in database found for cover id <" << uid << ">\n";
-        return std::nullopt;
+    std::optional<std::vector<char>> getCover(const boost::uuids::uuid& uid);
+
+    std::optional<std::string> getFileFromUUID(boost::uuids::uuid& uuid);
+
+    std::optional<std::string> getM3UPlaylistFromUUID(boost::uuids::uuid& uuid) {
+
+        return m_playlistContainer.createvirtual_m3u(uuid);
+
     }
-
 #ifdef WITH_UNITTEST
     bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }
 #endif

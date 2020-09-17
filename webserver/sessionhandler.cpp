@@ -81,6 +81,23 @@ bool SessionHandler::callFileUploadHandler(http::request_parser<http::file_body>
 
 }
 
+std::string SessionHandler::generateRESTInterfaceDocumentation() {
+
+    // TODO: implement fully when request handler is able to handle request
+
+    std::stringstream stream;
+
+    std::for_each(std::cbegin(pathToStringHandler), std::cend(pathToStringHandler),
+                  [&stream](auto& elem){
+        auto entryPoint = std::get<std::string_view>(elem);
+        stream << entryPoint << std::endl;
+        // jump into handler
+        // std::get<RequestHandler>(elem).getRestInfo();
+    });
+
+    return stream.str();
+}
+
 NameGenerator::GenerationName SessionHandler::getName(http::request_parser<http::empty_body> &requestHeader) const {
 
     const std::string_view& path = requestHeader.get().target();

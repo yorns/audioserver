@@ -36,18 +36,32 @@ bool Session::is_illegal_request_target(http::request_parser<http::empty_body>& 
             req.get().target().find("/../") != std::string_view::npos;
 }
 
-http::response<http::string_body> Session::generate_result_packet(http::status status, std::string_view why,
+//http::response<http::string_body> Session::generate_result_packet(http::status status, std::string_view why,
+//                                                                  uint32_t version, bool keep_alive,
+//                                                                  std::string_view mime_type )
+//{
+//    http::response<http::string_body> res{status, version};
+//    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+//    res.set(http::field::content_type, mime_type);
+//    res.keep_alive(keep_alive);
+//    res.body() = why;
+//    res.prepare_payload();
+//    return res;
+//}
+
+std::shared_ptr<http::response<http::string_body>> Session::generate_result_packet(http::status status, std::string_view why,
                                                                   uint32_t version, bool keep_alive,
                                                                   std::string_view mime_type )
 {
-    http::response<http::string_body> res{status, version};
-    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, mime_type);
-    res.keep_alive(keep_alive);
-    res.body() = why;
-    res.prepare_payload();
+    auto res = std::make_shared<http::response<http::string_body>>(status, version);
+    res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res->set(http::field::content_type, mime_type);
+    res->keep_alive(keep_alive);
+    res->body() = why;
+    res->prepare_payload();
     return res;
 }
+
 
 void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_body>> requestHandler_sp,
                              boost::system::error_code ec, std::size_t bytes_transferred) {
@@ -70,8 +84,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         answer(generate_result_packet(http::status::bad_request,
                                              "Unknown HTTP-method", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
-        if (requestHandler_sp->get().keep_alive())
-            start();
         return;
     }
 
@@ -82,8 +94,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         answer(generate_result_packet(http::status::bad_request,
                                              "Illegal request-target", requestHandler_sp->get().version(),
                                              requestHandler_sp->get().keep_alive()));
-        if (requestHandler_sp->get().keep_alive())
-            start();
         return;
     }
 
@@ -104,8 +114,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
             answer(generate_result_packet(http::status::internal_server_error,
                                           "An error occurred: 'open file failed for writing'",
                                           reqFile->get().version(), reqFile->get().keep_alive()));
-            if (requestHandler_sp->get().keep_alive())
-                start();
         }
         else {
             auto self { shared_from_this() };
@@ -119,8 +127,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                     answer(generate_result_packet(http::status::ok , "",
                                                   reqFile->get().version(), reqFile->get().keep_alive(),
                                                   "audio/mp3"));
-                    if (reqFile->get().keep_alive())
-                        start();
                     return;
 
                 }
@@ -169,9 +175,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
                 }
 
-
-                if (requestString->keep_alive())
-                    start();
             }
         });
 
@@ -221,7 +224,13 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
 void Session::handle_regular_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
 
-    std::string path = m_filePath + '/' + target;
+    std::string path;
+    if (target.substr(0,7) == "file://") {
+        path = target.substr(7);
+    }
+    else {
+        path = m_filePath + '/' + target;
+    }
     if(target.back() == '/')
         path.append("index.html");
 
@@ -236,8 +245,6 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
         // this file is nowhere, send unknown file instead
         logger(Level::warning) << "requested regular file <"<< path <<"> not found\n";
         answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
-        if (keep_alive)
-            start();
         return;
       }
 
@@ -245,8 +252,6 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     if(ec || ( method != http::verb::get && method != http::verb::head)) {
             logger(Level::warning) << "requested regular file <"<< path <<"> read failed\n";
         answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
-        if (keep_alive)
-            start();
         return;
     }
 
@@ -264,24 +269,20 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
         res.content_length(size);
         res.keep_alive(keep_alive);
         answer(std::move(res));
-        if (keep_alive)
-            start();
         return;
     }
 
     logger(Level::debug) << "returning reguar file <"<< path <<">\n";
     // Respond to GET request
-    http::response<http::file_body> res{
+    std::shared_ptr<http::response<http::file_body>> res = std::make_shared<http::response<http::file_body>>(
         std::piecewise_construct,
                 std::make_tuple(std::move(body)),
-                std::make_tuple(http::status::ok, version)};
-    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(http::field::content_type, mime_type(path));
-    res.content_length(size);
-    res.keep_alive(keep_alive);
-    answer(std::move(res));
-    if (keep_alive)
-        start();
+                std::make_tuple(http::status::ok, version));
+    res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res->set(http::field::content_type, mime_type(path));
+    res->content_length(size);
+    res->keep_alive(keep_alive);
+    answer(res);
     return;
 
 }
@@ -301,7 +302,7 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
     // try finding file within the virtual/cache filesystem
     if(method == http::verb::get) {
 
-        if ( auto virtualData = m_sessionHandler.getVirtualFileData(target) ) {
+        if ( auto virtualData = m_sessionHandler.getVirtualImage(target) ) {
             logger(Level::debug) << "virtual file found as <"<<target<<">\n";
             // Cache the size since we need it after the move
             auto const size = virtualData->size();
@@ -313,12 +314,24 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
             res.content_length(size);
             res.keep_alive(keep_alive);
             answer(std::move(res));
-            if (keep_alive)
-                start();
             return;
-        } {
-            logger(Level::debug) << "file <"<<target<<"> is not in virtual database\n";
+        }
 
+        if (auto virtualData = m_sessionHandler.getVirtualAudio(target) ) {
+            logger(Level::debug) << "virtual audio file found as <"<< *virtualData <<">\n";
+            handle_regular_file_request(*virtualData, method, version, keep_alive);
+            return;
+        }
+
+        if (auto virtualData = m_sessionHandler.getVirtualPlaylist(target) ) {
+            auto const size = virtualData->size();
+            http::response<http::string_body> res { http::status::ok, version };
+            res.set(http::field::content_type, mime_type(target));
+            res.content_length(size);
+            res.keep_alive(keep_alive);
+            res.body() = *virtualData;
+            answer(std::move(res));
+            return;
         }
 
     }

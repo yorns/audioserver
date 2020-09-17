@@ -22,7 +22,10 @@ std::vector<FileNameType> getAllFilesInDir(FileType fileType) {
 
         if (filesys::exists(dirPath) && filesys::is_directory(dirPath)) {
 
-            for(auto& p: filesys::recursive_directory_iterator(dirPath)) {
+            std::system_error error_code;
+            filesys::recursive_directory_iterator it = filesys::recursive_directory_iterator(dirPath,filesys::symlink_option::recurse);
+
+            for(auto& p: it) {
                 if (filesys::is_regular_file(p.path()))
                     listOfFiles.push_back(
                     {p.path().parent_path().string(),

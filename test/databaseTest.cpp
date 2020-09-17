@@ -45,11 +45,13 @@ void test_database_base()
     assert (database.getPlaylistByUID(*pl) && database.getPlaylistByUID(*pl)->size() == 1);
     assert (database.getPlaylistByName(playlistRealName) && database.getPlaylistByName(playlistRealName)->size() == 1);
 
-    assert (database.setCurrentPlaylistUniqueId(*pl));
+    auto playlistUid = *pl;
+    assert (database.setCurrentPlaylistUniqueId(playlistUid));
 
     assert (database.getCurrentPlaylistUniqueID());
     assert (*database.getCurrentPlaylistUniqueID() == *pl);
-    assert (database.convertPlaylist(*pl, Database::NameType::uniqueID) && *database.convertPlaylist(*pl, Database::NameType::uniqueID) == playlistRealName);
+    assert (database.convertPlaylist(*pl) &&
+            *database.convertPlaylist(*pl) == playlistRealName);
 
     database.writeChangedPlaylists();
 
@@ -72,7 +74,7 @@ void test_id3_repository() {
     auto addToDatabase =[&database](std::string&& album, std::string&& title, std::string&& performer) {
         Id3Info info;
         auto generationInfo = Common::NameGenerator::create("bubub", "mp3");
-        info.uid = generationInfo.unique_id;
+        info.uid = boost::lexical_cast<boost::uuids::uuid>(generationInfo.unique_id);
         info.album_name = album;
         info.title_name = title;
         info.performer_name = performer;
