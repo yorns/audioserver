@@ -81,6 +81,7 @@ std::optional<Config> readConfig(std::string configFile) {
     debugLogLevel = configData["LogLevel"];
 
     config.m_logLevel = LoggerFramework::Level::debug;
+
     if (debugLogLevel == "info") {
         config.m_logLevel = LoggerFramework::Level::info;
     }

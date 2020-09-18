@@ -22,6 +22,21 @@ endif ()
 find_package( Threads REQUIRED)
 find_package( Boost 1.70.0 REQUIRED COMPONENTS filesystem system regex locale)
 
+find_path(
+    SNCCLIENT_INCLUDE_DIRS
+    PATH_SUFFIXES snc
+    NAMES config.h client.h
+)
+# did not find a way to add a path suffix to base paths (e.g. bitbake do specifies a lot here)
+# therefor this strange construction. Please let me know, if this is more easy!!!
+SET (SNCCLIENT_INCLUDE_DIRS "${SNCCLIENT_INCLUDE_DIRS}/snc" )
+
+
+find_library (
+    SNCCLIENT_LIBRARIES
+    NAMES snc_client
+    )
+
 include(createdirs)
 include(FindPkgConfig)
 
@@ -129,7 +144,7 @@ target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
         ${TagLib_LIBRARIES}
         ${GST_LIBRARIES}
-        snc_client
+        ${SNCCLIENT_LIBRARIES}
 )
 
 target_include_directories(
@@ -139,7 +154,11 @@ target_include_directories(
         ${GST_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
         ${TagLib_INCLUDE_DIRS}
+        ${SNCCLIENT_INCLUDE_DIRS}
 )
+message("snc lib include is ${SNCCLIENT_INCLUDE_DIRS}")
+
+message("snc lib include is ${SNCCLIENT_LIBRARIES}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")

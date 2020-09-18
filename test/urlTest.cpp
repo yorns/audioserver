@@ -1,3 +1,4 @@
+#include "common/logger.h"
 #include "common/Extractor.h"
 
 int main() {
@@ -8,7 +9,6 @@ int main() {
                                                                "http://myurl/at/whatever");
 
         assert ( extracted.has_value() );
-        logger(LoggerFramework::Level::info) << "test command to be string \"command\" (extracted is "<<extracted->getCommand() << ")\n";
         assert ( extracted->getCommand() == "command");
         assert ( extracted->hasParameter("param1") );
         assert ( extracted->hasParameter("param2") );
@@ -24,7 +24,6 @@ int main() {
                                                                "http://myurl/at/whatever/");
 
         assert ( extracted.has_value() );
-        logger(LoggerFramework::Level::info) << "test command to be string \"command\" (extracted is "<<extracted->getCommand() << ")\n";
         assert ( extracted->getCommand() == "command");
         assert ( extracted->hasParameter("param1") );
         assert ( extracted->hasParameter("param2") );
