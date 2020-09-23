@@ -16,6 +16,10 @@ So with this little thing, you can play your "old" mp3 files (e.g. created with 
 
 have fun!
 
+# find tutorials here:
+
+https://github.com/yorns/audioserver/wiki/Tutorials
+
 # audioSever build and installation
 creating is quite easy, as usally do (in the git directory)
 ```
