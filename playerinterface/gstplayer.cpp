@@ -160,7 +160,7 @@ GstPlayer::GstPlayer(boost::asio::io_context &context) :
 bool GstPlayer::setVolume(uint32_t volume) {
 
     double volume_double = volume/100.0;
-    volume_double *= 2.5;
+    volume_double *= 1; // 2.5;
     g_object_set ( m_playbin.get(), "volume", volume_double, NULL );
 
     m_volume = volume;

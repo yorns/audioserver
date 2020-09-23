@@ -17,6 +17,8 @@
 #include "playlist.h"
 #include "NameType.h"
 #include "searchaction.h"
+#include "songtagreader.h"
+#include "id3repository.h"
 
 namespace Database {
 
@@ -63,6 +65,9 @@ public:
     std::vector<Playlist> searchPlaylists(const std::string& what, SearchAction action = SearchAction::exact);
     std::vector<Playlist> searchPlaylists(const boost::uuids::uuid& what, SearchAction action = SearchAction::exact);
 
+    void insertTagsFromItems(const Database::Id3Repository& repository);
+    void addTags(const std::vector<Tag>& tagList);
+    void addTags(const std::vector<Tag>& tagList, const boost::uuids::uuid& playlistID);
 
 };
 

@@ -4,5 +4,8 @@ TagConverter::TagIdentifier TagConverter::m_tagIdentifier = {{{"kinder", "childr
                                                {{"deutsch", "german"}, Tag::German },
                                                {{"rock"}, Tag::Rock },
                                                {{"pop"}, Tag::Pop },
-                                               {{"jazz"}, Tag::Jazz }};
+                                               {{"jazz"}, Tag::Jazz },
+                                               {{"playlist:"}, Tag::Playlist },
+                                               {{"radio", "stream"}, Tag::Stream }
+                                               };
 

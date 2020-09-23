@@ -6,7 +6,7 @@ using namespace LoggerFramework;
 
 void SongTagReader::readSongTagFile() {
     std::fstream inStream;
-    auto tagFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Tag)+ "/tag.data" ;
+    auto tagFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Tag)+ "/" + std::string(ServerConstant::tagFile);
     inStream.open(tagFile, std::ios_base::in);
 
     if (!inStream.good()) {
@@ -15,6 +15,11 @@ void SongTagReader::readSongTagFile() {
     }
 
     for (std::string line; std::getline(inStream, line); ) {
+
+        boost::trim(line);
+
+        if (line.length() > 0 && line[1] == '#')
+            continue;
 
         std::string identifier = line.substr(0, line.find('|'));
         std::string tagName = line.substr(line.find('|')+1);
@@ -25,8 +30,10 @@ void SongTagReader::readSongTagFile() {
 
         auto tag = TagConverter::getTagId(tagName);
 
-        if (tag == Tag::unknown)
+        if (tag == Tag::unknown) {
+            logger(Level::warning) << "tag <" <<tagName << "> from tag data file is unknown\n";
             continue;
+        }
 
         auto entry = find(identifier);
         if (entry != m_tagList.end()) {
@@ -42,7 +49,7 @@ void SongTagReader::readSongTagFile() {
 
 }
 
-std::vector<Tag> SongTagReader::findSongTagList(const std::string &albumName, const std::string &titleName, const std::string &performerName) {
+std::vector<Tag> SongTagReader::findSongTagList(const std::string &albumName, const std::string &titleName, const std::string &performerName) const {
 
     std::vector<Tag> songTagList;
 

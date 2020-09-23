@@ -37,7 +37,7 @@ class SongTagReader {
 public:
     void readSongTagFile();
 
-    std::vector<Tag> findSongTagList(const std::string& albumName, const std::string& titleName, const std::string& performerName);
+    std::vector<Tag> findSongTagList(const std::string& albumName, const std::string& titleName, const std::string& performerName) const;
 
     std::string convert (Tag tag) {
         return TagConverter::getTagName(tag);

@@ -78,7 +78,7 @@ public:
 
     Playlist() = delete;
 
-    Playlist(std::string&& filename, ReadType readType = ReadType::isM3u,
+    Playlist(std::string filename, ReadType readType = ReadType::isM3u,
              Persistent persistent = Persistent::isPermanent,
              Changed changed = Changed::isUnchanged);
 
@@ -108,7 +108,6 @@ public:
 
     bool isTagAlike(const std::vector<std::string>& whatList ) const {
         if (whatList.size() > 0) {
-            logger(LoggerFramework::Level::debug) << "isTagAlike makes sense\n";
             for (const auto& elem : whatList) {
                 for (const auto& tag : m_item.m_tagList) {
                     if (TagConverter::getTagIdAlike(elem) == tag) {

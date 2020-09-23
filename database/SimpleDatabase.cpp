@@ -6,9 +6,8 @@ using namespace Database;
 
 void SimpleDatabase::loadDatabase() {
 
-    logger(Level::info) << "Read audio id3 data\n"; 
-    m_id3Repository.read();
-    
+    SongTagReader songTagReader;
+
     // some helper lambdas
     auto addPlaylistCover = [this](boost::uuids::uuid uid, 
             std::vector<char>&& data, std::size_t hash)
@@ -23,9 +22,29 @@ void SimpleDatabase::loadDatabase() {
         return uuidsFound;
     };
     
+    /* gather all information together */
+
+    logger(Level::info) << "Read audio id3 data from available files \n";
+    m_id3Repository.read();
+
+    logger(Level::info) << "Read M3U playlists - unfinished \n";
     m_playlistContainer.readPlaylistsM3U();
+
+    logger(Level::info) << "Read json playlists\n";
     m_playlistContainer.readPlaylistsJson(findAudioIds, addPlaylistCover);
+    m_playlistContainer.addTags({Tag::Playlist});
+
+    logger(Level::info) << "Auto create album playlists by audio items\n";
     m_playlistContainer.insertAlbumPlaylists(m_id3Repository.extractAlbumList());
+
+    logger(Level::info) << "Read information from tag file\n";
+    songTagReader.readSongTagFile();
+
+    logger(Level::info) << "Add tags to relevant item\n";
+    m_id3Repository.addTags(songTagReader);
+
+    logger(Level::info) << "Lift up tags from items to playlists\n";
+    m_playlistContainer.insertTagsFromItems(m_id3Repository);
 
 }
 

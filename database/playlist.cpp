@@ -65,8 +65,8 @@ bool Playlist::delFromList(const boost::uuids::uuid &audioUID) {
     return false;
 }
 
-Playlist::Playlist(std::string&& filename, ReadType readType, Persistent persistent, Changed changed)
-    : m_playlistFileName(filename),
+Playlist::Playlist(std::string filename, ReadType readType, Persistent persistent, Changed changed)
+    : m_playlistFileName(std::move(filename)),
       m_changed(changed),
       m_persistent(persistent),
       m_readType(readType)
@@ -114,6 +114,7 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
     std::string performerName;
     std::string extension;
     std::vector<char> coverData;
+    std::vector<Tag> tagList;
 
     try {
         std::ifstream streamInfoFile(m_playlistFileName.c_str());
@@ -150,6 +151,12 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
                 }
             }
         }
+        if (streamInfo.find("Tag") != streamInfo.end()) {
+            auto tags = streamInfo["Tag"];
+            for (auto elem : tags ) {
+                tagList.push_back(elem);
+            }
+        }
 
     } catch (std::exception& ex) {
         logger(Level::warning) << "failed to read file: " << m_playlistFileName << ": " << ex.what() << "\n";
@@ -166,6 +173,7 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         m_playlist = std::move(playlist);
         setName(std::move(playlistName));
         setPerformer(std::move(performerName));
+        setTagList(tagList);
         return true;
     }
     return false;

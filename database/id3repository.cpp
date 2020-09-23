@@ -272,8 +272,10 @@ bool Id3Repository::writeCacheInternal() {
         return false;
     }
 
-    if (!m_cache_dirty)
+    if (!m_cache_dirty) {
+        logger(Level::info) << "cache not enabled, no write on cache\n";
         return false;
+    }
 
     logger(Level::debug) << "writing cache\n";
 
@@ -517,8 +519,7 @@ bool Id3Repository::read() {
     auto filelist = FileSystemAdditions::getAllFilesInDir(FileType::AudioMp3);
     auto jsonList = FileSystemAdditions::getAllFilesInDir(FileType::AudioJson);
 
-    logger(Level::info) << "reading uncached files\n";
-    logger(Level::info) << "read mp3 file information\n";
+    logger(Level::info) << "reading uncached files - read mp3 file information\n";
     for (auto& file : filelist) {
         std::string fullname = "file://" + FileSystemAdditions::getFullName(file);
         if (!isCached(fullname)) {
@@ -531,7 +532,7 @@ bool Id3Repository::read() {
         }
     }
 
-    logger(Level::info) << "read json file information\n";
+    logger(Level::info) << "reading uncached files - read json file information\n";
     for (auto& file : jsonList) {
         std::string fullname = "file://" + FileSystemAdditions::getFullName(file);
         if (!isCached(fullname)) {
@@ -548,11 +549,13 @@ bool Id3Repository::read() {
 
     writeCacheInternal();
 
-    logger(Level::info) << "database handling external tags\n";
-    m_songTagReader.readSongTagFile();
+    return true;
+}
 
+void Id3Repository::addTags(const SongTagReader& songTagReader)
+{
     for (auto& elem : m_simpleDatabase) {
-        auto tagList = m_songTagReader.findSongTagList( elem.getNormalizedAlbum(),
+        auto tagList = songTagReader.findSongTagList( elem.getNormalizedAlbum(),
                                                         elem.getNormalizedTitle(),
                                                         elem.getNormalizedPerformer() );
         if (tagList.size() > 0) {
@@ -565,7 +568,7 @@ bool Id3Repository::read() {
         }
     }
 
-    return true;
+
 }
 
 const CoverElement &Id3Repository::getCover(const boost::uuids::uuid& coverUid) const {

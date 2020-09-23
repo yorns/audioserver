@@ -7,6 +7,7 @@
 #include "common/filesystemadditions.h"
 #include "common/logger.h"
 #include "common/NameGenerator.h"
+#include "id3repository.h"
 
 using namespace Database;
 using namespace Common;
@@ -173,7 +174,6 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
             playlist.setPerformer(elem.m_performer);
             playlist.setCover(elem.m_coverId, elem.m_coverExtension);
             playlist.setUniqueID(std::move(uniqueID));
-            playlist.setTagList(elem.m_tagList);
             for(auto& uid : elem.m_playlist) {
                 auto addUid = std::get<boost::uuids::uuid>(uid);
                 playlist.addToList(std::move(addUid));
@@ -186,6 +186,31 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
 
     return true;
 }
+
+void PlaylistContainer::insertTagsFromItems(const Database::Id3Repository& repository) {
+    for(auto& elem : m_playlists) {
+        for (const auto& item : elem.getUniqueIdPlaylist()) {
+            if ( auto id3Info = repository.getId3InfoByUid(item)) {
+                elem.setTagList(id3Info->tags);
+            }
+        }
+    }
+}
+
+void PlaylistContainer::addTags(const std::vector<Tag>& tagList, const boost::uuids::uuid& playlistID) {
+    for(auto& elem : m_playlists) {
+            if (elem.getUniqueID() == playlistID) {
+                elem.setTagList(tagList);
+            }
+        }
+}
+
+void PlaylistContainer::addTags(const std::vector<Tag>& tagList) {
+    for(auto& elem : m_playlists) {
+            elem.setTagList(tagList);
+    }
+}
+
 
 std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid) const {
     const auto& list = getPlaylistByUID(playlistUuid);
@@ -323,7 +348,6 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
         for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
             bool found {true};
             for(auto whatElem : whatList) {
-                logger(Level::debug) << "check against <"<<playlistItem->getNameLower()<<"> / <" << playlistItem->getPerformerLower() <<">\n";
                 if (playlistItem->getNameLower().find(whatElem) == std::string::npos &&
                         playlistItem->getPerformerLower().find(whatElem) == std::string::npos) {
                     found = false;

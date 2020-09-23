@@ -103,7 +103,7 @@ private:
             std::cout << "\nPlaylist stopped\n";
         });
 
-        m_player->setSongEndCB([this](const std::string& ){
+        m_player->setSongEndCB([this](const boost::uuids::uuid& ){
             if (m_player->isPlaying())
                 std::cout << "\n";
         });

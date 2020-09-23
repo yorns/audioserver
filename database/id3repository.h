@@ -47,7 +47,6 @@ class Id3Repository
     std::vector<CoverElement> m_simpleCoverDatabase;
 
     id3TagReader m_tagReader;
-    SongTagReader m_songTagReader;
 
     const CoverElement emptyElement;
 
@@ -80,6 +79,8 @@ public:
     bool add(const Common::FileNameType& file);
     bool addCover(boost::uuids::uuid&& uuid, std::vector<char>&& data, std::size_t hash);
     bool remove(const boost::uuids::uuid& uuid);
+
+    void addTags(const SongTagReader& songTagReader);
 
     void clear();
 

@@ -12,6 +12,8 @@ enum class Tag {
     Rock,
     Pop,
     Jazz,
+    Playlist,
+    Stream,
     unknown
 };
 
