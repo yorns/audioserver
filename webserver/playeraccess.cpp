@@ -23,13 +23,14 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
         if (m_player->isPlaying()) {
             logger(Level::info) << "Pause request\n";
             m_player->pause_toggle();
+            return R"({"result": "ok"})";
         } else {
             logger(Level::info) << "Play request\n";
 
-        if (m_player->startPlay())
-            return R"({"result": "ok"})";
-        else
-            return R"({"result": "cannot find playlist"})";
+            if (m_player->startPlay())
+                return R"({"result": "ok"})";
+            else
+                return R"({"result": "cannot find playlist"})";
         }
     }
 

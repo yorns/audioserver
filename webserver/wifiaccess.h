@@ -30,7 +30,7 @@ public:
         if ( urlInfo->hasParameter( ServerConstant::Parameter::Wifi::ssid ) &&
              urlInfo->hasParameter( ServerConstant::Parameter::Wifi::psk )) {
 
-            logger(Level::info) << "Play request\n";
+            logger(Level::info) << "set ssid request\n";
             auto ssid = urlInfo->getValueOfParameter( ServerConstant::Parameter::Wifi::ssid );
             auto psk = urlInfo->getValueOfParameter(  ServerConstant::Parameter::Wifi::psk );
 

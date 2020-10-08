@@ -34,7 +34,6 @@ public:
         if (!tagName.empty()) {
             for (const auto& id : m_tagIdentifier) {
                 for (const auto& tagIdentifier : id.identifier) {
-                    logger(LoggerFramework::Level::debug) << "test input <"<<tagName<<"> against <"<<tagIdentifier<<"("<< tagIdentifier.substr(0, tagName.length()) <<")\n";
                     if (tagIdentifier.substr(0, tagName.length()) == tagName)
                         return id.tag;
                 }

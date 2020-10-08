@@ -213,16 +213,23 @@ void PlaylistContainer::addTags(const std::vector<Tag>& tagList) {
 
 
 std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid) const {
+
     const auto& list = getPlaylistByUID(playlistUuid);
-    std::stringstream m3uOutput;
-    if (list) {
-        if (list->size() > 0) {
+//    nlohmann::json virtualPlaylistJson;
+    nlohmann::json audioList;
+    // std::stringstream m3uOutput;
+    if (list && list->size() > 0) {
             for (const auto& elem : *list) {
-                m3uOutput << "/audio/" << elem << ".mp3\n";
+                std::stringstream id;
+                id << "/audio/" << elem << ".mp3";
+                audioList.push_back(id.str());
             }
-            logger(Level::debug) << "created M3U file: " << m3uOutput.str() << "\n";
-            return m3uOutput.str();
-        }
+            logger(Level::debug) << "created list: " << audioList.dump(2) << "\n";
+            return audioList.dump(2);
+        
+    }
+    else {
+        logger(Level::info) << "requested virtual playlist not found: " << playlistUuid << "\n";        
     }
     return std::nullopt;
 }
@@ -354,7 +361,6 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
                     break;
                 }
             }
-            logger(Level::debug) << "check against <"<<playlistItem->strTag() <<">\n";
             if (playlistItem->isTagAlike(whatList)) {
                 logger(Level::debug) << "found <"<<playlistItem->strTag() <<">\n";
                 found = true;

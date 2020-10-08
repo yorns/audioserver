@@ -15,7 +15,7 @@ void SimpleDatabase::loadDatabase() {
     
     auto findAudioIds = [this](const std::string& what, SearchItem searchItem) {
         std::vector<boost::uuids::uuid> uuidsFound;
-        auto list = m_id3Repository.search(what, searchItem, SearchAction::alike);
+        auto list = m_id3Repository.search(what, searchItem, SearchAction::exact);
         for(const auto& i : list) {
             uuidsFound.push_back(i.uid);
         }

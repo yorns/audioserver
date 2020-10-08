@@ -15,6 +15,15 @@ class PlaylistAccess
 
     std::string convertToJson(const std::optional<std::vector<Id3Info>> list);
     std::string convertToJson(const std::vector<Database::Playlist> list);
+    std::string convertToJson(const std::optional<boost::uuids::uuid> actualPlaylistUuid);
+
+    std::string add(const std::string& value);
+    std::string create(const std::string& value);
+    std::string getAlbumList(const std::string& value);
+    std::string change(const std::string& value);
+    std::string show(const std::string& value);
+    std::string showLists(const std::string& value);
+    std::string getCurrentPlaylistUID(const std::string& value);
 
 public:
     PlaylistAccess(Database::SimpleDatabase& simpleDatabase, std::unique_ptr<BasePlayer>& player)

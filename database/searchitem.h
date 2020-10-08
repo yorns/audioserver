@@ -5,9 +5,9 @@ namespace Database {
 
 enum class SearchItem {
     unknown,
-    titel,
+    title,
     album,
-    interpret,
+    performer,
     uid,
     overall,
     album_and_interpret

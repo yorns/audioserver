@@ -18,7 +18,7 @@ void SongTagReader::readSongTagFile() {
 
         boost::trim(line);
 
-        if (line.length() > 0 && line[1] == '#')
+        if (line.length() > 0 && line[0] == '#')
             continue;
 
         std::string identifier = line.substr(0, line.find('|'));

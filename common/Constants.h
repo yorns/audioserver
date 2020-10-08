@@ -54,14 +54,15 @@ namespace ServerConstant {
         static constexpr auto change {sv("change")};
         static constexpr auto show {sv("show")};
         static constexpr auto showLists {sv("showLists")};
+        static constexpr auto currentPlaylistUID {sv("currentPlaylistUID")};
         static constexpr auto getAlbumList {sv("albumList")};
     }
 
     namespace Parameter {
         namespace Database {
-            static constexpr auto titel {sv("titel")};
+            static constexpr auto title {sv("title")};
             static constexpr auto album {sv("album")};
-            static constexpr auto interpret {sv("performer")};
+            static constexpr auto performer {sv("performer")};
             static constexpr auto trackNo {sv("trackNo")};
             static constexpr auto uid {sv("uid")};
             static constexpr auto overall {sv("overall")};

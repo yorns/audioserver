@@ -221,7 +221,6 @@ int main(int argc, char* argv[])
             }
         }
 
-
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
         try {
@@ -229,7 +228,12 @@ int main(int argc, char* argv[])
             songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
         } catch (std::exception& ) {
-            logger(Level::warning) << "cannot convert ID to string\n";
+            logger(Level::warning) << "cannot convert ID to string - sending empta information\n";
+            auto emptyUID = boost::uuids::uuid();
+            songInfo["songID"] = boost::lexical_cast<std::string>(emptyUID);
+            songInfo["playlistID"] = boost::lexical_cast<std::string>(emptyUID);
+            songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(emptyUID);
+
         }
         songInfo["position"] = position;
         songInfo["loop"] = player->getLoop();

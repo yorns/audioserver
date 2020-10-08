@@ -11,6 +11,51 @@
     <script src="js/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <style>
+
+.material-switch > input[type="checkbox"] {
+    display: none;
+}
+
+.material-switch > label {
+    cursor: pointer;
+    height: 0px;
+    position: relative;
+    width: 40px;
+}
+
+.material-switch > label::before {
+    background: rgb(0, 0, 0);
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    content: '';
+    height: 16px;
+    margin-top: -8px;
+    position:absolute;
+    opacity: 0.3;
+    transition: all 0.4s ease-in-out;
+    width: 40px;
+}
+.material-switch > label::after {
+    background: #888888;
+    border-radius: 16px;
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.5);
+    content: '';
+    height: 24px;
+    left: -4px;
+    margin-top: -8px;
+    position: absolute;
+    top: -4px;
+    transition: all 0.3s ease-in-out;
+    width: 24px;
+}
+.material-switch > input[type="checkbox"]:checked + label::before {
+    background: inherit;
+    opacity: 1;
+}
+.material-switch > input[type="checkbox"]:checked + label::after {
+    background: inherit;
+    left: 20px;
+}
         .bild {
             position: relative;
             display: inline-block;
@@ -305,6 +350,8 @@ input[type=range]::-ms-thumb {
 </head>
 
 <body>
+    <audio class="my_audio" ></audio>
+
     <div class="col-xs-12" style="height:5px;"></div>
     <div class="container-fluid">
         <!-- Trigger the modal with a button -->
@@ -387,7 +434,11 @@ input[type=range]::-ms-thumb {
                             </div>
 -->
                         </div>
-                    </div>
+		                <div class="custom-control custom-switch">
+                          <input type="checkbox" class="custom-control-input" id="customSwitch1">
+                          <label class="custom-control-label" for="customSwitch1">External playback</label>
+                       </div>
+		    </div>
                 </div>
                 <div class="modal-body">
 

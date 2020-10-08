@@ -12,9 +12,9 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
         for(auto item : list.value()) {
             nlohmann::json jentry;
             jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.uid);
-            jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.performer_name;
+            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
             jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
-            jentry[std::string(ServerConstant::Parameter::Database::titel)] = item.title_name;
+            jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
             std::string relativCoverPath =
                     Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
                     "/" + boost::uuids::to_string(item.uid) + item.fileExtension;
@@ -35,8 +35,8 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
             nlohmann::json jentry;
             jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.getUniqueID());
             jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
-            jentry[std::string(ServerConstant::Parameter::Database::interpret)] = item.getPerformer();
-            jentry[std::string(ServerConstant::Parameter::Database::titel)] = "";
+            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.getPerformer();
+            jentry[std::string(ServerConstant::Parameter::Database::title)] = "";
             std::string relativCoverPath = item.getCover();
             jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
             jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = 0;
@@ -65,20 +65,21 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
     logger(Level::info) << "database access cmd <"<<command<<"> parameter:<"<<parameter<<"> value:<"<<value<<">\n";
 
     if (parameter == ServerConstant::Command::getAlbumList) {
-        // get all albums and sort/reduce
-        auto infoList = m_database.searchPlaylistItems(value, Database::SearchAction::alike);
+        auto list = m_database.searchPlaylistItems(value, Database::SearchAction::alike);
 
-        return convertToJson(infoList);
+        std::sort(std::begin(list), std::end(list), [](Database::Playlist& item1, Database::Playlist& item2) { return item1.getUniqueID() > item2.getUniqueID(); });
+
+        return convertToJson(list);
     }
 
     if ( parameter == ServerConstant::Parameter::Database::overall )
         return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::overall, Database::SearchAction::exact));
 
-    if ( parameter == ServerConstant::Parameter::Database::interpret )
-        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::interpret, Database::SearchAction::exact));
+    if ( parameter == ServerConstant::Parameter::Database::performer )
+        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::performer, Database::SearchAction::exact));
 
-    if ( parameter == ServerConstant::Parameter::Database::titel )
-        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::titel, Database::SearchAction::exact));
+    if ( parameter == ServerConstant::Parameter::Database::title )
+        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::title, Database::SearchAction::exact));
 
     if ( parameter == ServerConstant::Parameter::Database::album )
         return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::album, Database::SearchAction::exact));

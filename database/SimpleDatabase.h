@@ -49,7 +49,6 @@ public:
         return  m_playlistContainer.searchPlaylists(std::string(what), action);
     }
 
-
     std::vector<Playlist> searchPlaylistItems(const boost::uuids::uuid &what, SearchAction action = SearchAction::exact) {
         return  m_playlistContainer.searchPlaylists(what, action);
     }

@@ -421,25 +421,25 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
         std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
                       [&whatList, &what, &findData, item, action](const Id3Info &info) {
             if (action == SearchAction::alike) {
-                if (((item == SearchItem::titel || item == SearchItem::overall) &&
+                if (((item == SearchItem::title || item == SearchItem::overall) &&
                      (info.isAlikeTitle(whatList))) ||
                     ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
                      (info.isAlikeAlbum(whatList))) ||
                     ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
                      (info.isAlikeTag(whatList))) ||
-                    ((item == SearchItem::interpret || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                    ((item == SearchItem::performer || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
                      (info.isAlikePerformer(whatList)))) {
                     findData.push_back(info);
                 }
             }
             else {
 
-                if (((item == SearchItem::titel || item == SearchItem::overall) &&
-                     (info.title_name.find(what) != std::string::npos)) ||
+                if (((item == SearchItem::title || item == SearchItem::overall) &&
+                     (info.title_name == what)) ||
                         ((item == SearchItem::album || item == SearchItem::overall) &&
-                         (info.album_name.find(what) != std::string::npos)) ||
-                        ((item == SearchItem::interpret || item == SearchItem::overall) &&
-                         (info.performer_name.find(what) != std::string::npos))) {
+                         (info.album_name == what)) ||
+                        ((item == SearchItem::performer || item == SearchItem::overall) &&
+                         (info.performer_name == what))) {
                     findData.push_back(info);
                 }
             }

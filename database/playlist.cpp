@@ -124,37 +124,40 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         playlistName = streamInfo.at("Name");
         performerName = streamInfo.at("Performer");
         extension = streamInfo.at("Extension");
-        auto items = streamInfo.at("Items");
         coverData = utility::base64_decode(streamInfo.at("Image"));
-        for (auto elem : items) {
-            if (elem.find("Id") != elem.end()) {
-                auto audioItemList = findAlgo(elem.at("Id"), SearchItem::uid);
-                if (audioItemList.size() == 1)
-                    playlist.emplace_back(audioItemList.at(0));
-            }
-            else if (elem.find("Album") != elem.end()) {
-                auto audioItemList = findAlgo(elem.at("Album"), SearchItem::album);
-                for (const auto& UuidItem : audioItemList) {
-                    playlist.emplace_back(UuidItem);
+        if (streamInfo.find("Items") != streamInfo.end()) {
+            auto items = streamInfo.at("Items");
+            for (auto elem : items) {
+                if (elem.find("Id") != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at("Id"), SearchItem::uid);
+                    if (audioItemList.size() == 1)
+                        playlist.emplace_back(audioItemList.at(0));
                 }
-            }
-            else if (elem.find("Performer") != elem.end()) {
-                auto audioItemList = findAlgo(elem.at("Performer"), SearchItem::interpret);
-                for (const auto& UuidItem : audioItemList) {
-                    playlist.emplace_back(UuidItem);
+                else if (elem.find("Album") != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at("Album"), SearchItem::album);
+                    for (const auto& UuidItem : audioItemList) {
+                        playlist.emplace_back(UuidItem);
+                    }
                 }
-            }
-            else if (elem.find("Title") != elem.end()) {
-                auto audioItemList = findAlgo(elem.at("Title"), SearchItem::titel);
-                for (const auto& UuidItem : audioItemList) {
-                    playlist.emplace_back(UuidItem);
+                else if (elem.find("Performer") != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at("Performer"), SearchItem::performer);
+                    for (const auto& UuidItem : audioItemList) {
+                        playlist.emplace_back(UuidItem);
+                    }
+                }
+                else if (elem.find("Title") != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at("Title"), SearchItem::title);
+                    for (const auto& UuidItem : audioItemList) {
+                        playlist.emplace_back(UuidItem);
+                    }
                 }
             }
         }
-        if (streamInfo.find("Tag") != streamInfo.end()) {
+        if (streamInfo. find("Tag") != streamInfo.end()) {
             auto tags = streamInfo["Tag"];
             for (auto elem : tags ) {
-                tagList.push_back(elem);
+                auto tag = TagConverter::getTagId(elem);
+                tagList.push_back(tag);
             }
         }
 
