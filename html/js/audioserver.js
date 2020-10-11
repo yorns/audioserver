@@ -17,7 +17,8 @@ var localDisplayData = {
     "volume": 20,
     "cover": "/img/unknown.png",
     "shuffle": false,
-    "loop": false
+    "loop": false,
+    "playing": false
 }
 
 $(document).ready(function () {
@@ -67,11 +68,8 @@ $(document).ready(function () {
                     var msg = JSON.parse(event.data);
                     // TODO: only if song ID is new, request the name
                     if (msg.hasOwnProperty('SongBroadcastMessage')) {
-
                         if (useExternalPlayer) {
-                        
                             showAlbum(msg.SongBroadcastMessage);
-                            
                         }
                     }
                     if (msg.hasOwnProperty('SsidMessage')) {
@@ -121,11 +119,11 @@ $(document).ready(function () {
     $("#customSwitch1").on('change', function() {
         if ($(this).is(':checked')) {
             useExternalPlayer = $(this).is(':checked');
-            // alert(useExternalPlayer);// To verify
         }
         else {
            useExternalPlayer = $(this).is(':checked');
-           // alert(useExternalPlayer);// To verify
+            //alert("local playback");
+            syncPlaylist();
         }
     })
     
@@ -152,6 +150,7 @@ $(document).ready(function () {
             });
     });
 
+    
     $("#btnPlay").click(function() {
         startPlay();
     });
@@ -203,22 +202,45 @@ $(document).ready(function () {
         getAlbumList(name_typed);
     });
 
+     setInterval(function() {
+         if (!useExternalPlayer) {
+             var currentTime = $(".my_audio").prop("currentTime");
+             position = $(".my_audio").prop("currentTime") /  $(".my_audio").prop("duration")*100;
+             console.log("current time: ", currentTime, " percent: ", position*100);
+             localDisplayData.position = position*100;
+            showAlbum(localDisplayData);
+         }
+     }, 500); 
+
     getActualPlaylist();
     getAlbumList(name_typed);
     $('#albumSearch').val("");
     syncPlaylist();
 });
 
+function setSongProgress(position)
+{
+    console.log("position: ", position/100.0);
+    document.getElementById("progress-box2").value = 1.0*position/100.0;  
+}
+
 function showAlbum(displayData) {
+    //alert("show album", displayData);
+    if (displayData.playing) {
         allTitle = displayData.performer + "<br>" 
              + displayData.album + "<br>" 
              + displayData.title;
+    }
+    else {
+        allTitle = displayData.performer + "<br>" 
+             + displayData.album         
+    }
 
     $("#actSong").html(allTitle);
     $("#actCover").attr("src", displayData.cover);
 
-    document.getElementById("progress-box2").value = displayData.position/100;
-
+    setSongProgress(displayData.position);
+    
     document.getElementById("volume-box").value = displayData.volume;
 
     setLoopButton(displayData.loop);
@@ -289,25 +311,59 @@ function setPauseButton() {
 function next() {
     count++;
     if (count >= Object.keys(playlist).length) {
-        alert("Playlist ended");
+        $("#sound_src").attr("src","");
         play_audio('stop');
+        //alert("Playlist ended");
+        localDisplayData.playing = false;
         count = 0;
     }
     else {
         $("#sound_src").attr("src", playlist[count])[0];
         $(".my_audio").trigger('load');
-        play_audio('play');              
+        play_audio('play'); 
+        getSongInfo(playlist[count]);
     }
 }
 
+function getSongInfo(playlistItem) {
+    if (playlistItem == "") {
+       localDisplayData.performer = "";
+       localDisplayData.album = "";
+       localDisplayData.cover = "/img/unkown.png";
+       localDisplayData.title = "";
+
+    }
+        
+    console.log("uid: ", uid);
+    var regex = /\/audio\/(.*)\.mp3/;
+    var matches = regex.exec(playlistItem); // you honestly name that method exec?? 
+    var uid = matches[1];
+    console.log("uid is ", uid);
+
+   var url = "/database?uid="+uid;
+   $.getJSON(url).done(function(response) {
+       console.log("uid info: ", response);
+       localDisplayData.performer = response[0].performer;
+       localDisplayData.album = response[0].album;
+       localDisplayData.cover = response[0].cover;
+       localDisplayData.title = response[0].title;
+       showAlbum(localDisplayData);
+       getActualPlaylist();
+   });
+}
+    
 function play_audio(task) {
       if(task == 'play'){
+          //alert("play started");
           $(".my_audio").trigger('play');
           setPlayButton(true);
+          getSongInfo(playlist[count]);
+          localDisplayData.playing = true;
       }
       if(task == 'stop'){
           $(".my_audio").trigger('pause');
           $(".my_audio").prop("currentTime",0);
+          localDisplayData.playing = false;
           setPlayButton(false);
       }
       if(task == 'next'){
@@ -331,6 +387,7 @@ function select_audio(uid) {
         $("#sound_src").attr("src", playlist[count])[0];
         $(".my_audio").prop("currentTime",0);
         $(".my_audio").trigger('load');
+        getSongInfo(playlist[count]);
         play_audio('play');                      
     } 
     else {
@@ -343,30 +400,23 @@ function select_audio(uid) {
 function syncPlaylist() {
     var url = "/playlist?currentPlaylistUID";
   	$.getJSON(url).done(function(response) {
-        var url = "/pl/"+response.current+".m3u";
-        //alert(url);
-        $.getJSON(url).done(function(response) {
-           alert(response);
-           playlist = response;
-           //alert(playlist[0]);
-           $('.my_audio').empty(); 
-           $('.my_audio').append("<source id='sound_src' src=" + playlist[count] + " type='audio/mpeg'>");
-           $(".my_audio").trigger('load');
-           var regex = /\/audio\/(.*)\.mp3/;
-            var matches = regex.exec(playlist[count]); // you honestly name that method exec?? 
-            var uid = matches[1];
-            console.log("uid is ", uid);
-           var url = "/database?uid="+uid;
-           $.getJSON(url).done(function(response) {
-               console.log("uid info: ", response);
-               localDisplayData.performer = response[0].performer;
-               localDisplayData.album = response[0].album;
-               localDisplayData.cover = response[0].cover;
-               localDisplayData.title = response[0].title;
-               showAlbum(localDisplayData);
-               getActualPlaylist();
-           });
-        });
+        if (response.current != "") {
+            var url = "/pl/"+response.current+".json";
+            //alert(url);
+            $.getJSON(url).done(function(response) {
+               //alert(response);
+               playlist = response;
+               //alert(playlist[0]);
+               $('.my_audio').empty(); 
+               $('.my_audio').append("<source id='sound_src' src=" + playlist[count] + " type='audio/mpeg'>");
+               $('.my_audio').on('ended', function() { play_audio('next'); });
+               $(".my_audio").trigger('load');
+               getSongInfo(playlist[count]);
+            });
+        } 
+        else {
+            console.log("no playlist set");
+        }
 	});
 }
 
@@ -475,10 +525,18 @@ function albumSelect(albumId) {
         if (response.result != "ok") {
             alert(response.result);
         } else {
+          count = 0;
           $('#player').modal('show');
             if (!useExternalPlayer) {
               syncPlaylist();
             }
+            else {
+                console.log("set data for new playlist");
+                songID = "";
+                playlistID = albumId;
+                getActualPlaylist();
+            }
+            
         }
     });
 }
@@ -529,7 +587,7 @@ function getAlbumList(searchString) {
 }
 
 function getActualPlaylist() {
-    url = "/playlist?show=";
+    url = "/playlist?show";
     console.log("request for show actual playlist: ", url);
     $.getJSON(url).done(function(response) {
     console.log("reply for show actual playlist: ", response);
