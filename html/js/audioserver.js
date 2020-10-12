@@ -260,7 +260,7 @@ function setAudioPosition(position) {
 }
 
 function setVolume(volume) {
-    url = "/player?volume="+tvolume;
+    url = "/player?volume="+volume;
     $.post(url, "", function (data, textStatus) {}, "json");
 }
 
