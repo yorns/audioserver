@@ -8,7 +8,14 @@ The underlying technology is a small, but efficient webserver, that serves as
 * websocket API to receive playing information
 * upload unit to upload mp3 files to the system
 
-All accesspoints are discribed below.
+# Image Impressions
+
+<p float="left">
+  <img src="https://github.com/yorns/images/blob/master/playlists.jpg" alt="Playlist View" width="200"/>
+  <img src="https://github.com/yorns/images/blob/master/player.jpg" alt="Player" width="200"/>
+</p>
+
+All accesspoints are discribed here: https://github.com/yorns/audioserver/wiki/API
 
 And below are information, how to setup an audioServer on a local host. There is also a yocto build for a raspberry pi (zero with wifi), to setup an audioServer unit on a standalone zero pi (what is really a nice thing).
 
