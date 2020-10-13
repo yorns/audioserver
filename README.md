@@ -14,6 +14,8 @@ The underlying technology is a small, but efficient webserver, that serves as
   <img src="https://github.com/yorns/images/blob/master/playlists.jpg" alt="Playlist View" width="200"/>
   <img src="https://github.com/yorns/images/blob/master/player.jpg" alt="Player" width="200"/>
 </p>
+Image Credits: Pexels 
+https://www.pexels.com/de-de/
 
 All accesspoints are discribed here: https://github.com/yorns/audioserver/wiki/API
 
