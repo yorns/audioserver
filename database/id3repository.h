@@ -96,6 +96,8 @@ public:
 
     std::optional<Id3Info> getId3InfoByUid(const boost::uuids::uuid& uid) const;
 
+    bool utf8_check_is_valid(const std::string& string) const;
+
     bool read();
     bool writeCache() {
         return writeCacheInternal();

@@ -225,6 +225,8 @@ int main(int argc, char* argv[])
         nlohmann::json songInfo;
         try {
             songInfo["songID"] = boost::lexical_cast<std::string>(songID);
+            songInfo["song"] = title;
+            songInfo["playlist"] = album;
             songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
         } catch (std::exception& ) {
@@ -233,7 +235,8 @@ int main(int argc, char* argv[])
             songInfo["songID"] = boost::lexical_cast<std::string>(emptyUID);
             songInfo["playlistID"] = boost::lexical_cast<std::string>(emptyUID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(emptyUID);
-
+            songInfo["song"] = "";
+            songInfo["playlist"] = "";
         }
         songInfo["position"] = position;
         songInfo["loop"] = player->getLoop();
@@ -265,18 +268,19 @@ int main(int argc, char* argv[])
                     if (data.find("albumID") != data.end() && data.find("titleID") != data.end()) {
                         albumId = extractUUID(std::string(data.at("albumID")));
                         titleId = extractUUID(std::string(data.at("titleID")));
-                        logger(Level::debug) << "received album <" << albumId << "> and title <" << titleId << ">\n";
+                        logger(Level::info) << "received album <" << albumId << "> and title <" << titleId << ">\n";
                     }
                     else if (data.find("album") != data.end() && data.find("title") != data.end()) {
 
                         const auto& albumName = std::string(data.at("album"));
                         const auto& titleName = std::string(data.at("title"));
 
-                        logger(Level::debug) << "received album <" << albumName << "> and title <" << titleName << ">\n";
+                        logger(Level::info) << "received album <" << albumName << "> and title <" << titleName << ">\n";
 
                         const auto& albumPlaylists = database.searchPlaylistItems(albumName);
 
                         if (albumPlaylists.size() == 1) {
+                            logger(Level::info) << "album found\n";
                             const std::string& title_low = Common::str_tolower(titleName);
                             for (const auto& elem : database.getIdListOfItemsInPlaylistId(albumPlaylists[0].getUniqueID())) {
 
@@ -288,7 +292,9 @@ int main(int argc, char* argv[])
                                 }
                             }
                         }
-
+                    }
+                    else {
+                        std::cout << "no infos found to handle start of album/title pair. (not given?)";
                     }
 
                     if (!albumId.is_nil() && !titleId.is_nil() ) {
