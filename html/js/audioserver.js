@@ -2,27 +2,250 @@
 var webSocket;
 var songID = "";
 var playlistID = "";
-var name_typed;
+var name_typed = "";
 var broadcastMsg = "";
 var useExternalPlayer = true;
-var count = 0;
+//var count = 0;
+
+var tmpPlaylist = {};
+var browserPlaylist = {};
+
+function LocalStoreData(l_name_typed, l_useExternalPlayer, l_count) {
+    this.name_typed = l_name_typed;
+    this.useExternalPlayer= l_useExternalPlayer;
+    this.count = l_count;
+}
 
 var localDisplayData = {
-    "songID": "",
-    "playlistID": "",
-    "title": "",
-    "album": "",
-    "performer": "",
-    "position": 0,
-    "volume": 20,
-    "cover": "/img/unknown.png",
-    "shuffle": false,
-    "loop": false,
-    "playing": false
+    songID: "00000000-0000-0000-0000-000000000000",
+    playlistID: "00000000-0000-0000-0000-000000000000",
+    title: "",
+    album: "",
+    performer: "",
+    position: 0,
+    volume: 20,
+    cover: "/img/unknown.png",
+    shuffle: false,
+    loop: false,
+    playing: false,
+    paused: false,
+    count: 0,
+    
+    hasPlaylistChanged : function(playlistID) {
+        if (this.playlistID != playlistID) {
+            console.log("playlist changed: old ", this.playlistID, " != new -> ", playlistID);
+        }
+        return this.playlistID != playlistID; 
+    },    
+        
+    loadTitle : function(uid, showTitleFunction) {
+        console.log("uid is ", uid);
+        var url = "/database?uid="+uid;
+        $.getJSON(url).done(function(response) {
+            try {
+                titleInfoList = response[0];
+                console.log("uid info: ", titleInfoList);
+                this.performer = titleInfoList.performer;
+                this.album = titleInfoList.album;
+                this.cover = titleInfoList.cover;
+                this.title = titleInfoList.title;
+                this.songID = titleInfoList.uid;
+                showTitleFunction(titleInfoList);
+            } catch (e) {
+                console.log("failed to parse title json: ", response);
+            }
+       });
+    },
+    
+    loadPlaylist : function(uid, showPlaylistFunction) {
+        let url = "/playlist?show="+uid;
+        console.log("request for show actual playlist: ", url);
+        $.getJSON(url).done(function(jsonResponse) {
+            console.log("playlist reply: ", jsonResponse);            
+            var playlist = jsonResponse;
+            setPlaylist(playlist);
+            showPlaylistFunction(getPlaylist());
+        });
+    },
+        
+    hasPlayingChanged : function(jsonBroadcastMessage) {
+        if (this.playing != jsonBroadcastMessage.playing) {
+            console.log("playing changed");
+        }
+        return this.playing != jsonBroadcastMessage.playing;
+    },
+
+    hasAlbumChanged : function(jsonBroadcastMessage) {
+        if (this.album != jsonBroadcastMessage.album) {
+            console.log("album changed");
+        }
+        return this.album != jsonBroadcastMessage.album;
+    },
+
+    hasSongChanged : function(uid) {
+        if (this.songID != uid) {
+            console.log("title changed from <", this.songID , "> to <", uid, ">" );
+        }
+        return this.songID != uid;
+    },
+
+    setLocalDisplayData : function(jsonBroadcastMessage, isBrowserCall) {
+        // console.log("---------- store message information in localDisplayData pl: ", jsonBroadcastMessage.playlistID)
+        this.title = jsonBroadcastMessage.title;
+        this.album = jsonBroadcastMessage.album;
+        this.performer = jsonBroadcastMessage.performer;
+        this.songID = jsonBroadcastMessage.songID;
+        this.playlistID = jsonBroadcastMessage.playlistID;
+        this.position = jsonBroadcastMessage.position;
+        this.volume = jsonBroadcastMessage.volume;
+        this.cover = jsonBroadcastMessage.cover;
+        this.shuffle = jsonBroadcastMessage.shuffle;
+        this.loop = jsonBroadcastMessage.loop;
+        this.playing = jsonBroadcastMessage.playing;
+        this.paused = jsonBroadcastMessage.paused;
+        
+        if (jsonBroadcastMessage.count) {
+            this.count = jsonBroadcastMessage.count;
+        }
+
+        if (!useExternalPlayer && isBrowserCall) {
+            tmpDisplayData = { ...this };
+        }
+    }
+
+}
+
+var tmpDisplayData = { ...localDisplayData };
+
+function unshowPlaylist() {
+    $('#act_playlist tbody').empty();
+    var trHTML ="";
+    $('#act_playlist tbody').append(trHTML);
+}
+
+function showPlaylist(playlist) {
+    console.log("reply for show playlist table");
+    $('#act_playlist tbody').empty();
+    var trHTML ="";
+    $.each(playlist, function(i, item) {
+        trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.title 
+            + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+    });
+    $('#act_playlist tbody').append(trHTML);
+}
+
+function unshowTitle(titleInfo) {
+    let allTitle = "";
+    
+    allTitle = titleInfo.performer + "<br>" 
+         + titleInfo.album         
+
+    $("#actSong").html(allTitle);
+    $("#actCover").attr("src", titleInfo.cover);
+    
+}
+
+function showTitle(titleInfo) {
+    let allTitle = "";
+    
+    allTitle = titleInfo.performer + "<br>" 
+             + titleInfo.album + "<br>" 
+             + titleInfo.title;
+
+    $("#actSong").html(allTitle);
+    $("#actCover").attr("src", titleInfo.cover);
+
+}
+
+function showVolume(volume) {
+    document.getElementById("volume-box").value = volume;    
+}
+
+function showPlayerData(displayData) {
+    
+    showSongProgress(displayData.position);    
+    showVolume(displayData.volume);
+
+    showLoopButton(displayData.loop);
+    showShuffelButton(displayData.shuffle);
+
+    showPlayButton(displayData.playing, displayData.paused);
+    
+}
+
+function intervalHandler() {
+    // request playlist ID
+    
+}
+
+function setPlaylist(playlist) {
+    if (useExternalPlayer)
+        tmpPlaylist = playlist;
+    else
+        browserPlaylist = playlist;
+}
+
+function getPlaylist() {
+    if (useExternalPlayer)
+        return tmpPlaylist;
+    return browserPlaylist;
+}
+
+function onPlayerMessage(msg, isBrowserCall) {
+
+    var playlistID = msg.playlistID;
+    var playing = msg.playing;
+    var songID = msg.songID;
+    
+    var titleInfo = {
+        title     : msg.title,
+        performer : msg.performer,
+        album     : msg.album,
+        cover     : msg.cover
+    };
+
+    if (!playing) {
+        titleInfo.title = "";
+    }
+    
+    if (localDisplayData.hasPlaylistChanged(playlistID)) {
+       console.log("playlist has changed - update (", playlistID, ")");
+       localDisplayData.loadPlaylist(playlistID, function(playlist) {
+                                     console.log("playlist loaded");
+                                     
+                                     setPlaylist(playlist);
+                                     showPlaylist(playlist);
+                                     unshowTitle(titleInfo);
+                                     unemphTableEntry(localDisplayData.songID);
+                                     if (playing) {
+                                         showTitle(titleInfo);
+                                         emphTableEntry(msg.songID);
+                                     }
+                                    else {
+                                        console.log("system is silent");
+                                    }
+                                    localDisplayData.setLocalDisplayData(msg, isBrowserCall);
+                                    });
+    }
+    else {
+        if (localDisplayData.hasSongChanged(songID)) {
+            unemphTableEntry(localDisplayData.songID);
+            console.log("song changed, loading title information");
+            showTitle(titleInfo);
+            emphTableEntry(msg.songID);
+            localDisplayData.setLocalDisplayData(msg, isBrowserCall);
+         }
+         else {
+            console.log("system is silent");
+         }
+        localDisplayData.setLocalDisplayData(msg, isBrowserCall);        
+    }
+
+    showPlayerData(localDisplayData);
 }
 
 $(document).ready(function () {
-
+        
     $('#player').on('show.bs.modal', function(e) {
         playlistID="";
         window.location.hash = "modal";
@@ -43,7 +266,6 @@ $(document).ready(function () {
         }
     });
     
-    name_typed = "";
     
     function runWebsocket() {
 
@@ -64,13 +286,14 @@ $(document).ready(function () {
             };
 
             webSocket.onmessage = function (event) {
+                //console.log(event.data);
                 try {
                     var msg = JSON.parse(event.data);
-                    // TODO: only if song ID is new, request the name
                     if (msg.hasOwnProperty('SongBroadcastMessage')) {
                         if (useExternalPlayer) {
-                            showAlbum(msg.SongBroadcastMessage);
+                            onPlayerMessage(msg.SongBroadcastMessage, false);                                
                         }
+                        // ignore message, when playing locally
                     }
                     if (msg.hasOwnProperty('SsidMessage')) {
                         //console.log('received: SsidMsg ' + event.data);
@@ -100,8 +323,6 @@ $(document).ready(function () {
 
     runWebsocket();
     
-    $("#customSwitch1").attr("checked", useExternalPlayer);
-    
     $("#wifiCredentials").click(function() {
         url = "wifi";
         url += "?ssid=" + encodeURIComponent($("#credential_ssid").val());
@@ -122,9 +343,11 @@ $(document).ready(function () {
         }
         else {
            useExternalPlayer = $(this).is(':checked');
-            //alert("local playback");
-            syncPlaylist();
+            console.log("playlist ID is ", localDisplayData.playlistID);
+            onPlayerMessage(tmpDisplayData,true);
         }
+        console.log("changed externalPlayer to ", useExternalPlayer);
+        init();
     })
     
     $("#act_playlist").on("click", ".table-row", function() {
@@ -134,10 +357,9 @@ $(document).ready(function () {
             $.post(url, "", function(data, textStatus) {}, "json");
         }
         else {
-            console.log("playing external uid: ", uid);
-            select_audio(uid);
+            console.log("playing webplayer uid: ", uid);
+            songSelectBrowser(uid);
         }
-        
     });
 
     $("#createPlaylist").click(function() {
@@ -151,6 +373,7 @@ $(document).ready(function () {
             });
     });
 
+//    $('.my_audio').on('ended', function() { play_audio('next'); });
     
     $("#btnPlay").click(function() {
         startPlay();
@@ -189,7 +412,7 @@ $(document).ready(function () {
     });
 
     document.getElementById("progress-box2").oninput = function () {
-        setAudioPosition(this.value);
+        setExtAudioPosition(this.value);
     };
 
     document.getElementById("volume-box").oninput = function () {
@@ -201,80 +424,88 @@ $(document).ready(function () {
         if (newSearchString != name_typed) {
             name_typed = newSearchString;
             console.log("request: " + name_typed);
-            getAlbumList(name_typed);
+            showAlbumList(name_typed);
         }
     });
 
+    
      setInterval(function() {
          if (!useExternalPlayer) {
-             var currentTime = $(".my_audio").prop("currentTime");
-             if (localDisplayData.playing) {
-             position = $(".my_audio").prop("currentTime") /  $(".my_audio").prop("duration")*100;
-             //console.log("current time: ", currentTime, " percent: ", position*100);
-             localDisplayData.position = position*100;
+                        
+             if (tmpDisplayData.playing) {
+                 var currentTime = $(".my_audio").prop("currentTime");
+                 var duration = $(".my_audio").prop("duration");
+                 //console.log("position: ", currentTime, " / ", duration);
+                 tmpDisplayData.position = (currentTime * 100*100) / duration;
              }
              else {
-                 localDisplayData.position = 0;
+                 tmpDisplayData.position = 0;
              }
-            showAlbum(localDisplayData);
-            setVolume(localDisplayData.volume);
+             //console.log("old:", localDisplayData);
+             //console.log("new:", tmpDisplayData);
+             //console.log("position: " + tmpDisplayData.position );
+             onPlayerMessage(tmpDisplayData, true);
+             
          }
+         storePersistentData();
      }, 500); 
 
-    getActualPlaylist();
-    getAlbumList(name_typed);
-    $('#albumSearch').val("");
-    syncPlaylist();
+    restorePersistentData();
+    init();
 });
 
-function setSongProgress(position)
+function init()
 {
-    //console.log("position: ", position/100.0);
+    $("#customSwitch1").attr("checked", useExternalPlayer);
+    $('#albumSearch').val(name_typed);
+    showAlbumList(name_typed);
+        
+    if (!useExternalPlayer) {
+        $('.my_audio').empty(); 
+        $('.my_audio').append("<source id='sound_src' src='' type='audio/mpeg'>");
+        $('.my_audio').off('ended');
+        $('.my_audio').on('ended', function() { 
+            console.log("ended trigger received"); 
+            play_audio('next'); 
+        });        
+        localDisplayData.setLocalDisplayData(tmpDisplayData);
+    }
+    
+    
+}
+
+function storePersistentData() {
+    var localStoreData = new LocalStoreData(name_typed, useExternalPlayer, 0);
+    sessionStorage.setItem('localStoreData', JSON.stringify(localStoreData));
+}
+
+function restorePersistentData() {
+    var localStoreData = JSON.parse(sessionStorage.getItem('localStoreData'));
+    if (localStoreData) {
+        useExternalPlayer = localStoreData.useExternalPlayer;
+        name_typed = localStoreData.name_typed;
+    }
+    else {
+        console.log("cannot restore local data");
+    }
+}
+
+function showSongProgress(position)
+{
     document.getElementById("progress-box2").value = 1.0*position/100.0;  
 }
 
-function showAlbum(displayData) {
-    //alert("show album", displayData);
-    if (displayData.playing) {
-        allTitle = displayData.performer + "<br>" 
-             + displayData.album + "<br>" 
-             + displayData.title;
-    }
-    else {
-        allTitle = displayData.performer + "<br>" 
-             + displayData.album         
-    }
-
-    $("#actSong").html(allTitle);
-    $("#actCover").attr("src", displayData.cover);
-
-    setSongProgress(displayData.position);
-    
-    document.getElementById("volume-box").value = displayData.volume;
-
-    setLoopButton(displayData.loop);
-    setShuffleButton(displayData.shuffle);
-    if (displayData.paused) {
-        setPauseButton();
-    }
-    else {
-        setPlayButton(displayData.playing);
-    }
-
-}
-
-function setAudioPosition(position) {
+function setExtAudioPosition(position) {
     url = "/player?toPosition="+position;
     $.post(url, "", function (data, textStatus) {}, "json");    
 }
 
 function setVolume(_volume) {
     if (!useExternalPlayer) {
-        if (localDisplayData.volume != _volume) {
-            localDisplayData.volume = _volume;
-            var volume = _volume/100;
-            console.log("volume: ", volume);
-            $(".my_audio").prop("volume", volume);            
+        if (tmpDisplayData.volume != _volume) {
+            tmpDisplayData.volume =_volume;
+            $(".my_audio").prop("volume",_volume/100);
+            console.log("volume: ", _volume);
         }
     }
     else {
@@ -283,12 +514,20 @@ function setVolume(_volume) {
     }
 }
 
-function setPlayButton(playing) {
+function showPlayButton(playing, paused) {
    if (playing) {
-        $("#playSymbol").removeClass("icon-pause");
-        $("#playSymbol").addClass("icon-play");
-        $("#btnPlay").removeClass("btn-black");
-        $("#btnPlay").addClass("btn-gray");
+       if (paused) {
+            $("#playSymbol").removeClass("icon-play");
+            $("#playSymbol").addClass("icon-pause");
+            $("#btnPlay").removeClass("btn-black");
+            $("#btnPlay").addClass("btn-gray");   
+       }
+       else {
+            $("#playSymbol").removeClass("icon-pause");
+            $("#playSymbol").addClass("icon-play");
+            $("#btnPlay").removeClass("btn-black");
+            $("#btnPlay").addClass("btn-gray");
+       }
    } else {
         $("#playSymbol").removeClass("icon-pause");
         $("#playSymbol").addClass("icon-play");
@@ -298,7 +537,7 @@ function setPlayButton(playing) {
 
 }
 
-function setShuffleButton(shuffle) {
+function showShuffelButton(shuffle) {
     if (shuffle) {
         $("#btnShuffle").removeClass("btn-black");
         $("#btnShuffle").addClass("btn-gray");
@@ -309,7 +548,7 @@ function setShuffleButton(shuffle) {
     } 
 }
 
-function setLoopButton(loop) {
+function showLoopButton(loop) {
     if (loop) {
         $("#btnRepeat").removeClass("btn-black");
         $("#btnRepeat").addClass("btn-gray");
@@ -320,128 +559,122 @@ function setLoopButton(loop) {
     }
 }
 
-function setPauseButton() {
-    $("#playSymbol").removeClass("icon-play");
-    $("#playSymbol").addClass("icon-pause");
-    $("#btnPlay").removeClass("btn-black");
-    $("#btnPlay").addClass("btn-gray");   
+function unemphTableEntry(songID) {   //(oldUid, newUid) {
+    if (!songID || songID == "00000000-0000-0000-0000-000000000000") {
+        $("#act_playlist").attr("style", "");          
+    }
+    else  {
+        if (songID) {
+            console.log("emphisis remove <", songID, ">");
+            $("#act_playlist #"+songID).attr("style", "");  
+        }
+    }
 }
 
+function emphTableEntry(songID) {   //(oldUid, newUid) {
+    if (songID && songID != "00000000-0000-0000-0000-000000000000") {
+            console.log("emphisis add to <", songID, ">");
+            $("#act_playlist #"+songID).attr("style", "background-color:gray");
+    }
+}
+
+
 function next() {
-    count++;
-    var length = Object.keys(playlist).length;
-    console.log("play next: ", count, " / ", length);
-    if (count >= length) {
+    tmpDisplayData.count++;
+    var length = Object.keys(browserPlaylist).length;
+    console.log("play next: ", tmpDisplayData.count, " / ", length);
+    if (tmpDisplayData.count >= length) {
         console.log("end found");
         $("#sound_src").attr("src","");
         play_audio('stop');
-        //alert("Playlist ended");
-        localDisplayData.playing = false;
-        count = 0;
     }
     else {
-        console.log("go on playing: ", playlist[count]);
-        $("#sound_src").attr("src", playlist[count]);
-        $("#sound_src").attr("autoplay", true);        
+        tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
+        // set new title/album etc
+        let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
+            console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
+                        browserPlaylist[tmpDisplayData.count].album, " " + 
+                        browserPlaylist[tmpDisplayData.count].performer);
+        $("#sound_src").attr("src", audioUrl);
+        $("#sound_src").attr("autoplay", true);       
         $(".my_audio").trigger('load');
         play_audio('play'); 
     }
 }
 
-function getSongInfo(playlistItem) {
-    if (playlistItem == "") {
-       localDisplayData.performer = "";
-       localDisplayData.album = "";
-       localDisplayData.cover = "/img/unkown.png";
-       localDisplayData.title = "";
-    }
-    else {
-
-        var regex = /\/audio\/(.*)\.mp3/;
-        var matches = regex.exec(playlistItem); // you honestly name that method exec?? 
-        var uid = matches[1];
-        console.log("uid is ", uid);
-
-       var url = "/database?uid="+uid;
-       $.getJSON(url).done(function(response) {
-           console.log("uid info: ", response);
-           localDisplayData.performer = response[0].performer;
-           localDisplayData.album = response[0].album;
-           localDisplayData.cover = response[0].cover;
-           localDisplayData.title = response[0].title;
-           showAlbum(localDisplayData);
-           //getActualPlaylist();
-       });
-
-    }
-}
-    
 function play_audio(task) {
-      if(task == 'play'){
-          //alert("play started");
+      if(task == 'play'){         
+          var length = Object.keys(browserPlaylist).length;
+          if (tmpDisplayData.count < length) {
+            tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
+            // set new title/album etc
+            let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
+            console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
+                        browserPlaylist[tmpDisplayData.count].album, " " +
+                        browserPlaylist[tmpDisplayData.count].performer);
+            $("#sound_src").attr("src", audioUrl);
+            $(".my_audio").prop("currentTime",0);
+            $("#sound_src").attr("autoplay", true);       
+            $(".my_audio").trigger('load');
+          }
+
           $(".my_audio").trigger('play');
-          setPlayButton(true);
-          getSongInfo(playlist[count]);
-          localDisplayData.playing = true;
+          tmpDisplayData.playing = true;
+          tmpDisplayData.paused = false;
+
+          if (browserPlaylist) {
+              let count = tmpDisplayData.count;
+              tmpDisplayData.songID = browserPlaylist[count].uid;
+              tmpDisplayData.title = browserPlaylist[count].title;
+              tmpDisplayData.album = browserPlaylist[count].album;
+              tmpDisplayData.performer = browserPlaylist[count].performer;
+              tmpDisplayData.cover = browserPlaylist[count].cover;
+          }
       }
       if(task == 'stop'){
           $(".my_audio").trigger('pause');
-          $(".my_audio").prop("currentTime",0);
-          localDisplayData.playing = false;
-          setPlayButton(false);
+       tmpDisplayData.position = 0;
+        tmpDisplayData.title = "";
+        tmpDisplayData.songID = "00000000-0000-0000-0000-000000000000";
+        tmpDisplayData.playing = false;
+        tmpDisplayData.paused = false;
+        tmpDisplayData.count = 0;
+
       }
       if(task == 'next'){
           next();
       }
       if(task == 'pause'){
-           $(".my_audio").trigger('pause');
+          if (tmpDisplayData.playing && !tmpDisplayData.paused) {
+              $(".my_audio").trigger('pause');
+              tmpDisplayData.paused = true;
+          }
+      }
+      if(task == 'unpause'){
+          if (tmpDisplayData.playing && tmpDisplayData.paused) {
+              $(".my_audio").trigger('play');
+              tmpDisplayData.paused = false;
+          }
       }
  }
 
-function select_audio(uid) {
-    var filename = "/audio/"+uid+".mp3";
+function songSelectBrowser(uid) {
     var found = false;
-    for(i = 0; i < Object.keys(playlist).length; i++) {
-        if (playlist[i] == filename) {
+    for(i = 0; i < Object.keys(browserPlaylist).length; i++) {
+        if (browserPlaylist[i].uid == uid) {
             found = true;
-            count = i;
+            tmpDisplayData.count = i;
         }
     }
     if (found) {
-        console.log("play selected audio playlist item <",count,">");
-        $("#sound_src").attr("src", playlist[count])[0];
-        $(".my_audio").prop("currentTime",0);
-        $(".my_audio").trigger('load');
-        play_audio('play');                      
+        let audioUrl = "/audio/"+uid+".mp3";
+        console.log("play selected audio playlist item <",audioUrl,">");
+        tmpDisplayData.songID = uid;
+        play_audio('play');
     } 
     else {
         alert("not found audio file ", uid);
     }
-}
-
-/* local playback */
-
-function syncPlaylist() {
-    var url = "/playlist?currentPlaylistUID";
-  	$.getJSON(url).done(function(response) {
-        if (response.current != "") {
-            var url = "/pl/"+response.current+".json";
-            //alert(url);
-            $.getJSON(url).done(function(response) {
-               //alert(response);
-               playlist = response;
-               //alert(playlist[0]);
-               $('.my_audio').empty(); 
-               $('.my_audio').append("<source id='sound_src' src=" + playlist[count] + " type='audio/mpeg'>");
-               $('.my_audio').on('ended', function() { play_audio('next'); });
-               $(".my_audio").trigger('load');
-               getSongInfo(playlist[count]);
-            });
-        } 
-        else {
-            console.log("no playlist set");
-        }
-	});
 }
 
 function previousTitle() {
@@ -481,7 +714,19 @@ function startPlay() {
         $.post(url, "", function(data, textStatus) {}, "json");
     }
     else {
-        play_audio('play');
+        console.log("playing: ", tmpDisplayData.playing, " paused: ", tmpDisplayData.paused)
+        if (!tmpDisplayData.playing) {
+            tmpDisplayData.count = 0;
+                play_audio('play');
+        }
+        else {
+            if (!tmpDisplayData.paused) {
+                play_audio('pause');
+            }
+            else {
+                play_audio('unpause');
+            }            
+        }
     }
 }
 
@@ -536,36 +781,39 @@ function fastBackwardPlayer() {
 }
 
 function albumSelect(albumId) {
-    if (console && console.log) {
-        console.log("albumSelect: " + albumId);
-    }
     
-    // open overlay / new page
-    // show playlist with all album titles
-    var url = "/playlist?change=" + encodeURIComponent(albumId);
-    if (console && console.log)
-        console.log("request: " + url);
-    $.getJSON(url).done(function(response) {
-        if (response.result != "ok") {
-            alert(response.result);
-        } else {
-          count = 0;
-          $('#player').modal('show');
-            if (!useExternalPlayer) {
-              syncPlaylist();
-            }
-            else {
-                console.log("set data for new playlist");
-                songID = "";
-                playlistID = albumId;
-                getActualPlaylist();
-            }
-            
+    if (useExternalPlayer) {
+        if (console && console.log) {
+            console.log("external play album select: " + albumId);
         }
-    });
+
+        // open overlay / new page
+        // show playlist with all album titles
+        var url = "/playlist?change=" + encodeURIComponent(albumId);
+        if (console && console.log)
+            console.log("request: " + url);
+        $.getJSON(url).done(function(response) {
+            if (response.result != "ok") {
+                alert(response.result);
+            } else {
+              tmpDisplayData.count = 0;
+              $('#player').modal('show');
+              tmpDisplayData.playlistID = albumId;
+            }
+        });
+    }
+    else {
+        if (console && console.log) {
+            console.log("webbrowser play album select: " + albumId);
+        }
+        
+        $('#player').modal('show');
+        getPlaylistUid(albumId);
+
+    }
 }
 
-function getAlbumList(searchString) {
+function showAlbumList(searchString) {
     if (searchString == "") {
         searchString = "Playlist:";
     }
@@ -577,34 +825,36 @@ function getAlbumList(searchString) {
     $.getJSON(url).done(function(response) {
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
-        response.sort(function(a,b){
-            if (a.performer == b.performer) {
-              if (a.album == b.album)    
-                return 0;
-            if (a.album < b.album) 
-                return -1;
-            if (a.album > b.album)
-                return 1;                
+        if (response) {
+            response.sort(function(a,b){
+                if (a.performer == b.performer) {
+                  if (a.album == b.album)    
+                    return 0;
+                if (a.album < b.album) 
+                    return -1;
+                if (a.album > b.album)
+                    return 1;                
 
-            }
-            if (a.performer < b.performer) 
-                return -1;
-            if (a.performer > b.performer)
-                return 1;
-        })
-        
-        $.each(response, function(i, item) {
-            trHTML += `
-                        <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}")' > 
-                        <div class="text-center">
-                        <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" >
-                        </div>
-                        <div class="card-body" >
-                          <h5 class="card-title">${item.album}</h5>
-                          <p class="card-text">${item.performer}</p>
-                        </div>
-                        </div>`
-        });
+                }
+                if (a.performer < b.performer) 
+                    return -1;
+                if (a.performer > b.performer)
+                    return 1;
+            })
+
+            $.each(response, function(i, item) {
+                trHTML += `
+                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}")' > 
+                            <div class="text-center">
+                            <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" >
+                            </div>
+                            <div class="card-body" >
+                              <h5 class="card-title">${item.album}</h5>
+                              <p class="card-text">${item.performer}</p>
+                            </div>
+                            </div>`
+            });
+        }
         trHTML += '</div>';
         $('#cover').append(trHTML);
     })
@@ -614,16 +864,27 @@ function getActualPlaylist() {
     url = "/playlist?show";
     console.log("request for show actual playlist: ", url);
     $.getJSON(url).done(function(response) {
-    console.log("reply for show actual playlist: ", response);
-    $('#act_playlist tbody').empty();
-    var trHTML ="";
-    $.each(response, function(i, item) {
-        trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.title + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+        console.log("reply for show actual playlist: ", response);
+        $('#act_playlist tbody').empty();
+        var trHTML ="";
+        $.each(response, function(i, item) {
+            trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.title 
+                + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+        });
+        $('#act_playlist tbody').append(trHTML);
     });
 
-    $('#act_playlist tbody').append(trHTML);
-    });
+}
 
+function getPlaylistUid(uid) {
+    url = "/playlist?show="+uid;
+    $.getJSON(url).done(function(response) {
+        console.log("reply for get playlist (", uid, "): ", response);
+        tmpDisplayData.album = response[0].album;
+        tmpDisplayData.performer = response[0].performer;
+        tmpDisplayData.cover = response[0].cover;
+        tmpDisplayData.playlistID = uid;
+    });
 }
 
 function fileChange() {
@@ -664,7 +925,7 @@ function uploadFile() {
 
         client.onload = function(e) {
             $('.progress-bar').css("width", "100%");
-            getAlbumList(name_typed);
+            showAlbumList(name_typed);
             // mark transfered file as copied
         };
 

@@ -74,22 +74,22 @@ std::optional<Config> readConfig(std::string configFile) {
     std::string debugLogLevel;
 
     try {
-    config.m_address = configData["IpAddress"];
-    config.m_port = configData["Port"];
-    config.m_basePath = configData["BasePath"];
-    config.m_enableCache = configData["EnableCache"];
-    debugLogLevel = configData["LogLevel"];
+        config.m_address = configData["IpAddress"];
+        config.m_port = configData["Port"];
+        config.m_basePath = configData["BasePath"];
+        config.m_enableCache = configData["EnableCache"];
+        debugLogLevel = configData["LogLevel"];
 
-    config.m_logLevel = LoggerFramework::Level::debug;
+        config.m_logLevel = LoggerFramework::Level::debug;
 
-    if (debugLogLevel == "info") {
-        config.m_logLevel = LoggerFramework::Level::info;
-    }
-    else if (debugLogLevel == "warning") {
-        config.m_logLevel = LoggerFramework::Level::warning;
-    }
-    else if (debugLogLevel == "error") {
-        config.m_logLevel = LoggerFramework::Level::error;
+        if (debugLogLevel == "info") {
+            config.m_logLevel = LoggerFramework::Level::info;
+        }
+        else if (debugLogLevel == "warning") {
+            config.m_logLevel = LoggerFramework::Level::warning;
+        }
+        else if (debugLogLevel == "error") {
+            config.m_logLevel = LoggerFramework::Level::error;
     }
 
     } catch (std::exception& ex) {
@@ -179,6 +179,7 @@ int main(int argc, char* argv[])
         std::string album;
         std::string performer;
         std::string cover = "/img/unknown.png";
+        auto emptyUID = boost::uuids::uuid();
 
         if (player->isPlaying()) {
 
@@ -231,7 +232,6 @@ int main(int argc, char* argv[])
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
         } catch (std::exception& ) {
             logger(Level::warning) << "cannot convert ID to string - sending empta information\n";
-            auto emptyUID = boost::uuids::uuid();
             songInfo["songID"] = boost::lexical_cast<std::string>(emptyUID);
             songInfo["playlistID"] = boost::lexical_cast<std::string>(emptyUID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(emptyUID);
@@ -505,9 +505,9 @@ int main(int argc, char* argv[])
 
         if (player) {
 
-            boost::uuids::uuid songID;
-            boost::uuids::uuid playlistID;
-            boost::uuids::uuid currPlaylistID;
+            boost::uuids::uuid songID { boost::uuids::uuid() };
+            boost::uuids::uuid playlistID { boost::uuids::uuid() };
+            boost::uuids::uuid currPlaylistID { boost::uuids::uuid() };
 
             int timePercent { 0 };
 

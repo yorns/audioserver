@@ -5,16 +5,24 @@ gboolean GstPlayer::_handle_message(GstBus *, GstMessage *msg) {
 
     GError *err;
     gchar *debug_info;
+    InternalState state { InternalState::null };
+
+    //logger(LoggerFramework::Level::info) << "message received <"<<(int)GST_MESSAGE_TYPE(msg)<<"> (" << gst_message_type_get_name(GST_MESSAGE_TYPE(msg)) <<")\n";
 
     switch (GST_MESSAGE_TYPE (msg)) {
     case GST_MESSAGE_ERROR:
+    case GST_MESSAGE_INFO:
         gst_message_parse_error (msg, &err, &debug_info);
         logger(LoggerFramework::Level::warning) << "Error received from element " << GST_OBJECT_NAME (msg->src) << ": " << err->message << "\n";
         logger(LoggerFramework::Level::warning) << "Debugging information: " << (debug_info ? debug_info : "none") << "\n";
         g_clear_error (&err);
         g_free (debug_info);
         break;
+
     case GST_MESSAGE_EOS: {
+
+        // pulling execution into correct context (just in case)
+        auto eos_handler = [this]() {
         logger(LoggerFramework::Level::debug) << "End-Of-Stream reached.\n";
         if (m_songEndCallback) m_songEndCallback(m_currentItemIterator->m_uniqueId);
         if (calculateNextFileInList()) {
@@ -27,16 +35,66 @@ gboolean GstPlayer::_handle_message(GstBus *, GstMessage *msg) {
             m_performer = "";
             m_isPlaying = false;
         }
+        };
+        m_context.post([eos_handler]() {eos_handler();});
         break;
     }
+
     case GST_MESSAGE_STATE_CHANGED: {
-        GstState old_state, new_state, pending_state;
-        gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
+        GstState old_state, new_state; //, pending_state;
+        gst_message_parse_state_changed (msg, &old_state, &new_state, nullptr);
+
+        auto printState = [](GstState state) {
+            if (state == GST_STATE_PLAYING) {
+                return "playing";
+            }
+            if (state == GST_STATE_VOID_PENDING) {
+                return "void pending";
+            }
+            if (state == GST_STATE_PAUSED) {
+                return "paused";
+            }
+            if (state == GST_STATE_READY) {
+                return "ready";
+            }
+            if (state == GST_STATE_NULL) {
+                return "null";
+            }
+            return "unknown";
+        };
+
         if (GST_MESSAGE_SRC (msg) == GST_OBJECT (m_playbin.get())) {
+            logger(LoggerFramework::Level::info) << "statechange found with playbin set: old <"
+                                                 << printState(old_state) <<"> - new <" << printState(new_state)
+                                                 << ">\n"; // - pending <" << printState(pending_state) << ">\n";
             if (new_state == GST_STATE_PLAYING) {
+                    setVolume(m_volume);
+                    m_isPlaying = true;
+                    state = InternalState::playing;
+            }
+            if (new_state == GST_STATE_VOID_PENDING) {
+                state = InternalState::pending;
+            }
+            if (new_state == GST_STATE_PAUSED) {
+                m_isPlaying = true;
+                state = InternalState::pause;
+            }
+            if (new_state == GST_STATE_READY) {
+                m_isPlaying = false;
+                state = InternalState::ready;
+            }
+            if (new_state == GST_STATE_NULL) {
+                m_isPlaying = false;
+                state = InternalState::null;
+            }
+            if (m_stateChange) {
+                logger(LoggerFramework::Level::info) << "running statechange callback\n";
+                m_stateChange(state);
             }
 
-
+        }
+        else {
+//            logger(LoggerFramework::Level::info) << "------------------ No clue, what this should do or not - playbin.get() failed\n";
         }
     } break;
     case GST_MESSAGE_TAG: {
@@ -64,6 +122,10 @@ gboolean GstPlayer::_handle_message(GstBus *, GstMessage *msg) {
 
         break;
     }
+    case GST_MESSAGE_ASYNC_DONE: {
+        logger(LoggerFramework::Level::info) << "Async done received\n";
+        break;
+    }
     default:
         break;
     }
@@ -79,7 +141,7 @@ void GstPlayer::stopAndRestart() {
 
 bool GstPlayer::doPlayFile(const Common::PlaylistItem &playlistItem) {
 
-    logger(LoggerFramework::Level::info) << "\nplaying "<<playlistItem.m_uniqueId<<" ("<<playlistItem.m_url<<")\n";
+    logger(LoggerFramework::Level::info) << "playing "<<playlistItem.m_uniqueId<<" ("<<playlistItem.m_url<<")\n";
 
     // clean album information
     m_album = "";
@@ -102,13 +164,12 @@ bool GstPlayer::doPlayFile(const Common::PlaylistItem &playlistItem) {
         logger(LoggerFramework::Level::warning) "Unable to set the pipeline to the playing state.\n";
         return false;
     }
-    m_isPlaying = true;
     return true;
 
 }
 
 GstPlayer::GstPlayer(boost::asio::io_context &context) :
-    m_gstLoop(context, 50ms) {
+    m_context(context), m_volume_tmp(0), m_gstLoop(context, 50ms) {
     gint flags;
 
     logger(LoggerFramework::Level::info) << "Constructor GstPlayer\n";
@@ -159,6 +220,8 @@ GstPlayer::GstPlayer(boost::asio::io_context &context) :
 
 bool GstPlayer::setVolume(uint32_t volume) {
 
+    logger(LoggerFramework::Level::info) << "set volume to <"<<volume<<">\n";
+
     double volume_double = volume/100.0;
     volume_double *= 1; // 2.5;
     g_object_set ( m_playbin.get(), "volume", volume_double, NULL );
@@ -170,7 +233,7 @@ bool GstPlayer::setVolume(uint32_t volume) {
 
 bool GstPlayer::startPlay(const boost::uuids::uuid &songUID, uint32_t position) {
 
-    if (needsOnlyUnpause(m_playlistUniqueId) && position == 0) {
+    if (needsOnlyUnpause(m_playlistUniqueId)) {
         logger(LoggerFramework::Level::debug) << "unpause playlist <" << m_playlistName <<">\n";
         auto ret = gst_element_set_state (m_playbin.get(), GST_STATE_PLAYING);
         if (ret == GST_STATE_CHANGE_FAILURE) {
@@ -200,15 +263,26 @@ bool GstPlayer::startPlay(const boost::uuids::uuid &songUID, uint32_t position) 
             }
         }
     }
-    logger(LoggerFramework::Level::info) << "start Playing new playlist <"<<m_playlistUniqueId<<"> ("<<m_playlistName<<")\n";
+    logger(LoggerFramework::Level::info) << "start pos (" << position <<") of Playing new playlist <"<<m_playlistUniqueId<<"> ("<<m_playlistName<<")\n";
 
-    if (position == 0)
-        return doPlayFile(*m_currentItemIterator);
+    if (position == 0) {
+        auto retValue = doPlayFile(*m_currentItemIterator);
+        return retValue;
+    }
     else {
-        if (doPlayFile(*m_currentItemIterator)) {
-            return jump_to_position(position/100);
+        // what should be done on statechange
+        m_stateChange = [this, position](InternalState state){
+            if (state == InternalState::playing) {
+                g_object_set ( m_playbin.get(), "volume", 0.0, NULL ); // gst arm cannot jump to position in ready or pause mode
+                jump_to_position(position/100.0); m_stateChange = nullptr;
+            }
+        };
+        if (doPlayFile(*m_currentItemIterator)) {            
+            return true;
         }
+        m_stateChange = nullptr;
         return false;
+
     }
 }
 
@@ -221,7 +295,7 @@ bool GstPlayer::stop() {
     }
 
     logger(LoggerFramework::Level::debug) "Stopping play\n";
-    m_isPlaying = false;
+//    m_isPlaying = false;
     resetPause();
 
     return true;
@@ -317,6 +391,18 @@ bool GstPlayer::jump_to_position(int percent) {
 
     gint64 pos, len;
 
+    static int busy_counter;
+    busy_counter = 0;
+
+    // on arm this does not work as espected.
+    // state must be playing else duration cannot be received
+
+    while(busy_counter < 100 && !gst_element_query_duration (m_playbin.get(), GST_FORMAT_TIME, &len)) {
+        logger(LoggerFramework::Level::warning) << "gstreamer failure - making busy wait\n";
+        busy_counter++;
+        usleep(10000);
+    }
+
     if (gst_element_query_duration (m_playbin.get(), GST_FORMAT_TIME, &len)) {
         pos = (len/100)*percent;
         if (!gst_element_seek (m_playbin.get(), 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH,
@@ -325,8 +411,12 @@ bool GstPlayer::jump_to_position(int percent) {
             logger(LoggerFramework::Level::warning) << "Seek failed!\n";
         }
         else {
+            logger(LoggerFramework::Level::info) << "seek to "<<percent<<"% / " << pos << "sec posision done\n";
             return true;
         }
+    }
+    else {
+        logger(LoggerFramework::Level::info) << "gstreamer is not able to identify duration interface\n";
     }
     return false;
 }
@@ -365,11 +455,11 @@ boost::uuids::uuid GstPlayer::getSongID() const {
 
 int GstPlayer::getSongPercentage() const {
     gint64 pos, len;
-    if (m_isPlaying && gst_element_query_position (m_playbin.get(), GST_FORMAT_TIME, &pos)
+    if (gst_element_query_position (m_playbin.get(), GST_FORMAT_TIME, &pos)
             && gst_element_query_duration (m_playbin.get(), GST_FORMAT_TIME, &len)) {
-        //logger(LoggerFramework::Level::debug) << "position is calculated to: "<< pos << "/" << len << " = " <<static_cast<int>(100.0*pos/len) << "%\n";
+        logger(LoggerFramework::Level::info) << "position is calculated to: "<< pos << "/" << len << " = " <<static_cast<int>(100.0*pos/len) << "%\n";
         return static_cast<int>(10000.0*pos/len);
     }
-    //logger(LoggerFramework::Level::debug) << "position calculation failed\n";
+    logger(LoggerFramework::Level::info) << "position calculation failed\n";
     return 0;
 }

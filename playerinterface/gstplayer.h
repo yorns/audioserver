@@ -12,16 +12,29 @@
 
 using namespace std::chrono_literals;
 
+//! gst interface class
+/*! gstreamer is a nightmare. Therefore this class is meant to give a meaningful API.
+ * for setting volume or position, start a file, stop it pause it, or whatever is needed
+ * to have a meaningful handling. E.g. setting a position MUST be one single call whatever
+ * it takes. Gstreamer gives everything to the caller for no need as the caller do not want
+ * to care how the position is reached and in what state
+ */
 class GstPlayer  : public BasePlayer
 {
+    boost::asio::io_context& m_context;
+    enum class InternalState { playing, pause, ready, null, pending };
     std::shared_ptr<GstElement> m_playbin;  /* Our one and only element */
     std::shared_ptr<GstBus> m_gstBus;
+
+    uint32_t m_volume_tmp;
 
     RepeatTimer m_gstLoop;
     std::string m_songName;
     std::string m_title; // empty as long as no data is set from gstreamer;
     std::string m_album;
     std::string m_performer;
+
+    std::function<void(InternalState)> m_stateChange;
 
     gboolean _handle_message (GstBus *, GstMessage *msg);
 
