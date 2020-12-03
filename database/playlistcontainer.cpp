@@ -172,7 +172,7 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
             Playlist playlist("", ReadType::isM3u, Persistent::isTemporal);
             playlist.setName(elem.m_name);
             playlist.setPerformer(elem.m_performer);
-            playlist.setCover(elem.m_coverId, elem.m_coverExtension);
+            playlist.setCover(elem.m_coverUrl);
             playlist.setUniqueID(std::move(uniqueID));
             for(auto& uid : elem.m_playlist) {
                 auto addUid = std::get<boost::uuids::uuid>(uid);

@@ -162,7 +162,7 @@ Common::AlbumPlaylistAndNames SimpleDatabase::getAlbumPlaylistAndNames() {
             auto item = m_id3Repository.getId3InfoByUid(uniqueId);
             if (item) {
                 Common::PlaylistItem playlistItem;
-                playlistItem.m_url = item->url;
+                playlistItem.m_url = item->urlAudioFile;
                 playlistItem.m_uniqueId = uniqueId;
                 albumPlaylistAndNames.m_playlist.emplace_back(playlistItem);
             }
@@ -215,8 +215,8 @@ std::optional<std::string> SimpleDatabase::getFileFromUUID(boost::uuids::uuid &u
     auto id3Info = m_id3Repository.search(uuid, SearchItem::uid, SearchAction::uniqueId);
     if (id3Info.size() == 1) {
         // test if this is a local file
-        logger(Level::warning) << "requested uuid <" << uuid << "> found url: "<<id3Info[0].url <<"\n";
-        auto filename = id3Info[0].url;
+        logger(Level::warning) << "requested uuid <" << uuid << "> found url: "<<id3Info[0].urlAudioFile <<"\n";
+        auto filename = id3Info[0].urlAudioFile;
         const std::string filePrefix("file://");
         if (filename.substr(0,filePrefix.length()) == filePrefix) {
             //               filename = filename.substr(filePrefix.length());

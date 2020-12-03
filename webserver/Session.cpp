@@ -78,6 +78,12 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         return fail(ec, "read");
     }
 
+    logger(Level::info) << requestHandler_sp->get() <<"\n";
+
+    auto range = requestHandler_sp->get()[http::field::range];
+
+    logger(Level::info) << "range is "<< range <<"\n";
+
     if (is_unknown_http_method(*requestHandler_sp)) {
         // read until finished
         logger(Level::debug) << "<" << m_runID << "> " << "Method unknown\n";

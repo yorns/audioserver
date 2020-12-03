@@ -457,7 +457,7 @@ int GstPlayer::getSongPercentage() const {
     gint64 pos, len;
     if (gst_element_query_position (m_playbin.get(), GST_FORMAT_TIME, &pos)
             && gst_element_query_duration (m_playbin.get(), GST_FORMAT_TIME, &len)) {
-        logger(LoggerFramework::Level::info) << "position is calculated to: "<< pos << "/" << len << " = " <<static_cast<int>(100.0*pos/len) << "%\n";
+//        logger(LoggerFramework::Level::info) << "position is calculated to: "<< pos << "/" << len << " = " <<static_cast<int>(100.0*pos/len) << "%\n";
         return static_cast<int>(10000.0*pos/len);
     }
     logger(LoggerFramework::Level::info) << "position calculation failed\n";

@@ -15,10 +15,7 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
             jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
             jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
             jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
-            std::string relativCoverPath =
-                    Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
-                    "/" + boost::uuids::to_string(item.uid) + item.fileExtension;
-            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
+            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
             jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
             json.push_back(jentry);
         }
@@ -60,7 +57,6 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
     auto& parameter = urlInfo->m_parameterList.at(0).name;
     auto& value = urlInfo->m_parameterList.at(0).value;
     auto command = urlInfo->getCommand();
-    auto base = urlInfo->getBase();
 
     logger(Level::info) << "database access cmd <"<<command<<"> parameter:<"<<parameter<<"> value:<"<<value<<">\n";
 

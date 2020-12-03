@@ -36,8 +36,10 @@ public:
 
     std::string informationSource;
 
-    std::string fileExtension;
-    std::string url;
+    std::string urlAudioFile;
+    std::string audioFileExt;
+    std::string urlCoverFile;
+    std::string coverFileExt;
 
     bool operator==(const Id3Info& info) const {
         return album_name == info.album_name &&

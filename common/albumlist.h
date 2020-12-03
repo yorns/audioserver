@@ -12,8 +12,9 @@ namespace Common {
 struct AlbumListEntry {
     std::string m_name;
     std::string m_performer;
-    std::string m_coverExtension;
-    boost::uuids::uuid m_coverId;
+    //    std::string m_coverExtension;
+    //    boost::uuids::uuid m_coverId;
+    std::string m_coverUrl;
     std::vector<Tag> m_tagList;
     std::vector<std::tuple<boost::uuids::uuid, uint32_t>> m_playlist;
 };

@@ -37,11 +37,11 @@ enum class ReadType {
     isJson
 };
 
-enum class CoverType {
-    onPlaylistId,
-    onPlaylistItem,
-    none
-};
+//enum class CoverType {
+//    onPlaylistId,
+//    onPlaylistItem,
+//    none
+//};
 
 struct PlaylistItem {
     PlaylistItem(boost::uuids::uuid&& uniqueId) : m_uniqueId (std::move(uniqueId)) {}
@@ -63,7 +63,6 @@ class Playlist {
     PlaylistItem m_item;
     std::vector<boost::uuids::uuid> m_playlist;
     std::string m_coverName;
-    CoverType m_coverType { CoverType::none };
     Changed m_changed { Changed::isUnchanged };
     Persistent m_persistent { Persistent::isPermanent };
     ReadType m_readType { ReadType::isM3u };
@@ -145,15 +144,8 @@ public:
 
     std::string getCover() const;
 
-    bool setCover(const boost::uuids::uuid& coverId, const std::string& extension) {
-        try {
-        m_coverName = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) + "/"
-                + boost::lexical_cast<std::string>(coverId) + extension;
-        } catch (std::exception& ex) {
-            logger(LoggerFramework::Level::warning) << ex.what() << "\n";
-            return false;
-        }
-
+    bool setCover(const std::string& coverUrl) {
+        m_coverName = coverUrl;
         return true;
     }
 

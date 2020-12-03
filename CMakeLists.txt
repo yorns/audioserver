@@ -160,6 +160,24 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW ${UNREADABLE})
 
+
+
+add_executable(ituneJsonConverter itunesJsonConverter/itunesJsonConverter.cpp ${COMMONCOMPONENTS})
+set_target_properties(ituneJsonConverter PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_compile_options(ituneJsonConverter PRIVATE -Wall -Wextra -pedantic )
+target_include_directories(
+        ituneJsonConverter
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
+)
+target_link_libraries(
+    ituneJsonConverter
+        Threads::Threads
+        ${Boost_LIBRARIES}
+)
+
+
 if (WITH_ADD)
 
     add_executable( mp3CoverExtractor ${CMAKE_SOURCE_DIR}/extractId3Cover/saveID3TagPicture.cpp ${COMMONCOMPONENTS})

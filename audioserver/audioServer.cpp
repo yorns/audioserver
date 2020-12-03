@@ -207,8 +207,7 @@ int main(int argc, char* argv[])
             }
 
             if (songData.size() > 0) {
-            cover = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
-                    "/" + boost::uuids::to_string(songID) + songData[0].fileExtension;
+                cover = songData[0].urlCoverFile;
             }
 
         } else {
@@ -231,7 +230,7 @@ int main(int argc, char* argv[])
             songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
         } catch (std::exception& ) {
-            logger(Level::warning) << "cannot convert ID to string - sending empta information\n";
+            logger(Level::warning) << "cannot convert ID to string - sending empty information\n";
             songInfo["songID"] = boost::lexical_cast<std::string>(emptyUID);
             songInfo["playlistID"] = boost::lexical_cast<std::string>(emptyUID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(emptyUID);
@@ -248,6 +247,7 @@ int main(int argc, char* argv[])
         songInfo["album"] = album;
         songInfo["performer"] = performer;
         songInfo["cover"] = cover;
+        logger(Level::info) << "send cover: " << cover << "\n";
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
         sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());

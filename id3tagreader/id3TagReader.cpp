@@ -43,8 +43,8 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
             info.performer_name = streamInfo.at("Performer");
             info.track_no = streamInfo.at("TrackNo");
             info.all_tracks_no = streamInfo.at("AllTrackNo");
-            info.url = streamInfo.at("Url");
-            info.fileExtension = streamInfo.at("Extension");
+            info.urlAudioFile = streamInfo.at("Url");
+            info.coverFileExt = streamInfo.at("Extension");
             info.albumCreation = streamInfo.at("AlbumCreation");
 
             if (streamInfo.find("Image") != streamInfo.end()) {
@@ -52,10 +52,24 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
                 fullInfo.pictureAvailable = true;
                 fullInfo.hash = Common::genHash(cover);
                 fullInfo.data = std::move(cover);
+
+                info.urlCoverFile =
+                        Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
+                        "/" + boost::uuids::to_string(info.uid) + info.coverFileExt;
+
             }
             else {
-                fullInfo.pictureAvailable = false;
-                fullInfo.hash = 0;
+                if (streamInfo.find("ImageUrl") != streamInfo.end()) {
+
+                    info.urlCoverFile = streamInfo.at("ImageUrl");
+                }
+                else {
+                    fullInfo.pictureAvailable = false;
+                    fullInfo.hash = 0;
+                    info.urlCoverFile =
+                            Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
+                            "/" + std::string(ServerConstant::unknownCoverFile) + std::string(ServerConstant::unknownCoverExtension);
+                }
             }
 
             info.finishEntry();
@@ -68,6 +82,7 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
             logger(Level::warning) << "failed to read file: " << streamFileName << ": " << ex.what() << "\n";
             return std::nullopt;
         }
+
         return fullInfo;
     }
 
@@ -108,7 +123,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                     auto frameTagDiskNo = diskNoItem->second.front();
                     std::stringstream(frameTagDiskNo->toString().to8Bit(true)) >> info.cd_no;
                 }
-                info.url = fileUrl;
+                info.urlAudioFile = fileUrl;
                 info.informationSource = fileUrl;
                 info.finishEntry();     // help search by adding strings on lowercase
 
@@ -129,7 +144,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                     std::string filetype(".jpg");
                     if (!picFrame->mimeType().isEmpty()) {
                         std::string tmp{picFrame->mimeType().to8Bit()};
-                        fullId3Info.info.fileExtension = "." + tmp.substr(tmp.find_last_of('/')+1);
+                        fullId3Info.info.coverFileExt = "." + tmp.substr(tmp.find_last_of('/')+1);
                     }
 
                     // generate entry for cover Table
@@ -143,6 +158,10 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                     fullId3Info.data = std::move(coverData);
                     fullId3Info.hash = hash;
                     fullId3Info.pictureAvailable = true;
+
+                    // assume image is set correctly (later)
+                    fullId3Info.info.urlCoverFile = std::string(ServerConstant::coverPathWeb) + "/"
+                            + boost::lexical_cast<std::string>(uid) + fullId3Info.info.coverFileExt;
 
                     logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
                 }
@@ -170,7 +189,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                 info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
                 // TRCK (Track number/Position in set): 14/14
                 // TODO read CD number information
-                info.url = fileUrl;
+                info.urlAudioFile = fileUrl;
                 info.informationSource = fileUrl;
                 info.finishEntry();     // help search by adding strings on lowercase
             } catch (std::exception& ex) {
@@ -210,7 +229,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                     info.cd_no = static_cast<uint32_t>(disk->second.toInt());
                 }
                 info.informationSource = fileUrl;
-                info.url = fileUrl;
+                info.urlAudioFile = fileUrl;
 
                 info.finishEntry();     // help search by adding strings on lowercase
 
@@ -230,11 +249,11 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
                 switch (coverArt.format()) {
                 case TagLib::MP4::CoverArt::PNG:
-                    fullId3Info.info.fileExtension = ".png";
+                    fullId3Info.info.coverFileExt = ".png";
                     fullId3Info.pictureAvailable = true;
                     break;
                 case TagLib::MP4::CoverArt::JPEG:
-                    fullId3Info.info.fileExtension = ".jpeg";
+                    fullId3Info.info.coverFileExt = ".jpeg";
                     fullId3Info.pictureAvailable = true;
                     break;
                 default:
@@ -254,6 +273,10 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                     fullId3Info.data = std::move(coverData);
                     fullId3Info.hash = hash;
                     fullId3Info.pictureAvailable = true;
+
+                    // assume image is set correctly (later)
+                    fullId3Info.info.urlCoverFile = std::string(ServerConstant::coverPathWeb) + "/"
+                            + boost::lexical_cast<std::string>(uid) + fullId3Info.info.coverFileExt;
 
                     logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
                 }

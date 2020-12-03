@@ -178,10 +178,7 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
                 jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
                 jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
                 jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
-                std::string relativCoverPath =
-                        Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::CoversRelative) +
-                        "/" + boost::lexical_cast<std::string>(item.uid) + item.fileExtension;
-                jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
+                jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
                 jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
                 json.push_back(jentry);
             }

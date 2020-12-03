@@ -5,6 +5,8 @@ var playlistID = "";
 var name_typed = "";
 var broadcastMsg = "";
 var useExternalPlayer = true;
+var websocketConnected = false;
+var websocketError = false;
 //var count = 0;
 
 var tmpPlaylist = {};
@@ -31,11 +33,11 @@ var localDisplayData = {
     paused: false,
     count: 0,
     
-    hasPlaylistChanged : function(playlistID) {
-        if (this.playlistID != playlistID) {
-            console.log("playlist changed: old ", this.playlistID, " != new -> ", playlistID);
+    hasPlaylistChanged : function(playlistID, localCover) {
+        if (this.playlistID != playlistID || this.cover != localCover) {
+            console.log("playlist changed: old ", this.playlistID, "(", this.cover, ") != new -> ", playlistID, "(", localCover, ")");
         }
-        return this.playlistID != playlistID; 
+        return (this.playlistID != playlistID || this.cover != localCover); 
     },    
         
     loadTitle : function(uid, showTitleFunction) {
@@ -110,7 +112,7 @@ var localDisplayData = {
 
         if (!useExternalPlayer && isBrowserCall) {
             tmpDisplayData = { ...this };
-        }
+        }   
     }
 
 }
@@ -208,7 +210,7 @@ function onPlayerMessage(msg, isBrowserCall) {
         titleInfo.title = "";
     }
     
-    if (localDisplayData.hasPlaylistChanged(playlistID)) {
+    if (localDisplayData.hasPlaylistChanged(playlistID, titleInfo.cover)) {
        console.log("playlist has changed - update (", playlistID, ")");
        localDisplayData.loadPlaylist(playlistID, function(playlist) {
                                      console.log("playlist loaded");
@@ -244,6 +246,64 @@ function onPlayerMessage(msg, isBrowserCall) {
     showPlayerData(localDisplayData);
 }
 
+function runWebsocket() {
+
+    if ("WebSocket" in window) {
+
+        webSocket = new WebSocket("ws://" + location.host + "/dynamic");
+
+        webSocket.onerror = function (event) {
+            alert("ws error " + event.data);
+            websocketError = true;
+            webSocket.close();
+        };
+
+        webSocket.onopen = function (event) {
+            websocketConnected = true;
+            console.log('open websocket connection');
+        };
+
+        webSocket.onclose = function (event) {
+            websocketConnected = false;
+            alert("ws close " + event.data);
+        };
+
+        webSocket.onmessage = function (event) {
+            //console.log(event.data);
+            try {
+                var msg = JSON.parse(event.data);
+                if (msg.hasOwnProperty('SongBroadcastMessage')) {
+                    if (useExternalPlayer) {
+                        onPlayerMessage(msg.SongBroadcastMessage, false);                                
+                    }
+                    // ignore message, when playing locally
+                }
+                if (msg.hasOwnProperty('SsidMessage')) {
+                    //console.log('received: SsidMsg ' + event.data);
+
+                    var trHTML ="";
+                    for (var item in msg.SsidMessage) {
+                    console.log('item ' + msg.SsidMessage[item] );
+                        trHTML += '<tr class="table-row" id="'  + msg.SsidMessage[item] + '"><td></td><td>' + msg.SsidMessage[item] + '</td><td></td></tr>';
+                    }
+                    $('#wifiList tbody').empty();
+                    $('#wifiList tbody').append(trHTML);
+                }
+
+                //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
+            } catch (e) {
+                console.log("json parse failed");
+            }
+
+        };
+    } else {
+
+        // The browser doesn't support WebSocket
+        alert("WebSocket NOT supported by your Browser!");
+    }
+
+}
+
 $(document).ready(function () {
         
     $('#player').on('show.bs.modal', function(e) {
@@ -265,61 +325,6 @@ $(document).ready(function () {
             location.reload(true);
         }
     });
-    
-    
-    function runWebsocket() {
-
-        if ("WebSocket" in window) {
-
-            webSocket = new WebSocket("ws://" + location.host + "/dynamic");
-
-            webSocket.onerror = function (event) {
-                alert("ws error" + event.data);
-            };
-
-            webSocket.onopen = function (event) {
-                console.log('open websocket connection');
-            };
-
-            webSocket.onclose = function (event) {
-                console.log('close websocket connection');
-            };
-
-            webSocket.onmessage = function (event) {
-                //console.log(event.data);
-                try {
-                    var msg = JSON.parse(event.data);
-                    if (msg.hasOwnProperty('SongBroadcastMessage')) {
-                        if (useExternalPlayer) {
-                            onPlayerMessage(msg.SongBroadcastMessage, false);                                
-                        }
-                        // ignore message, when playing locally
-                    }
-                    if (msg.hasOwnProperty('SsidMessage')) {
-                        //console.log('received: SsidMsg ' + event.data);
-
-                        var trHTML ="";
-                        for (var item in msg.SsidMessage) {
-                        console.log('item ' + msg.SsidMessage[item] );
-                            trHTML += '<tr class="table-row" id="'  + msg.SsidMessage[item] + '"><td></td><td>' + msg.SsidMessage[item] + '</td><td></td></tr>';
-                        }
-                        $('#wifiList tbody').empty();
-                        $('#wifiList tbody').append(trHTML);
-                    }
-                    
-                    //console.log('received: loop: ' + msg.SongBroadcastMessage.loop + ' shuffle: ' + msg.SongBroadcastMessage.shuffle );
-                } catch (e) {
-                    console.log("json parse failed");
-                }
-
-            };
-        } else {
-
-            // The browser doesn't support WebSocket
-            alert("WebSocket NOT supported by your Browser!");
-        }
-
-    }
 
     runWebsocket();
     
@@ -412,7 +417,8 @@ $(document).ready(function () {
     });
 
     document.getElementById("progress-box2").oninput = function () {
-        setExtAudioPosition(this.value);
+        setPosition(this.value);
+        //setExtAudioPosition(this.value);
     };
 
     document.getElementById("volume-box").oninput = function () {
@@ -430,6 +436,7 @@ $(document).ready(function () {
 
     
      setInterval(function() {
+
          if (!useExternalPlayer) {
                         
              if (tmpDisplayData.playing) {
@@ -459,8 +466,9 @@ function init()
     $("#customSwitch1").attr("checked", useExternalPlayer);
     $('#albumSearch').val(name_typed);
     showAlbumList(name_typed);
-        
+    
     if (!useExternalPlayer) {
+        // reset all displayed information and display them from local playback
         $('.my_audio').empty(); 
         $('.my_audio').append("<source id='sound_src' src='' type='audio/mpeg'>");
         $('.my_audio').off('ended');
@@ -495,11 +503,6 @@ function showSongProgress(position)
     document.getElementById("progress-box2").value = 1.0*position/100.0;  
 }
 
-function setExtAudioPosition(position) {
-    url = "/player?toPosition="+position;
-    $.post(url, "", function (data, textStatus) {}, "json");    
-}
-
 function setVolume(_volume) {
     if (!useExternalPlayer) {
         if (tmpDisplayData.volume != _volume) {
@@ -513,6 +516,18 @@ function setVolume(_volume) {
         $.post(url, "", function (data, textStatus) {}, "json");
     }
 }
+
+function setPosition(_position) {
+    if (!useExternalPlayer) {
+            $(".my_audio").prop("currentTime",_position);
+            console.log("position: ", _position);
+    }
+    else {
+    url = "/player?toPosition="+_position;
+    $.post(url, "", function (data, textStatus) {}, "json");    
+    }
+}
+
 
 function showPlayButton(playing, paused) {
    if (playing) {
@@ -717,6 +732,7 @@ function startPlay() {
         console.log("playing: ", tmpDisplayData.playing, " paused: ", tmpDisplayData.paused)
         if (!tmpDisplayData.playing) {
             tmpDisplayData.count = 0;
+            
                 play_audio('play');
         }
         else {
@@ -796,9 +812,9 @@ function albumSelect(albumId) {
             if (response.result != "ok") {
                 alert(response.result);
             } else {
-              tmpDisplayData.count = 0;
+              localDisplayData.count = 0; //   tmpDisplayData.count = 0;
               $('#player').modal('show');
-              tmpDisplayData.playlistID = albumId;
+              localDisplayData.playlistID = albumId; //tmpDisplayData.playlistID = albumId;
             }
         });
     }

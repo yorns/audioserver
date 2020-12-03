@@ -77,7 +77,7 @@ Playlist::Playlist(boost::uuids::uuid&& uniqueId, std::vector<boost::uuids::uuid
     : m_item(std::move(uniqueId)),
       m_playlist(std::move(playlist)),
       m_coverName("/img/unknown.png"),
-      m_coverType(CoverType::none),
+//      m_coverType(CoverType::none),
       m_changed(changed),
       m_persistent(persistent),
       m_readType(readType)
@@ -114,6 +114,7 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
     std::string performerName;
     std::string extension;
     std::vector<char> coverData;
+    std::string coverUrl;
     std::vector<Tag> tagList;
 
     try {
@@ -124,7 +125,29 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         playlistName = streamInfo.at("Name");
         performerName = streamInfo.at("Performer");
         extension = streamInfo.at("Extension");
-        coverData = utility::base64_decode(streamInfo.at("Image"));
+
+        /* image handling */
+        if (streamInfo.find("Image") != std::end(streamInfo)) {
+            coverData = utility::base64_decode(streamInfo.at("Image"));
+            auto hash = Common::genHash(coverData);
+            auto coverUid = uid;
+            coverInsert(std::move(coverUid), std::move(coverData), hash);
+            coverUrl = std::string(ServerConstant::coverPathWeb) + "/"
+                    + boost::lexical_cast<std::string>(uid) + extension;
+
+        }
+        else {
+            if (streamInfo.find("ImageUrl") != std::end(streamInfo)) {
+                coverUrl = streamInfo.at("ImageUrl");
+            }
+            else {
+                logger(LoggerFramework::Level::error) << "no image or image url given for playlist <" << playlistName <<">\n";
+                coverUrl = std::string(ServerConstant::coverPathWeb) + "/"
+                        + std::string(ServerConstant::unknownCoverFile)
+                        + std::string(ServerConstant::unknownCoverExtension);
+            }
+        }
+
         if (streamInfo.find("Items") != streamInfo.end()) {
             auto items = streamInfo.at("Items");
             for (auto elem : items) {
@@ -153,7 +176,7 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
                 }
             }
         }
-        if (streamInfo. find("Tag") != streamInfo.end()) {
+        if (streamInfo.find("Tag") != streamInfo.end()) {
             auto tags = streamInfo["Tag"];
             for (auto elem : tags ) {
                 auto tag = TagConverter::getTagId(elem);
@@ -168,15 +191,12 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
 
     if (playlist.size() > 0) {
         logger(Level::debug) << "stream playlist: <" << uid <<"> (" << playlistName << ") <"<<playlist.size()<<"> elements read\n";
-        auto hash = Common::genHash(coverData);
-        auto coverUid = uid;
-        setUniqueID(std::move(uid));
-        coverInsert(std::move(coverUid), std::move(coverData), hash);
-        setCover(m_item.m_uniqueId, extension);
+        setUniqueID(std::move(uid));        
         m_playlist = std::move(playlist);
         setName(std::move(playlistName));
         setPerformer(std::move(performerName));
         setTagList(tagList);
+        setCover(coverUrl);
         return true;
     }
     return false;

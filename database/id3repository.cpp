@@ -86,8 +86,8 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
               logger(Level::error) << "wrong encoding: " << id3Elem.informationSource << "\n";
               continue;
             }
-            if (!utf8_check_is_valid(id3Elem.url)) {
-              logger(Level::error) << "wrong encoding: " << id3Elem.url << "\n";
+            if (!utf8_check_is_valid(id3Elem.urlAudioFile)) {
+              logger(Level::error) << "wrong encoding: " << id3Elem.urlAudioFile << "\n";
               continue;
             }
 
@@ -99,10 +99,11 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             jsonElem["Performer"] = id3Elem.performer_name;
             jsonElem["TrackNo"] = id3Elem.track_no;
             jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
-            jsonElem["Extension"] = id3Elem.fileExtension;
+            jsonElem["Extension"] = id3Elem.coverFileExt;
             jsonElem["AlbumCreation"] = id3Elem.albumCreation;
             jsonElem["Disk"] = id3Elem.cd_no;
-            jsonElem["Url"] = id3Elem.url;
+            jsonElem["Url"] = id3Elem.urlAudioFile;
+            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
             data.push_back(jsonElem);
         }
 
@@ -134,10 +135,11 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
             info.performer_name = streamInfo.at("Performer");
             info.track_no = streamInfo.at("TrackNo");
             info.all_tracks_no = streamInfo.at("AllTrackNo");
-            info.fileExtension = streamInfo.at("Extension");
+            info.coverFileExt = streamInfo.at("Extension");
             info.albumCreation = streamInfo.at("AlbumCreation");
             info.cd_no = streamInfo.at("Disk");
-            info.url = streamInfo.at("Url");
+            info.urlAudioFile = streamInfo.at("Url");
+            info.urlCoverFile = streamInfo.at("CoverUrl");
 
             info.finishEntry();
             logger(LoggerFramework::Level::debug) << "reading <" << boost::uuids::to_string(info.uid) << "> <"<<info.title_name<<">\n";
@@ -491,21 +493,12 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
             auto albumIt = std::find_if(std::begin(albumList), std::end(albumList), [&it](const AlbumListEntry& albumListEntry)
             { return albumListEntry.m_name == it->album_name; });
 
-            boost::uuids::string_generator gen;
-            auto unknownUid = gen(std::string(ServerConstant::unknownCoverFileUid));
-
             if (albumIt == std::cend(albumList)) {
                 AlbumListEntry entry;
                 entry.m_name = it->album_name;
                 entry.m_performer = it->performer_name;
                 entry.m_tagList = it->tags;
-                if (!it->fileExtension.empty() ) {
-                    entry.m_coverExtension = it->fileExtension;
-                    entry.m_coverId = it->uid;
-                } else {
-                    entry.m_coverExtension = ServerConstant::unknownCoverExtension;
-                    entry.m_coverId = unknownUid;
-                }
+                entry.m_coverUrl = it->urlCoverFile;
                 entry.m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
                 albumList.emplace_back(entry);
             }
@@ -513,9 +506,8 @@ std::vector<Common::AlbumListEntry> Id3Repository::extractAlbumList() {
                 if (it->performer_name != albumIt->m_performer) {
                     albumIt->m_performer = "multiple performer";
                 }
-                if (albumIt->m_coverId == unknownUid && !it->fileExtension.empty()) {
-                    albumIt->m_coverExtension = it->fileExtension;
-                    albumIt->m_coverId = it->uid;
+                if (albumIt->m_coverUrl.empty() && !it->urlCoverFile.empty()) {
+                    albumIt->m_coverUrl = it->urlCoverFile;
                 }
 
                 albumIt->m_playlist.push_back(std::make_tuple(it->uid, it->cd_no*1000 + it->track_no));
