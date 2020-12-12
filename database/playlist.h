@@ -37,12 +37,6 @@ enum class ReadType {
     isJson
 };
 
-//enum class CoverType {
-//    onPlaylistId,
-//    onPlaylistItem,
-//    none
-//};
-
 struct PlaylistItem {
     PlaylistItem(boost::uuids::uuid&& uniqueId) : m_uniqueId (std::move(uniqueId)) {}
     PlaylistItem() {}

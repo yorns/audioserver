@@ -253,7 +253,7 @@ function runWebsocket() {
         webSocket = new WebSocket("ws://" + location.host + "/dynamic");
 
         webSocket.onerror = function (event) {
-            alert("ws error " + event.data);
+            // alert("ws error " + event.data);
             websocketError = true;
             webSocket.close();
         };
@@ -265,7 +265,7 @@ function runWebsocket() {
 
         webSocket.onclose = function (event) {
             websocketConnected = false;
-            alert("ws close " + event.data);
+            // alert("ws close " + event.data);
         };
 
         webSocket.onmessage = function (event) {

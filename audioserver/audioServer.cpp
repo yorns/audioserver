@@ -247,14 +247,11 @@ int main(int argc, char* argv[])
         songInfo["album"] = album;
         songInfo["performer"] = performer;
         songInfo["cover"] = cover;
-        logger(Level::info) << "send cover: " << cover << "\n";
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
         sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());
 
     };
-
-
 
     auto externalSelect = [&database, &player, &sessionHandler, &sncClient](const std::string& other, const std::string& raw_msg) {
         try {

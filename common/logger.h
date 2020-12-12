@@ -35,7 +35,7 @@ public:
     template <typename T>
     Logger& operator<<(T value) {
         if (m_actualLevel >= globalLevel && m_stream.good())
-            m_stream << value;
+            m_stream << value << std::flush;
         return *this;
     }
 

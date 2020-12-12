@@ -5,6 +5,8 @@
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
 #include "common/albumlist.h"
+#include <iterator>
+#include <vector>
 
 using namespace Database;
 using namespace LoggerFramework;
@@ -75,6 +77,53 @@ bool Id3Repository::utf8_check_is_valid(const std::string& string) const
     }
     return true;
 }
+
+std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info>::const_iterator& begin, const std::vector<Id3Info>::const_iterator& end) const
+{
+    nlohmann::json data;
+
+    if (begin == end)
+        return std::nullopt;
+
+    try {
+        for (auto it = begin; it != end; ++it) {
+            const auto& id3Elem = *it;
+            if (!utf8_check_is_valid(id3Elem.informationSource)) {
+              logger(Level::error) << "wrong encoding: " << id3Elem.informationSource << "\n";
+              continue;
+            }
+            if (!utf8_check_is_valid(id3Elem.urlAudioFile)) {
+              logger(Level::error) << "wrong encoding: " << id3Elem.urlAudioFile << "\n";
+              continue;
+            }
+
+            nlohmann::json jsonElem;
+            jsonElem["Uid"] = boost::uuids::to_string(id3Elem.uid);
+            jsonElem["InfoSrc"] = id3Elem.informationSource;
+            jsonElem["Title"] = id3Elem.title_name;
+            jsonElem["Album"] = id3Elem.album_name;
+            jsonElem["Performer"] = id3Elem.performer_name;
+            jsonElem["TrackNo"] = id3Elem.track_no;
+            jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
+            jsonElem["Extension"] = id3Elem.coverFileExt;
+            jsonElem["AlbumCreation"] = id3Elem.albumCreation;
+            jsonElem["Disk"] = id3Elem.cd_no;
+            jsonElem["Url"] = id3Elem.urlAudioFile;
+            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
+            data.push_back(jsonElem);
+        }
+
+    } catch (std::exception& ex) {
+        logger(Level::warning) << "error in creationg Json for id3 database list: " << ex.what() << "\n";
+        return std::nullopt;
+    }
+
+    return data;
+
+
+}
+
+
 std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info> &id3Db) const {
 
     nlohmann::json data;
@@ -248,15 +297,22 @@ bool Id3Repository::readCache() {
         return false;
     }
 
-    std::string id3CacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
-            + "/id3_cache.json";
+    std::string id3CacheFileBase = "id3_cache";
     std::string coverCacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
             + "/cover_cache.json";
 
 
-    auto id3DatabaseList = id3fromJson(id3CacheFile);
-    // convert json to id3Info vector
-    m_simpleDatabase.insert(m_simpleDatabase.end(), std::begin(id3DatabaseList), std::end(id3DatabaseList));
+    auto cacheFileList = Common::FileSystemAdditions::getAllFilesInDir(FileType::Cache);
+    for (auto file : cacheFileList) {
+        if ( file.extension == ".json" &&
+             file.name.substr(0, id3CacheFileBase.length()) == id3CacheFileBase) {
+            auto id3CacheFileName = file.dir + "/" + file.name + file.extension;
+            logger(LoggerFramework::Level::debug) << "reading cache file "<< id3CacheFileName <<"\n";
+            auto id3DatabaseList = id3fromJson(id3CacheFileName);
+            // convert json to id3Info vector
+            m_simpleDatabase.insert(m_simpleDatabase.end(), std::begin(id3DatabaseList), std::end(id3DatabaseList));
+        }
+    }
     // read image cache
     auto coverDatabaseList = coverFromJson(coverCacheFile);
     for (auto& elem : coverDatabaseList) {
@@ -314,16 +370,46 @@ bool Id3Repository::writeCacheInternal() {
 
     logger(Level::debug) << "writing cache\n";
 
-    std::string id3CacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
-            + "/id3_cache.json";
+    std::string id3CacheFileBase = "id3_cache";
+//    std::string id3CacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
+//            + "/id3_cache.json";
     std::string coverCacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
             + "/cover_cache.json";
 
-    // create json file
-    auto jsonDatabase = id3ToJson(m_simpleDatabase);
-    // write simple database
-    if (jsonDatabase)
-        writeJson(std::move(*jsonDatabase), id3CacheFile);
+    // create json files
+    auto genCacheName = [](uint32_t id) {
+        return Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
+                    + "/id3_cache_" + std::to_string(id) + ".json";
+    };
+
+#define MAXJSONFILES 1000
+#define MAXENTRIESPERFILE 200
+    unsigned int i{0};
+    bool endFound {false};
+    while (!endFound) {
+        auto start = std::next(std::begin(m_simpleDatabase), i*MAXENTRIESPERFILE);
+        auto stop = std::next(std::begin(m_simpleDatabase), (i+1)*MAXENTRIESPERFILE);
+
+        if ((i+1)* MAXENTRIESPERFILE >= m_simpleDatabase.size()) {
+            stop = std::end(m_simpleDatabase);
+            endFound = true;
+        }
+
+        auto jsonDatabase = id3ToJson(start, stop);
+
+        std::cerr << ".";//jsonDatabase->dump(2);
+
+        // write simple database
+        if (jsonDatabase) {
+            writeJson(std::move(*jsonDatabase), genCacheName(i));
+            std::cerr << "#("<<i<<")";//jsonDatabase->dump(2);
+        }
+        else {
+            endFound = true;
+        }
+        i++;
+    }
+    std::cerr << "\n";
     // write cover database
 
     logger(Level::info) << "writing <" << m_simpleCoverDatabase.size() << "> cover data entries\n";

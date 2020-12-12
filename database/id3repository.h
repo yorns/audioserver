@@ -53,6 +53,7 @@ class Id3Repository
     bool m_cache_dirty { false };
     bool m_enableCache { false };
 
+    std::optional<nlohmann::json> id3ToJson(const std::vector<Id3Info>::const_iterator& begin, const std::vector<Id3Info>::const_iterator& end) const;
     std::optional<nlohmann::json> id3ToJson(const std::vector<Id3Info>& id3Db) const;
     const std::vector<Id3Info> id3fromJson(const std::string& file) const ;
     std::optional<nlohmann::json> coverToJson(const std::vector<CoverElement>& coverDb) const;
@@ -65,7 +66,8 @@ class Id3Repository
     bool readCache();
     bool writeCacheInternal();
 
-    bool isCached(const std::string& url) {
+    bool isCached(const std::string& url) const {
+        logger(LoggerFramework::Level::debug) << "cache test for url <"<<url<<">\n";
         return std::find_if(std::cbegin(m_simpleDatabase), std::cend(m_simpleDatabase),
                             [&url](const Id3Info& elem) { return elem.informationSource == url; }) != std::cend(m_simpleDatabase);
     }
