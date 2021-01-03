@@ -120,6 +120,11 @@ bool BasePlayer::calculateNextFileInList() {
         return false;
     }
 
+    if (m_single) {
+        logger(LoggerFramework::Level::debug) << "playing single file ended\n";
+        return false;
+    }
+
     if (++m_currentItemIterator == m_playlist.end())
     {
         logger(LoggerFramework::Level::debug) << "Playlist <"
@@ -166,8 +171,15 @@ bool BasePlayer::toggleShuffle() {
     return true;
 }
 
-bool BasePlayer::toogleLoop() {
+bool BasePlayer::toggleLoop() {
     m_doCycle = !m_doCycle;
+    updateUi();
+    return true;
+}
+
+bool BasePlayer::toggleSingle() {
+    m_single = !m_single;
+    logger(LoggerFramework::Level::info) << "toggle single to <"<<(m_single?"true":"false")<<">\n";
     updateUi();
     return true;
 }

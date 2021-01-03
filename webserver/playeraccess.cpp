@@ -131,7 +131,15 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
 
     if (parameter == ServerConstant::Parameter::Player::toggleLoop) {
         if (value == ServerConstant::Value::_true) {
-            m_player->toogleLoop();
+            m_player->toggleLoop();
+            return R"({"result": "ok"})";
+        }
+        return R"({"result": "unknown value set; allowed <true|false>"})";
+    }
+
+    if (parameter == ServerConstant::Parameter::Player::toggleSingle) {
+        if (value == ServerConstant::Value::_true) {
+            m_player->toggleSingle();
             return R"({"result": "ok"})";
         }
         return R"({"result": "unknown value set; allowed <true|false>"})";

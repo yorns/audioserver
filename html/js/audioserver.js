@@ -9,6 +9,7 @@ var websocketConnected = false;
 var websocketError = false;
 //var count = 0;
 
+var noSleep = {};
 var tmpPlaylist = {};
 var browserPlaylist = {};
 
@@ -32,6 +33,7 @@ var localDisplayData = {
     playing: false,
     paused: false,
     count: 0,
+    single: false,
     
     hasPlaylistChanged : function(playlistID, localCover) {
         if (this.playlistID != playlistID || this.cover != localCover) {
@@ -84,11 +86,11 @@ var localDisplayData = {
         return this.album != jsonBroadcastMessage.album;
     },
 
-    hasSongChanged : function(uid) {
-        if (this.songID != uid) {
-            console.log("title changed from <", this.songID , "> to <", uid, ">" );
+    hasSongChanged : function(jsonBroadcastMessage) {
+        if (this.songID != jsonBroadcastMessage.songID) {
+            console.log("title changed from <", this.songID , "> to <", jsonBroadcastMessage.songID, ">" );
         }
-        return this.songID != uid;
+        return this.songID != jsonBroadcastMessage.songID;
     },
 
     setLocalDisplayData : function(jsonBroadcastMessage, isBrowserCall) {
@@ -105,6 +107,7 @@ var localDisplayData = {
         this.loop = jsonBroadcastMessage.loop;
         this.playing = jsonBroadcastMessage.playing;
         this.paused = jsonBroadcastMessage.paused;
+        this.single = jsonBroadcastMessage.single;
         
         if (jsonBroadcastMessage.count) {
             this.count = jsonBroadcastMessage.count;
@@ -170,6 +173,7 @@ function showPlayerData(displayData) {
 
     showLoopButton(displayData.loop);
     showShuffelButton(displayData.shuffle);
+    showSingleButton(displayData.single);
 
     showPlayButton(displayData.playing, displayData.paused);
     
@@ -230,7 +234,7 @@ function onPlayerMessage(msg, isBrowserCall) {
                                     });
     }
     else {
-        if (localDisplayData.hasSongChanged(songID)) {
+        if (localDisplayData.hasSongChanged(msg)) {
             unemphTableEntry(localDisplayData.songID);
             console.log("song changed, loading title information");
             showTitle(titleInfo);
@@ -305,7 +309,10 @@ function runWebsocket() {
 }
 
 $(document).ready(function () {
-        
+    
+    noSleep = new NoSleep();
+    noSleep.enable();
+    
     $('#player').on('show.bs.modal', function(e) {
         playlistID="";
         window.location.hash = "modal";
@@ -415,6 +422,10 @@ $(document).ready(function () {
     $("#btnFastBackward").click(function() {
         fastBackwardPlayer();
     });
+    
+    $("#btnSingle").click(function() {
+        toggleSingle();
+    })
 
     document.getElementById("progress-box2").oninput = function () {
         setPosition(this.value);
@@ -574,6 +585,17 @@ function showLoopButton(loop) {
     }
 }
 
+function showSingleButton(single) {
+    if (single) {
+        $("#btnSingle").removeClass("btn-black");
+        $("#btnSingle").addClass("btn-gray");
+    }
+    else {
+        $("#btnSingle").removeClass("btn-gray");
+        $("#btnSingle").addClass("btn-black");
+    }
+}
+
 function unemphTableEntry(songID) {   //(oldUid, newUid) {
     if (!songID || songID == "00000000-0000-0000-0000-000000000000") {
         $("#act_playlist").attr("style", "");          
@@ -595,25 +617,32 @@ function emphTableEntry(songID) {   //(oldUid, newUid) {
 
 
 function next() {
-    tmpDisplayData.count++;
-    var length = Object.keys(browserPlaylist).length;
-    console.log("play next: ", tmpDisplayData.count, " / ", length);
-    if (tmpDisplayData.count >= length) {
-        console.log("end found");
+    if (tmpDisplayData.single) {
+        console.log("playing only single file - stopping");
         $("#sound_src").attr("src","");
-        play_audio('stop');
+        play_audio('stop');        
     }
     else {
-        tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
-        // set new title/album etc
-        let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
-            console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
-                        browserPlaylist[tmpDisplayData.count].album, " " + 
-                        browserPlaylist[tmpDisplayData.count].performer);
-        $("#sound_src").attr("src", audioUrl);
-        $("#sound_src").attr("autoplay", true);       
-        $(".my_audio").trigger('load');
-        play_audio('play'); 
+        tmpDisplayData.count++;
+        var length = Object.keys(browserPlaylist).length;
+        console.log("play next: ", tmpDisplayData.count, " / ", length);
+        if (tmpDisplayData.count >= length) {
+            console.log("end found");
+            $("#sound_src").attr("src","");
+            play_audio('stop');
+        }
+        else {
+            tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
+            // set new title/album etc
+            let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
+                console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
+                            browserPlaylist[tmpDisplayData.count].album, " " + 
+                            browserPlaylist[tmpDisplayData.count].performer);
+            $("#sound_src").attr("src", audioUrl);
+            $("#sound_src").attr("autoplay", true);       
+            $(".my_audio").trigger('load');
+            play_audio('play'); 
+        }
     }
 }
 
@@ -670,6 +699,11 @@ function play_audio(task) {
               $(".my_audio").trigger('play');
               tmpDisplayData.paused = false;
           }
+      }
+      if(task == 'toggleSingle') {
+          console.log("toggle playing single song from ", tmpDisplayData.single);          
+          tmpDisplayData.single = !tmpDisplayData.single;
+          console.log("toggle playing single song to ", tmpDisplayData.single);          
       }
  }
 
@@ -764,6 +798,17 @@ function toogleLoopPlayer() {
     else {
         play_audio('loop');
     }
+}
+
+function toggleSingle() {
+    if (useExternalPlayer) {
+        url = "/player?toggleSingle=true";
+        $.post(url, "", function(data, textStatus) {}, "json");
+        //alert("toggle single not implemented on external player");
+    }
+    else {
+        play_audio('toggleSingle');
+    }    
 }
 
 function toogleRandomPlayer() {

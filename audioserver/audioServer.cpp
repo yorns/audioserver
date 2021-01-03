@@ -247,6 +247,7 @@ int main(int argc, char* argv[])
         songInfo["album"] = album;
         songInfo["performer"] = performer;
         songInfo["cover"] = cover;
+        songInfo["single"] = player->isSingle();
         songBroadcast["SongBroadcastMessage"] = songInfo;
         sessionHandler.broadcast(songBroadcast.dump());
         sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());

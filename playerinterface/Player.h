@@ -37,6 +37,8 @@ protected:
     bool m_doCycle   { false };
     bool m_isPlaying { false };
     bool m_pause     { false };
+    bool m_single    { false };
+
     uint32_t m_volume { 15 };
     std::default_random_engine m_rng {};
 
@@ -60,7 +62,8 @@ public:
 
     bool doShuffle(bool shuffle);
     bool toggleShuffle();
-    bool toogleLoop();
+    bool toggleLoop();
+    bool toggleSingle();
     bool getLoop() const { return m_doCycle; }
     bool getShuffle() const { return m_shuffle; }
     std::string getPlaylistIDStr() const { return boost::uuids::to_string(m_playlistUniqueId); }
@@ -76,6 +79,7 @@ public:
         m_doCycle = false;
         m_isPlaying = false;
         m_pause = false;
+        m_single = false;
 
         m_playlist.clear();
         m_playlist_orig.clear();
@@ -120,6 +124,7 @@ public:
     bool isPlaying() const { return m_isPlaying; }
     bool isPause() const { return m_pause; }
     void resetPause() { m_pause = false; }
+    bool isSingle() const { return m_single; }
 
     virtual const std::string getSongName() const = 0;
     virtual boost::uuids::uuid getSongID() const = 0;
