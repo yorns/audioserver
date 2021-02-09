@@ -26,6 +26,7 @@ var localDisplayData = {
     album: "",
     performer: "",
     position: 0,
+    duration: 0,
     volume: 20,
     cover: "/img/unknown.png",
     shuffle: false,
@@ -108,6 +109,10 @@ var localDisplayData = {
         this.playing = jsonBroadcastMessage.playing;
         this.paused = jsonBroadcastMessage.paused;
         this.single = jsonBroadcastMessage.single;
+        
+        if (jsonBroadcastMessage.duration) {
+            this.duration = jsonBroadcastMessage.duration;
+        }
         
         if (jsonBroadcastMessage.count) {
             this.count = jsonBroadcastMessage.count;
@@ -453,11 +458,12 @@ $(document).ready(function () {
              if (tmpDisplayData.playing) {
                  var currentTime = $(".my_audio").prop("currentTime");
                  var duration = $(".my_audio").prop("duration");
-                 //console.log("position: ", currentTime, " / ", duration);
                  tmpDisplayData.position = (currentTime * 100*100) / duration;
+                 tmpDisplayData.duration = duration;
              }
              else {
                  tmpDisplayData.position = 0;
+                 tmpDisplayData.duration = 0;
              }
              //console.log("old:", localDisplayData);
              //console.log("new:", tmpDisplayData);
@@ -530,8 +536,11 @@ function setVolume(_volume) {
 
 function setPosition(_position) {
     if (!useExternalPlayer) {
-            $(".my_audio").prop("currentTime",_position);
-            console.log("position: ", _position);
+        console.log("new position set to: ", _position, "/", tmpDisplayData.duration);
+        if (tmpDisplayData.duration) {            
+            $(".my_audio").prop("currentTime",_position*tmpDisplayData.duration/100);
+            console.log("position: ", _position*tmpDisplayData.duration/100);
+        }
     }
     else {
     url = "/player?toPosition="+_position;
@@ -635,11 +644,11 @@ function next() {
             tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
             // set new title/album etc
             let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
-                console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
+            console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
                             browserPlaylist[tmpDisplayData.count].album, " " + 
                             browserPlaylist[tmpDisplayData.count].performer);
             $("#sound_src").attr("src", audioUrl);
-            $("#sound_src").attr("autoplay", true);       
+            $("#sound_src").attr("autoplay", true);
             $(".my_audio").trigger('load');
             play_audio('play'); 
         }
@@ -653,7 +662,7 @@ function play_audio(task) {
             tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
             // set new title/album etc
             let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
-            console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
+            console.log(" --- --- - - --- go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
                         browserPlaylist[tmpDisplayData.count].album, " " +
                         browserPlaylist[tmpDisplayData.count].performer);
             $("#sound_src").attr("src", audioUrl);

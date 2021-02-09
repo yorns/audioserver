@@ -204,7 +204,7 @@ GstPlayer::GstPlayer(boost::asio::io_context &context) :
     flags |= playFlagAudio;
     g_object_set (m_playbin.get(), "flags", flags, NULL);
 
-    setVolume(15); // set default volume (test 15)
+    //setVolume(15); // set default volume (test 15)
 
     logger(LoggerFramework::Level::info) << "Constructor GstPlayer - DONE\n";
 

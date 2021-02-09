@@ -6,8 +6,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 message("server build")
 
+# we use boost information from cmake -DBOOST_DIR
 if (BOOST_DIR)
+  set(Boost_NO_BOOST_CMAKE ON)
   set(BOOST_ROOT ${BOOST_DIR})
+  message(STATUS "Boost root dir set to ${BOOST_ROOT}")
 endif (BOOST_DIR)
 
 if (WITH_UNREADABLE)
@@ -16,6 +19,10 @@ endif ()
 
 find_package( Threads REQUIRED)
 find_package( Boost 1.70.0 REQUIRED COMPONENTS filesystem system regex locale)
+
+message( STATUS "Boost version from version file is ${Boost_VERSION}" )
+message( STATUS "Boost include dir is ${Boost_INCLUDE_DIRS}" )
+message( STATUS "Boost library dir is ${Boost_LIBRARIES}" )
 
 find_path(
     SNCCLIENT_INCLUDE_DIRS
@@ -157,7 +164,7 @@ message("snc lib include is ${SNCCLIENT_LIBRARIES}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic )
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -O0 -g)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW ${UNREADABLE})
 
 

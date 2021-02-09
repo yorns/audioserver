@@ -1,9 +1,11 @@
 #ifndef SERVER_SESSION_H
 #define SERVER_SESSION_H
 
-#include <boost/beast.hpp>
 #include <boost/asio.hpp>
+#include <boost/beast.hpp>
 #include <memory>
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
 #include <string>
 #include <string_view>
 #include "sessionhandler.h"
@@ -12,6 +14,37 @@
 using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
 namespace websocket = boost::beast::websocket;
+
+struct http_range {
+    uint64_t from;
+    uint64_t to;
+    bool import(const std::string& data) {
+        // TODO: change from boost to std (needs code changes)
+        boost::regex expr{"bytes=(\\d*)-(\\d*)"};
+        logger(LoggerFramework::Level::info) << "analysing <"<<data<<">\n";
+        boost::smatch what;
+        if (boost::regex_search(data, what, expr)) {
+            std::string fromString = what[1];
+            std::string toString = what[2];
+            logger(LoggerFramework::Level::info) << "search results: " << fromString << " - " << toString <<"\n";
+            try {
+            if (!fromString.empty())
+                from = boost::lexical_cast<uint32_t>(fromString);
+            else
+                from = 0;
+            if (!toString.empty())
+                to = boost::lexical_cast<uint32_t>(toString);
+            else
+                to = 0;
+            } catch (std::exception& ex) { logger(LoggerFramework::Level::warning) << "lexical cast error: "<<ex.what()<<"\n"; }
+          return true;
+        }
+        return false;
+    }
+    http_range() : from(0), to(0) {}
+    http_range(const std::string& data) : from(0), to(0) { import(data); }
+};
+
 
 // Handles an HTTP server connection
 class Session : public std::enable_shared_from_this<Session>
@@ -29,8 +62,8 @@ class Session : public std::enable_shared_from_this<Session>
 
     uint32_t m_runID {0};
 
-    void handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive);
-    void handle_regular_file_request(std::string path, http::verb method, uint32_t version, bool keep_alive);
+    void handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive, std::optional<http_range> rangeData);
+    void handle_regular_file_request(std::string path, http::verb method, uint32_t version, bool keep_alive, std::optional<http_range> rangeData);
 
     void returnMessage();
 
@@ -59,11 +92,12 @@ class Session : public std::enable_shared_from_this<Session>
             do_close();
             return false;
         }
-        logger(Level::debug) << "resonse send without an error\n";
+        logger(Level::info) << "resonse send without an error\n";
         if (!keep_alive) {
             do_close();
         }
         else {
+            logger(Level::info) << "keep alive set, start next receive\n";
             start();
         }
         return true;
@@ -72,24 +106,24 @@ class Session : public std::enable_shared_from_this<Session>
     template <class Body>
     bool answer(std::shared_ptr<http::response<Body>> response) {
         auto self { shared_from_this() };
-        // do answer synchron, so we do not need to keep the resonse message until end of connection
         http::async_write( m_socket, *response, [this, self, response](const boost::beast::error_code& ec, std::size_t  ) {
             if (ec) {
+                logger(LoggerFramework::Level::warning) << "sending failed - closing connection\n: " << ec.message() <<"\n";
                 do_close();
                 return;
             }
 
-            logger(Level::debug) << "resonse send without an error\n";
+            logger(Level::info) << "resonse send without an error\n";
             if (!(response->keep_alive())) {
                 do_close();
             }
             else {
+                logger(Level::info) << "keep alive set, start next receive\n";
                 start();
             }
         });
         return true;
     }
-
 
 public:
 

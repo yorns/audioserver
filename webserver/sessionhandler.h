@@ -87,12 +87,18 @@ public:
     [[nodiscard]] bool isUploadFile(const http::request_parser<http::empty_body>& requestHeader) const;
     [[nodiscard]] bool isRestAccesspoint(const http::request_parser<http::empty_body>& requestHeader) const;
     [[nodiscard]] std::optional<std::vector<char>> getVirtualImage(const std::string_view& target) const {
+        if (!m_virtualImageHander)
+            return std::nullopt;
         return m_virtualImageHander(target); // only delegation
     }
     [[nodiscard]] std::optional<std::string> getVirtualAudio(const std::string_view& target) const {
+        if (!m_virtualAudioHander)
+            return std::nullopt;
         return m_virtualAudioHander(target); // only delegation
     }
     [[nodiscard]] std::optional<std::string> getVirtualPlaylist(const std::string_view& target) const {
+        if (!m_virtualPlaylistHander)
+            return std::nullopt;
         return m_virtualPlaylistHander(target); // only delegation
     }
 

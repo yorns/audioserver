@@ -37,10 +37,11 @@ protected:
     bool m_doCycle   { false };
     bool m_isPlaying { false };
     bool m_pause     { false };
-    bool m_single    { false };
 
     uint32_t m_volume { 15 };
     std::default_random_engine m_rng {};
+
+    bool m_single    { false };
 
     virtual void stopAndRestart() = 0;
 

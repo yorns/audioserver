@@ -1,8 +1,13 @@
 #include "Session.h"
 
+#include <boost/regex.hpp>
+#include <boost/beast/core/file.hpp>
+
 #include "common/mime_type.h"
 #include "common/Constants.h"
 #include "common/logger.h"
+
+
 
 void Session::fail(boost::system::error_code ec, const std::string& what) {
     // some errors are annoying .. remove some until handshake and shutdown is corrected
@@ -70,7 +75,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     // This means they closed the connection
     if (ec == http::error::end_of_stream) {
-        logger(Level::debug) << "<" << m_runID << "> " << "End of stream\n";
+        logger(Level::warning) << "<" << m_runID << "> " << "End of stream\n";
         return do_close();
     }
 
@@ -80,9 +85,20 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     logger(Level::info) << requestHandler_sp->get() <<"\n";
 
-    auto range = requestHandler_sp->get()[http::field::range];
+    auto rangeString = requestHandler_sp->get()[http::field::range];
+    //auto encoding = requestHandler_sp->get()[http::field::accept_encoding];
 
-    logger(Level::info) << "range is "<< range <<"\n";
+    std::optional<http_range> rangeData;
+    if (!rangeString.empty()) {
+        logger(Level::info) << "range is <"<< rangeString <<">\n";
+        rangeData = http_range(std::string(rangeString));
+        if (rangeData) {
+            logger(Level::info) << "range is <"<< rangeData->from << " to "<< rangeData->to <<">\n";
+        }
+    }
+    else {
+        logger(Level::info) << "no range set\n";
+    }
 
     if (is_unknown_http_method(*requestHandler_sp)) {
         // read until finished
@@ -118,10 +134,12 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
         if (error_code) {
             answer(generate_result_packet(http::status::internal_server_error,
-                                          "An error occurred: 'open file failed for writing'",
-                                          reqFile->get().version(), reqFile->get().keep_alive()));
+                                          "An error occurred: " + error_code.message(),
+                                          (*reqFile).get().version(), reqFile->get().keep_alive()));
+
         }
-        else {
+        else {                       
+
             auto self { shared_from_this() };
 
             auto read_done_handler = [this, self, name, reqFile](boost::system::error_code ec,
@@ -147,6 +165,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     }
 
     if (m_sessionHandler.isRestAccesspoint(*requestHandler_sp)) {
+
         // ownership goes to session handler
         logger(Level::debug) << "<" << m_runID << "> " << "request target is a REST accesspoint\n";
 
@@ -192,7 +211,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     logger(Level::debug) << "<" << m_runID << "> " << "do full read\n";
     http::async_read(m_socket, m_buffer, *requestString,
-                     [this, self, requestString](boost::system::error_code ec,
+                     [this, self, requestString, rangeData](boost::system::error_code ec,
                      std::size_t bytes_transferred) {
 
         if (!ec) {
@@ -213,11 +232,11 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
                 return;
             }
 
-            logger(Level::debug) << "<" << m_runID << "> " << "find the file <" << requestString->get().target() << "> on directory\n";
+            logger(Level::debug) << "<" << m_runID << "> " << "try to find the file <" << requestString->get().target() << "> on directory\n";
 
             handle_file_request(std::string(requestString->get().target()),
                                 requestString->get().method(), requestString->get().version(),
-                                requestString->get().keep_alive());
+                                requestString->get().keep_alive(), rangeData);
 
         }
         else {
@@ -228,7 +247,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
 }
 
-void Session::handle_regular_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
+void Session::handle_regular_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive, std::optional<http_range> rangeData) {
 
     std::string path;
     if (target.substr(0,7) == "file://") {
@@ -243,57 +262,97 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     // Attempt to open the file
     boost::beast::error_code ec;
     http::file_body::value_type body;
+    //http::file_body::value_type body;
+
+    bool with_range { rangeData };
+
     body.open(path.c_str(), boost::beast::file_mode::scan, ec);
+    // Cache the size since we need it after the move
+    auto const file_size = body.size();
+
+    if (rangeData && rangeData->to == 0)
+        rangeData->to = file_size - 1;
 
     // Handle the case where the file doesn't exist
-    if((ec == boost::system::errc::no_such_file_or_directory && ( method == http::verb::get || method == http::verb::head))) {
+    if((ec == boost::system::errc::no_such_file_or_directory &&
+        ( method == http::verb::get || method == http::verb::head))) {
 
         // this file is nowhere, send unknown file instead
         logger(Level::warning) << "requested regular file <"<< path <<"> not found\n";
         answer(generate_result_packet(http::status::not_found, target, version, keep_alive));
         return;
-      }
+    }
 
     // Handle an unknown error on file search
     if(ec || ( method != http::verb::get && method != http::verb::head)) {
-            logger(Level::warning) << "requested regular file <"<< path <<"> read failed\n";
+        logger(Level::warning) << "requested regular file <"<< path <<"> read failed\n";
         answer(generate_result_packet(http::status::internal_server_error, ec.message(), version, keep_alive));
         return;
     }
-
-    // Cache the size since we need it after the move
-    auto const size = body.size();
 
     // Respond to HEAD request
     if(method == http::verb::head)
     {
         logger(Level::debug) << "returning header for file <"<< path <<">\n";
 
-        http::response<http::empty_body> res{http::status::ok, version};
+        auto status = with_range?http::status::partial_content:http::status::ok;
+        http::response<http::empty_body> res{status, version};
+        if (with_range) {
+            auto rangeString = "bytes "+std::to_string(rangeData->from)+"-"+std::to_string(rangeData->to)+"/"+std::to_string(file_size);
+            res.set(http::field::content_range, rangeString);
+            res.content_length(rangeData->to-rangeData->from + 1);
+        }
+        else {
+            res.content_length(file_size);
+        }
+        res.set(http::field::accept_ranges, "bytes");
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(http::field::content_type, mime_type(path));
-        res.content_length(size);
+        res.set(http::field::content_encoding, "identity");
         res.keep_alive(keep_alive);
         answer(std::move(res));
         return;
     }
 
-    logger(Level::debug) << "returning reguar file <"<< path <<">\n";
+
+    body.close();
+    if (rangeData) {
+        body.open(path.c_str(), boost::beast::file_mode::read, ec, rangeData->from, rangeData->to);
+    }
+      else
+        body.open(path.c_str(), boost::beast::file_mode::read, ec);
+
+    auto const size = body.size();
+
+    logger(Level::info) << "returning reguar file <"<< path <<">\n";
     // Respond to GET request
-    std::shared_ptr<http::response<http::file_body>> res = std::make_shared<http::response<http::file_body>>(
-        std::piecewise_construct,
-                std::make_tuple(std::move(body)),
-                std::make_tuple(http::status::ok, version));
+    auto status = with_range?http::status::partial_content:http::status::ok;
+
+    std::shared_ptr<http::response<http::file_body>> res
+            = std::make_shared<http::response<http::file_body>>(std::piecewise_construct,
+                                                                   std::make_tuple(std::move(body)),
+                                                                   std::make_tuple(status, version));
+
+
+    if (with_range) {
+        auto rangeString = "bytes "+std::to_string(rangeData->from)+"-"+std::to_string(rangeData->to)+"/"+std::to_string(file_size);
+        logger(LoggerFramework::Level::info) << "range string <" << rangeString << ">\n";
+        res->set(http::field::content_range, rangeString);
+    }
+
+    res->content_length(size);
+
+    res->set(http::field::accept_ranges, "bytes");
+    res->set(http::field::content_encoding, "identity");
     res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res->set(http::field::content_type, mime_type(path));
-    res->content_length(size);
     res->keep_alive(keep_alive);
     answer(res);
     return;
 
 }
 
-void Session::handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive) {
+void Session::handle_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive, std::optional<http_range> rangeData) {
 
 //    std::string path = m_filePath + '/' + target;
 //    if(target.back() == '/')
@@ -306,10 +365,10 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
 //    }
 
     // try finding file within the virtual/cache filesystem
-    if(method == http::verb::get) {
+    if(method == http::verb::get || method == http::verb::head) {
 
         if ( auto virtualData = m_sessionHandler.getVirtualImage(target) ) {
-            logger(Level::debug) << "virtual file found as <"<<target<<">\n";
+            logger(Level::debug) << "virtual image file found as <"<<target<<">\n";
             // Cache the size since we need it after the move
             auto const size = virtualData->size();
             http::response<http::vector_body<char>> res {
@@ -325,7 +384,7 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
 
         if (auto virtualData = m_sessionHandler.getVirtualAudio(target) ) {
             logger(Level::debug) << "virtual audio file found as <"<< *virtualData <<">\n";
-            handle_regular_file_request(*virtualData, method, version, keep_alive);
+            handle_regular_file_request(*virtualData, method, version, keep_alive, rangeData);
             return;
         }
 
@@ -342,7 +401,7 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
 
     }
 
-    handle_regular_file_request(target, method, version, keep_alive);
+    handle_regular_file_request(target, method, version, keep_alive, rangeData);
 
 }
 

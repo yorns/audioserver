@@ -155,17 +155,18 @@ int main(int argc, char* argv[])
     boost::asio::io_context ioc;
 
     logger(Level::info) << "connection client <audioserver> to broker\n";
-    snc::Client sncClient("audioserver", ioc, "127.0.0.1", 12001);
 
     logger(Level::info) << "create player instance for";
 
-    auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
+
+    snc::Client sncClient("audioserver", ioc, "127.0.0.1", 12001);
 
     Database::SimpleDatabase database(config->m_enableCache);
     WifiManager wifiManager;
 
     SessionHandler sessionHandler;
     DatabaseAccess databaseWrapper(database);
+    auto player = std::unique_ptr<BasePlayer>(new GstPlayer(ioc));
     PlaylistAccess playlistWrapper(database, player);
     WifiAccess wifiAccess(wifiManager);
 
@@ -220,6 +221,7 @@ int main(int argc, char* argv[])
                 cover = playlistData[0].getCover();
             }
         }
+
 
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
@@ -403,7 +405,7 @@ int main(int argc, char* argv[])
     sessionHandler.addVirtualImageHandler([&databaseWrapper, &database](const std::string_view& _target) -> std::optional<std::vector<char>> {
         // split target
         auto target = utility::urlConvert(std::string(_target));
-        logger(Level::debug) << "virtual image request for <"<<target<<">\n";
+        logger(Level::debug) << "test for virtual image request for <"<<target<<">\n";
 
         if (target.substr(0,5) == "/img/") {
             if (auto virtualFile = databaseWrapper.getVirtualFile(target)) {
@@ -423,7 +425,7 @@ int main(int argc, char* argv[])
 
     sessionHandler.addVirtualAudioHandler([&database](const std::string_view& _target) -> std::optional<std::string> {
         auto target = utility::urlConvert(std::string(_target));
-        logger(Level::debug) << "virtual audio request for <"<<target<<">\n";
+        logger(Level::debug) << "test virtual audio request for <"<<target<<">\n";
 
         if (target.substr(0,7) == "/audio/") {
             auto pos1 = target.find_last_of("/");
