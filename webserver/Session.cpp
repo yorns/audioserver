@@ -264,7 +264,13 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     http::file_body::value_type body;
     //http::file_body::value_type body;
 
+#ifdef WITH_BOOST_BEAST_PARTIAL_FILE
     bool with_range { rangeData };
+#else
+#warning please apply boost beast partial file patch
+    logger(LoggerFramework::Level::warning) << "please apply partial file patch to boost beast\n";
+    bool with_range { false };
+#endif
 
     body.open(path.c_str(), boost::beast::file_mode::scan, ec);
     // Cache the size since we need it after the move
@@ -316,8 +322,12 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
 
 
     body.close();
-    if (rangeData) {
+    if (with_range) {
+#ifdef WITH_BOOST_BEAST_PARTIAL_FILE
         body.open(path.c_str(), boost::beast::file_mode::read, ec, rangeData->from, rangeData->to);
+#else
+        body.open(path.c_str(), boost::beast::file_mode::read, ec);
+#endif
     }
       else
         body.open(path.c_str(), boost::beast::file_mode::read, ec);
