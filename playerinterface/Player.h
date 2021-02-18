@@ -39,6 +39,8 @@ protected:
     bool m_pause     { false };
 
     uint32_t m_volume { 15 };
+    uint32_t m_amplify { 1 };
+
     std::default_random_engine m_rng {};
 
     bool m_single    { false };
@@ -60,6 +62,9 @@ public:
     BasePlayer& operator=(const BasePlayer&) = default;
 
     virtual ~BasePlayer() = default;
+
+    void setAmplify(uint32_t amplify) { m_amplify = amplify; }
+    uint32_t getAmplify() const { return m_amplify; }
 
     bool doShuffle(bool shuffle);
     bool toggleShuffle();

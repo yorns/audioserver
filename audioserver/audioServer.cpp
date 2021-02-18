@@ -59,6 +59,7 @@ struct Config {
     std::string m_address;
     std::string m_port;
     std::string m_basePath;
+    uint32_t m_amplify;
 
     bool m_enableCache;
 
@@ -79,6 +80,12 @@ std::optional<Config> readConfig(std::string configFile) {
         config.m_basePath = configData["BasePath"];
         config.m_enableCache = configData["EnableCache"];
         debugLogLevel = configData["LogLevel"];
+        if (configData.find("Amplify") != configData.end()) {
+            config.m_amplify = configData["Amplify"];
+        }
+        else {
+            config.m_amplify = 1;
+        }
 
         config.m_logLevel = LoggerFramework::Level::debug;
 
@@ -170,20 +177,28 @@ int main(int argc, char* argv[])
     PlaylistAccess playlistWrapper(database, player);
     WifiAccess wifiAccess(wifiManager);
 
-    auto updateUI = [&sessionHandler, &sncClient, &player, &database]
-            ( const boost::uuids::uuid& songID,
-              const boost::uuids::uuid& playlistID,
-              const boost::uuids::uuid& currPlaylistID,
-              int position)
+    player->setAmplify(config->m_amplify);
+
+    auto updateUI = [&sessionHandler, &sncClient, &player, &database] ( )
     {
         std::string title;
         std::string album;
         std::string performer;
         std::string cover = "/img/unknown.png";
+
         auto emptyUID = boost::uuids::uuid();
+        boost::uuids::uuid songID { emptyUID };
+        boost::uuids::uuid playlistID { emptyUID };
+        boost::uuids::uuid currPlaylistID { emptyUID };
+
+        if (auto _playlistID = database.getCurrentPlaylistUniqueID())
+            playlistID = *_playlistID;
+
+        currPlaylistID = player->getPlaylistID();
 
         if (player->isPlaying()) {
 
+            songID = player->getSongID();
             auto songData = database.searchAudioItems(songID, Database::SearchItem::uid , Database::SearchAction::uniqueId);
 
             if (!player->getTitle().empty()) {
@@ -192,6 +207,7 @@ int main(int argc, char* argv[])
             else if (songData.size() > 0) {
                 title = songData[0].title_name;
             }
+            logger(LoggerFramework::Level::info) << "update title with <"<<title<<">\n";
 
             if (!player->getAlbum().empty()) {
                 album = player->getAlbum();
@@ -199,6 +215,7 @@ int main(int argc, char* argv[])
             else if (songData.size() > 0) {
                 album = songData[0].album_name;
             }
+            logger(LoggerFramework::Level::info) << "update album with <"<<album<<">\n";
 
             if (!player->getPerformer().empty()) {
                 performer = player->getPerformer();
@@ -206,10 +223,14 @@ int main(int argc, char* argv[])
             else if (songData.size() > 0) {
                 performer = songData[0].performer_name;
             }
+            logger(LoggerFramework::Level::info) << "update performer with <"<<performer<<">\n";
+
 
             if (songData.size() > 0) {
                 cover = songData[0].urlCoverFile;
             }
+            logger(LoggerFramework::Level::info) << "update cover with <"<<cover<<">\n";
+
 
         } else {
             auto playlistData = database.searchPlaylistItems(playlistID);
@@ -222,15 +243,14 @@ int main(int argc, char* argv[])
             }
         }
 
-
         nlohmann::json songBroadcast;
         nlohmann::json songInfo;
         try {
             songInfo["songID"] = boost::lexical_cast<std::string>(songID);
-            songInfo["song"] = title;
-            songInfo["playlist"] = album;
             songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
             songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
+            songInfo["song"] = title;
+            songInfo["playlist"] = album;
         } catch (std::exception& ) {
             logger(Level::warning) << "cannot convert ID to string - sending empty information\n";
             songInfo["songID"] = boost::lexical_cast<std::string>(emptyUID);
@@ -239,18 +259,19 @@ int main(int argc, char* argv[])
             songInfo["song"] = "";
             songInfo["playlist"] = "";
         }
-        songInfo["position"] = position;
+        songInfo["position"] = player->getSongPercentage();
         songInfo["loop"] = player->getLoop();
         songInfo["shuffle"] = player->getShuffle();
         songInfo["playing"] = player->isPlaying();
         songInfo["paused"] = player->isPause();
         songInfo["volume"] = player->getVolume();
+        songInfo["single"] = player->isSingle();
         songInfo["title"] = title;
         songInfo["album"] = album;
         songInfo["performer"] = performer;
         songInfo["cover"] = cover;
-        songInfo["single"] = player->isSingle();
         songBroadcast["SongBroadcastMessage"] = songInfo;
+
         sessionHandler.broadcast(songBroadcast.dump());
         sncClient.send(snc::Client::SendType::cl_broadcast, "", songBroadcast.dump());
 
@@ -358,7 +379,7 @@ int main(int argc, char* argv[])
         boost::uuids::uuid currentPlaylistUniqueID;
         if (currentPlaylistUniqueIDOptional)
             currentPlaylistUniqueID = *currentPlaylistUniqueIDOptional;
-        updateUI(boost::uuids::uuid(), currentPlaylistUniqueID , currentPlaylistUniqueID, 0);
+        updateUI();
         logger(Level::info) << "end handler called for current song\n";
     });
 
@@ -431,7 +452,7 @@ int main(int argc, char* argv[])
             auto pos1 = target.find_last_of("/");
             if (pos1 != std::string_view::npos) {
                 auto pos2 = target.find_last_of(".");
-                if (pos2 != std::string_view::npos) {
+                { //if (pos2 != std::string_view::npos) {
                     std::string uidStr = std::string(target.substr(pos1+1, pos2-pos1-1));
                     logger(LoggerFramework::Level::debug) << "searching for audio UID <"<<uidStr<<">\n";
                     boost::uuids::uuid uid;
@@ -498,29 +519,12 @@ int main(int argc, char* argv[])
 
 
 
-    RepeatTimer websocketSonginfoSenderTimer(ioc, std::chrono::milliseconds(500));
+    RepeatTimer websocketSonginfoSenderTimer(ioc, 500ms ); //std::chrono::milliseconds(500));
 
     // create a timer service to request actual player information and send them to the session handlers
-    websocketSonginfoSenderTimer.setHandler([&player, &database, &updateUI](){
-
+    websocketSonginfoSenderTimer.setHandler([&player, &updateUI](){
         if (player) {
-
-            boost::uuids::uuid songID { boost::uuids::uuid() };
-            boost::uuids::uuid playlistID { boost::uuids::uuid() };
-            boost::uuids::uuid currPlaylistID { boost::uuids::uuid() };
-
-            int timePercent { 0 };
-
-            if (auto _playlistID = database.getCurrentPlaylistUniqueID())
-                playlistID = *_playlistID;
-
-            if (player->isPlaying()) {
-                songID = player->getSongID();
-                currPlaylistID = player->getPlaylistID();
-                timePercent = player->getSongPercentage(); // getSongPercentage is in 1/100 (e.g. 7843 is 78.43%)
-            }
-
-            updateUI(songID, playlistID, currPlaylistID, timePercent);
+            updateUI();
         }
     });
 

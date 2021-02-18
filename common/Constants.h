@@ -28,7 +28,7 @@ namespace ServerConstant {
     static constexpr int seekBackwardSeconds {-20};
 
     static constexpr auto unknownCoverFile {sv("unknown")};
-    static constexpr auto unknownCoverFileUid {sv("{b7ac2645-1667-46be-0000-000000000000}")};
+    static constexpr auto unknownCoverFileUid {sv("b7ac2645-1667-46be-0000-000000000000")};
     static constexpr auto unknownCoverExtension {sv(".png")};
 
     namespace AccessPoints {

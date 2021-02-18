@@ -27,7 +27,7 @@ var localDisplayData = {
     performer: "",
     position: 0,
     duration: 0,
-    volume: 20,
+    volume: 0,
     cover: "/img/unknown.png",
     shuffle: false,
     loop: false,
@@ -35,12 +35,13 @@ var localDisplayData = {
     paused: false,
     count: 0,
     single: false,
+    shuffle_list: [],
     
-    hasPlaylistChanged : function(playlistID, localCover) {
-        if (this.playlistID != playlistID || this.cover != localCover) {
-            console.log("playlist changed: old ", this.playlistID, "(", this.cover, ") != new -> ", playlistID, "(", localCover, ")");
+    hasPlaylistChanged : function(playlistID) {
+        if (this.playlistID != playlistID) { 
+            console.log("playlist changed: old ", this.playlistID, " != new -> ", playlistID);
         }
-        return (this.playlistID != playlistID || this.cover != localCover); 
+        return (this.playlistID != playlistID ); 
     },    
         
     loadTitle : function(uid, showTitleFunction) {
@@ -66,10 +67,15 @@ var localDisplayData = {
         let url = "/playlist?show="+uid;
         console.log("request for show actual playlist: ", url);
         $.getJSON(url).done(function(jsonResponse) {
-            console.log("playlist reply: ", jsonResponse);            
-            var playlist = jsonResponse;
-            setPlaylist(playlist);
-            showPlaylistFunction(getPlaylist());
+            console.log("playlist reply: ", jsonResponse);
+            if (jsonResponse != null) {
+                var playlist = jsonResponse;
+                setPlaylist(playlist);
+                showPlaylistFunction(getPlaylist());
+            }
+            else {
+                unshowPlaylist();
+            }
         });
     },
         
@@ -93,7 +99,7 @@ var localDisplayData = {
         }
         return this.songID != jsonBroadcastMessage.songID;
     },
-
+    
     setLocalDisplayData : function(jsonBroadcastMessage, isBrowserCall) {
         // console.log("---------- store message information in localDisplayData pl: ", jsonBroadcastMessage.playlistID)
         this.title = jsonBroadcastMessage.title;
@@ -109,14 +115,15 @@ var localDisplayData = {
         this.playing = jsonBroadcastMessage.playing;
         this.paused = jsonBroadcastMessage.paused;
         this.single = jsonBroadcastMessage.single;
+        this.shuffle_list = jsonBroadcastMessage.shuffle_list;
         
         if (jsonBroadcastMessage.duration) {
             this.duration = jsonBroadcastMessage.duration;
         }
         
-        if (jsonBroadcastMessage.count) {
+        //if (jsonBroadcastMessage.count) {
             this.count = jsonBroadcastMessage.count;
-        }
+        //}
 
         if (!useExternalPlayer && isBrowserCall) {
             tmpDisplayData = { ...this };
@@ -189,11 +196,23 @@ function intervalHandler() {
     
 }
 
+function handleShuffle() {
+    var len = Object.keys(browserPlaylist).length;
+    tmpDisplayData.shuffle_list = Array.from(Array(len).keys());
+    if (tmpDisplayData.shuffle) {
+        console.log(">>>> shuffling");
+        tmpDisplayData.shuffle_list = tmpDisplayData.shuffle_list.sort(() => Math.random() - 0.5);
+    }
+    console.log("shuffle list is: ", tmpDisplayData.shuffle_list);
+}
+
 function setPlaylist(playlist) {
-    if (useExternalPlayer)
+    if (useExternalPlayer) {
         tmpPlaylist = playlist;
-    else
+    }
+    else {
         browserPlaylist = playlist;
+    }
 }
 
 function getPlaylist() {
@@ -215,8 +234,10 @@ function onPlayerMessage(msg, isBrowserCall) {
         cover     : msg.cover
     };
 
-    if (!playing) {
+    if (!playing && localDisplayData.playing) {
         titleInfo.title = "";
+        unemphTableEntry(localDisplayData.songID);
+        console.log("not playing - remove last entry ", localDisplayData.songID);
     }
     
     if (localDisplayData.hasPlaylistChanged(playlistID, titleInfo.cover)) {
@@ -228,6 +249,7 @@ function onPlayerMessage(msg, isBrowserCall) {
                                      showPlaylist(playlist);
                                      unshowTitle(titleInfo);
                                      unemphTableEntry(localDisplayData.songID);
+                                     handleShuffle();
                                      if (playing) {
                                          showTitle(titleInfo);
                                          emphTableEntry(msg.songID);
@@ -240,15 +262,19 @@ function onPlayerMessage(msg, isBrowserCall) {
     }
     else {
         if (localDisplayData.hasSongChanged(msg)) {
+            console.log("song changed");
             unemphTableEntry(localDisplayData.songID);
-            console.log("song changed, loading title information");
-            showTitle(titleInfo);
-            emphTableEntry(msg.songID);
-            localDisplayData.setLocalDisplayData(msg, isBrowserCall);
+            if (playing) {
+                emphTableEntry(msg.songID);
+            }
          }
          else {
-            console.log("system is silent");
+             if (!playing)
+                console.log("system is silent");
+             else
+                 console.log("system is silent - playing");
          }
+        showTitle(titleInfo);
         localDisplayData.setLocalDisplayData(msg, isBrowserCall);        
     }
 
@@ -360,7 +386,7 @@ $(document).ready(function () {
         }
         else {
            useExternalPlayer = $(this).is(':checked');
-            console.log("playlist ID is ", localDisplayData.playlistID);
+//            console.log("playlist ID is ", localDisplayData.playlistID);
             onPlayerMessage(tmpDisplayData,true);
         }
         console.log("changed externalPlayer to ", useExternalPlayer);
@@ -487,7 +513,7 @@ function init()
     if (!useExternalPlayer) {
         // reset all displayed information and display them from local playback
         $('.my_audio').empty(); 
-        $('.my_audio').append("<source id='sound_src' src='' type='audio/mpeg'>");
+        $('.my_audio').append("<source id='sound_src' src='' title='' poster='img/unknown.png' type='audio/mpeg'>");
         $('.my_audio').off('ended');
         $('.my_audio').on('ended', function() { 
             console.log("ended trigger received"); 
@@ -605,7 +631,7 @@ function showSingleButton(single) {
     }
 }
 
-function unemphTableEntry(songID) {   //(oldUid, newUid) {
+function unemphTableEntry(songID) {
     if (!songID || songID == "00000000-0000-0000-0000-000000000000") {
         $("#act_playlist").attr("style", "");          
     }
@@ -629,27 +655,20 @@ function next() {
     if (tmpDisplayData.single) {
         console.log("playing only single file - stopping");
         $("#sound_src").attr("src","");
-        play_audio('stop');        
+        play_audio('stop');
+        tmpDisplayData.count = 0;
     }
     else {
         tmpDisplayData.count++;
         var length = Object.keys(browserPlaylist).length;
-        console.log("play next: ", tmpDisplayData.count, " / ", length);
+        let id = tmpDisplayData.shuffle_list[tmpDisplayData.count];
+        console.log("play next: ", tmpDisplayData.count, " - ", id, " / ", length);
         if (tmpDisplayData.count >= length) {
             console.log("end found");
             $("#sound_src").attr("src","");
             play_audio('stop');
         }
         else {
-            tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
-            // set new title/album etc
-            let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
-            console.log("go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
-                            browserPlaylist[tmpDisplayData.count].album, " " + 
-                            browserPlaylist[tmpDisplayData.count].performer);
-            $("#sound_src").attr("src", audioUrl);
-            $("#sound_src").attr("autoplay", true);
-            $(".my_audio").trigger('load');
             play_audio('play'); 
         }
     }
@@ -658,35 +677,39 @@ function next() {
 function play_audio(task) {
       if(task == 'play'){         
           var length = Object.keys(browserPlaylist).length;
-          if (tmpDisplayData.count < length) {
-            tmpDisplayData.songID = browserPlaylist[tmpDisplayData.count];
-            // set new title/album etc
-            let audioUrl = "/audio/" + browserPlaylist[tmpDisplayData.count].uid + ".mp3";
-            console.log(" --- --- - - --- go on playing: ", browserPlaylist[tmpDisplayData.count].title, " ", 
-                        browserPlaylist[tmpDisplayData.count].album, " " +
-                        browserPlaylist[tmpDisplayData.count].performer);
-            $("#sound_src").attr("src", audioUrl);
-            $(".my_audio").prop("currentTime",0);
-            $("#sound_src").attr("autoplay", true);       
-            $(".my_audio").trigger('load');
+          
+          if (tmpDisplayData.count >= length) {
+            alert("chosen id is out of range");
           }
-
+          //handleShuffle();        
+          let id = tmpDisplayData.shuffle_list[tmpDisplayData.count];
+          
+          tmpDisplayData.songID = browserPlaylist[id];
+          // set new title/album etc
+          let audioUrl = "/audio/" + browserPlaylist[id].uid; 
+          console.log("go on playing: ", browserPlaylist[id].title, " ", 
+                            browserPlaylist[id].album, " " + 
+                            browserPlaylist[id].performer);
+          $("#sound_src").attr("src", audioUrl);
+          $("#sound_src").attr("title", browserPlaylist[id].title);              
+          $(".my_audio").prop("currentTime",0);
+          $("#sound_src").attr("autoplay", true);       
+          $(".my_audio").trigger('load');
           $(".my_audio").trigger('play');
           tmpDisplayData.playing = true;
           tmpDisplayData.paused = false;
 
           if (browserPlaylist) {
-              let count = tmpDisplayData.count;
-              tmpDisplayData.songID = browserPlaylist[count].uid;
-              tmpDisplayData.title = browserPlaylist[count].title;
-              tmpDisplayData.album = browserPlaylist[count].album;
-              tmpDisplayData.performer = browserPlaylist[count].performer;
-              tmpDisplayData.cover = browserPlaylist[count].cover;
+              tmpDisplayData.songID = browserPlaylist[id].uid;
+              tmpDisplayData.title = browserPlaylist[id].title;
+              tmpDisplayData.album = browserPlaylist[id].album;
+              tmpDisplayData.performer = browserPlaylist[id].performer;
+              tmpDisplayData.cover = browserPlaylist[id].cover;
           }
       }
       if(task == 'stop'){
           $(".my_audio").trigger('pause');
-       tmpDisplayData.position = 0;
+        tmpDisplayData.position = 0;
         tmpDisplayData.title = "";
         tmpDisplayData.songID = "00000000-0000-0000-0000-000000000000";
         tmpDisplayData.playing = false;
@@ -714,18 +737,30 @@ function play_audio(task) {
           tmpDisplayData.single = !tmpDisplayData.single;
           console.log("toggle playing single song to ", tmpDisplayData.single);          
       }
+      if(task == 'random') {
+          if (tmpDisplayData.playing && tmpDisplayData.shuffle) {
+              tmpDisplayData.count = tmpDisplayData.shuffle_list[tmpDisplayData.count] 
+          }
+          if (tmpDisplayData.playing && !tmpDisplayData.shuffle) {
+              tmpDisplayData.count = 0;
+          }
+          tmpDisplayData.shuffle = !tmpDisplayData.shuffle;
+          handleShuffle();
+          
+      }
  }
 
 function songSelectBrowser(uid) {
     var found = false;
     for(i = 0; i < Object.keys(browserPlaylist).length; i++) {
-        if (browserPlaylist[i].uid == uid) {
+        let id = localDisplayData.shuffle_list[i];
+        if (browserPlaylist[id].uid == uid) {
             found = true;
-            tmpDisplayData.count = i;
+            tmpDisplayData.count = i;     
         }
     }
     if (found) {
-        let audioUrl = "/audio/"+uid+".mp3";
+        let audioUrl = "/audio/"+uid;
         console.log("play selected audio playlist item <",audioUrl,">");
         tmpDisplayData.songID = uid;
         play_audio('play');
@@ -813,7 +848,6 @@ function toggleSingle() {
     if (useExternalPlayer) {
         url = "/player?toggleSingle=true";
         $.post(url, "", function(data, textStatus) {}, "json");
-        //alert("toggle single not implemented on external player");
     }
     else {
         play_audio('toggleSingle');
@@ -868,7 +902,7 @@ function albumSelect(albumId) {
             } else {
               localDisplayData.count = 0; //   tmpDisplayData.count = 0;
               $('#player').modal('show');
-              localDisplayData.playlistID = albumId; //tmpDisplayData.playlistID = albumId;
+              //localDisplayData.playlistID = albumId; //tmpDisplayData.playlistID = albumId;
             }
         });
     }

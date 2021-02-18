@@ -170,7 +170,14 @@ boost::uuids::uuid MpvPlayer::getSongID() const
 
 }
 
-int MpvPlayer::getSongPercentage() const  { int time { static_cast<int>(m_actTime) }; if (time > 100.0) time = 100.0; return time*100; }
+int MpvPlayer::getSongPercentage() const  {
+    if (m_isPlaying) {
+        int time { static_cast<int>(m_actTime) };
+        if (time > 100.0) time = 100.0;
+        return time*100;
+    }
+    return 0;
+}
 
 bool MpvPlayer::jump_to_position(int percent) { return sendCommand({"seek", percent, "absolute-percent"}); }
 

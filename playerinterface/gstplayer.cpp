@@ -223,7 +223,7 @@ bool GstPlayer::setVolume(uint32_t volume) {
     logger(LoggerFramework::Level::info) << "set volume to <"<<volume<<">\n";
 
     double volume_double = volume/100.0;
-    volume_double *= 2.5; // 2.5;
+    volume_double *= m_amplify;
     g_object_set ( m_playbin.get(), "volume", volume_double, NULL );
 
     m_volume = volume;
@@ -445,7 +445,7 @@ boost::uuids::uuid GstPlayer::getSongID() const {
     if(m_currentItemIterator != std::end(m_playlist))
         return m_currentItemIterator->m_uniqueId;
     try {
-    return boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid));
+        return boost::lexical_cast<boost::uuids::uuid>(std::string(ServerConstant::unknownCoverFileUid));
     } catch (std::exception& ex) {
         logger(LoggerFramework::Level::warning) << ex.what() << "\n";
         return boost::uuids::uuid();
@@ -454,12 +454,16 @@ boost::uuids::uuid GstPlayer::getSongID() const {
 }
 
 int GstPlayer::getSongPercentage() const {
-    gint64 pos, len;
-    if (gst_element_query_position (m_playbin.get(), GST_FORMAT_TIME, &pos)
-            && gst_element_query_duration (m_playbin.get(), GST_FORMAT_TIME, &len)) {
-//        logger(LoggerFramework::Level::info) << "position is calculated to: "<< pos << "/" << len << " = " <<static_cast<int>(100.0*pos/len) << "%\n";
-        return static_cast<int>(10000.0*pos/len);
+
+    if (m_isPlaying)
+    {
+        gint64 pos, len;
+        if (gst_element_query_position (m_playbin.get(), GST_FORMAT_TIME, &pos)
+                && gst_element_query_duration (m_playbin.get(), GST_FORMAT_TIME, &len)) {
+            return static_cast<int>(10000.0*pos/len);
+        }
+        logger(LoggerFramework::Level::info) << "position calculation failed\n";
     }
-    logger(LoggerFramework::Level::info) << "position calculation failed\n";
     return 0;
+
 }

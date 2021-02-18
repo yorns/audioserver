@@ -83,8 +83,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         return fail(ec, "read");
     }
 
-    logger(Level::info) << requestHandler_sp->get() <<"\n";
-
     auto rangeString = requestHandler_sp->get()[http::field::range];
     //auto encoding = requestHandler_sp->get()[http::field::accept_encoding];
 
@@ -262,7 +260,6 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     // Attempt to open the file
     boost::beast::error_code ec;
     http::file_body::value_type body;
-    //http::file_body::value_type body;
 
 #ifdef WITH_BOOST_BEAST_PARTIAL_FILE
     bool with_range { rangeData };
