@@ -76,6 +76,7 @@ var localDisplayData = {
             else {
                 unshowPlaylist();
                 unshowTitle();
+                tmpDisplayData.cover = "/img/unknown.png";
             }
         });
     },
@@ -254,23 +255,32 @@ function onPlayerMessage(msg, isBrowserCall) {
     
     if (localDisplayData.hasPlaylistChanged(playlistID)) {
        console.log("playlist has changed - update (", playlistID, ")");
-       localDisplayData.loadPlaylist(playlistID, function(playlist) {
-                                     console.log("playlist loaded");
-                                     
-                                     setPlaylist(playlist);
-                                     showPlaylist(playlist);
-                                     unshowTitle(titleInfo);
-                                     unemphTableEntry(localDisplayData.songID);
-                                     handleShuffle();
-                                     if (playing) {
-                                         showTitle(titleInfo);
-                                         emphTableEntry(msg.songID);
-                                     }
-                                    else {
-                                        console.log("system is silent");
-                                    }
-                                    localDisplayData.setLocalDisplayData(msg, isBrowserCall);
-                                    });
+       if (playlistID != "00000000-0000-0000-0000-000000000000") {
+           localDisplayData.loadPlaylist(playlistID, function(playlist) {
+                                         console.log("playlist loaded");
+
+                                         setPlaylist(playlist);
+                                         showPlaylist(playlist);
+                                         unshowTitle(titleInfo);
+                                         unemphTableEntry(localDisplayData.songID);
+                                         handleShuffle();
+                                         if (playing) {
+                                             showTitle(titleInfo);
+                                             emphTableEntry(msg.songID);
+                                         }
+                                        else {
+                                            console.log("system is silent");
+                                        }
+                                        localDisplayData.setLocalDisplayData(msg, isBrowserCall);
+                                        });
+        }
+        else {
+            unshowPlaylist();
+            unshowTitle();
+            localDisplayData.cover = "/img/unknown.png";
+            localDisplayData.setLocalDisplayData(msg, isBrowserCall);
+            showTitle();
+        }
     }
     else {
         if (localDisplayData.hasSongChanged(msg)) {

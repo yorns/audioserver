@@ -21,12 +21,12 @@ struct http_range {
     bool import(const std::string& data) {
         // TODO: change from boost to std (needs code changes)
         boost::regex expr{"bytes=(\\d*)-(\\d*)"};
-        logger(LoggerFramework::Level::info) << "analysing <"<<data<<">\n";
+        logger(LoggerFramework::Level::debug) << "analysing <"<<data<<">\n";
         boost::smatch what;
         if (boost::regex_search(data, what, expr)) {
             std::string fromString = what[1];
             std::string toString = what[2];
-            logger(LoggerFramework::Level::info) << "search results: " << fromString << " - " << toString <<"\n";
+            logger(LoggerFramework::Level::debug) << "search results: " << fromString << " - " << toString <<"\n";
             try {
             if (!fromString.empty())
                 from = boost::lexical_cast<uint32_t>(fromString);
@@ -92,12 +92,12 @@ class Session : public std::enable_shared_from_this<Session>
             do_close();
             return false;
         }
-        logger(Level::info) << "resonse send without an error\n";
+        logger(Level::info) << "<"<<m_runID<< "> resonse send without an error\n";
         if (!keep_alive) {
             do_close();
         }
         else {
-            logger(Level::info) << "keep alive set, start next receive\n";
+            logger(Level::info) << "<"<<m_runID<< "> keep alive set, start next receive\n";
             start();
         }
         return true;
@@ -106,19 +106,19 @@ class Session : public std::enable_shared_from_this<Session>
     template <class Body>
     bool answer(std::shared_ptr<http::response<Body>> response) {
         auto self { shared_from_this() };
-        http::async_write( m_socket, *response, [this, self, response](const boost::beast::error_code& ec, std::size_t  ) {
+        http::async_write( m_socket, *response, [this, self, response](const boost::beast::error_code& ec, std::size_t sendsize ) {
             if (ec) {
-                logger(LoggerFramework::Level::warning) << "sending failed - closing connection\n: " << ec.message() <<"\n";
+                logger(LoggerFramework::Level::warning) << "<"<<m_runID<< "> sending failed (after "<< sendsize <<") - closing connection\n: " << ec.message() <<"\n";
                 do_close();
                 return;
             }
 
-            logger(Level::info) << "resonse send without an error\n";
+            logger(Level::info) << "<"<<m_runID<< "> resonse send without an error\n";
             if (!(response->keep_alive())) {
                 do_close();
             }
             else {
-                logger(Level::info) << "keep alive set, start next receive\n";
+                logger(Level::info) << "<"<<m_runID<< "> keep alive set, start next receive\n";
                 start();
             }
         });

@@ -73,6 +73,8 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     boost::ignore_unused(bytes_transferred);
 
+    logger(Level::info) << "received:\n" << requestHandler_sp->get() << "\n";
+
     // This means they closed the connection
     if (ec == http::error::end_of_stream) {
         logger(Level::warning) << "<" << m_runID << "> " << "End of stream\n";
@@ -88,7 +90,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     std::optional<http_range> rangeData;
     if (!rangeString.empty()) {
-        logger(Level::info) << "range is <"<< rangeString <<">\n";
+        logger(Level::debug) << "range is <"<< rangeString <<">\n";
         rangeData = http_range(std::string(rangeString));
         if (rangeData) {
             logger(Level::info) << "range is <"<< rangeData->from << " to "<< rangeData->to <<">\n";
@@ -275,7 +277,7 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
     auto const file_size = body.size();
 
     if (rangeData && rangeData->to == 0)
-        rangeData->to = file_size - 1;
+        rangeData->to = file_size-1;
 
     // Handle the case where the file doesn't exist
     if((ec == boost::system::errc::no_such_file_or_directory &&
@@ -332,7 +334,7 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
 
     auto const size = body.size();
 
-    logger(Level::info) << "returning reguar file <"<< path <<">\n";
+    logger(Level::info) << "<"<<m_runID<< "> returning reguar file <"<< path <<">\n";
     // Respond to GET request
     auto status = with_range?http::status::partial_content:http::status::ok;
 
@@ -344,7 +346,7 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
 
     if (with_range) {
         auto rangeString = "bytes "+std::to_string(rangeData->from)+"-"+std::to_string(rangeData->to)+"/"+std::to_string(file_size);
-        logger(LoggerFramework::Level::info) << "range string <" << rangeString << ">\n";
+        logger(LoggerFramework::Level::info) << "<"<<m_runID<< "> range string <" << rangeString << ">\n";
         res->set(http::field::content_range, rangeString);
     }
 
@@ -376,7 +378,7 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
     if(method == http::verb::get || method == http::verb::head) {
 
         if ( auto virtualData = m_sessionHandler.getVirtualImage(target) ) {
-            logger(Level::debug) << "virtual image file found as <"<<target<<">\n";
+            logger(Level::debug) << "<"<<m_runID<< "> virtual image file found as <"<<target<<">\n";
             // Cache the size since we need it after the move
             auto const size = virtualData->size();
             http::response<http::vector_body<char>> res {
@@ -391,7 +393,7 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
         }
 
         if (auto virtualData = m_sessionHandler.getVirtualAudio(target) ) {
-            logger(Level::debug) << "virtual audio file found as <"<< *virtualData <<">\n";
+            logger(Level::debug) << "<"<<m_runID<< "> virtual audio file found as <"<< *virtualData <<">\n";
             handle_regular_file_request(*virtualData, method, version, keep_alive, rangeData);
             return;
         }

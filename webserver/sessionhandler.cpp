@@ -5,7 +5,9 @@
 using namespace LoggerFramework;
 using namespace Common;
 
-bool SessionHandler::addUrlHandler(const std::string_view &path, http::verb method, PathCompare pathCompare, SessionHandler::RequestHandler &&handler)
+bool SessionHandler::addUrlHandler(const std::string_view &path,
+                                   http::verb method, PathCompare pathCompare,
+                                   SessionHandler::RequestHandler &&handler)
 {
     auto handlerIt = find(pathToStringHandler, path, method);
 
@@ -19,7 +21,9 @@ bool SessionHandler::addUrlHandler(const std::string_view &path, http::verb meth
     return true;
 }
 
-bool SessionHandler::addUploadHandler(const std::string_view &path, SessionHandler::NameGeneratorFunction &&handler, SessionHandler::UploadFinishedHandler &&finishHandler)
+bool SessionHandler::addUploadHandler(const std::string_view &path,
+                                      SessionHandler::NameGeneratorFunction &&handler,
+                                      SessionHandler::UploadFinishedHandler &&finishHandler)
 {
 
     http::verb method { http::verb::post };
