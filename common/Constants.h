@@ -56,6 +56,7 @@ namespace ServerConstant {
         static constexpr auto showLists {sv("showLists")};
         static constexpr auto currentPlaylistUID {sv("currentPlaylistUID")};
         static constexpr auto getAlbumList {sv("albumList")};
+        static constexpr auto getAlbumUid {sv("albumUid")};
     }
 
     namespace Parameter {

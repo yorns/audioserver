@@ -14,6 +14,7 @@ enum class Tag {
     Jazz,
     Playlist,
     Stream,
+    AudioBooks,
     unknown
 };
 

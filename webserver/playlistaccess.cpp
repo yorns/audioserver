@@ -74,6 +74,12 @@ std::string PlaylistAccess::getAlbumList(const std::string &value) {
     return convertToJson(list);
 }
 
+std::string PlaylistAccess::getAlbumUid(const std::string &value) {
+    auto list = m_database.searchPlaylistItems(value, Database::SearchAction::uniqueId);
+
+    return convertToJson(list);
+}
+
 std::string PlaylistAccess::change(const std::string &value) {
 
     auto playlistList = m_database.searchPlaylistItems(value, Database::SearchAction::uniqueId);
@@ -231,6 +237,10 @@ std::string PlaylistAccess::access(const utility::Extractor::UrlInformation &url
 
     if (parameter == ServerConstant::Command::getAlbumList) {
         return getAlbumList(value);
+    }
+
+    if (parameter == ServerConstant::Command::getAlbumUid) {
+        return getAlbumUid(value);
     }
 
     /* change to new playlist */

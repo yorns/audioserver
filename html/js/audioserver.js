@@ -75,6 +75,7 @@ var localDisplayData = {
             }
             else {
                 unshowPlaylist();
+                unshowTitle();
             }
         });
     },
@@ -154,11 +155,19 @@ function showPlaylist(playlist) {
 function unshowTitle(titleInfo) {
     let allTitle = "";
     
-    allTitle = titleInfo.performer + "<br>" 
-         + titleInfo.album         
-
+    if (titleInfo == null) {
+        $("#actCover").removeAttr("src");
+    }
+    else { 
+        allTitle = titleInfo.performer + "<br>" 
+             + titleInfo.album;
+        if ($("#actCover").attr("src") != titleInfo.cover) {
+            console.log("set cover");
+            $("#actCover").attr("src", titleInfo.cover);
+        }
+    }
+    
     $("#actSong").html(allTitle);
-    $("#actCover").attr("src", titleInfo.cover);
     
 }
 
@@ -170,7 +179,10 @@ function showTitle(titleInfo) {
              + titleInfo.title;
 
     $("#actSong").html(allTitle);
-    $("#actCover").attr("src", titleInfo.cover);
+    if ($("#actCover").attr("src") != titleInfo.cover) {
+        console.log("set cover");
+        $("#actCover").attr("src", titleInfo.cover);
+    }
 
 }
 
@@ -240,7 +252,7 @@ function onPlayerMessage(msg, isBrowserCall) {
         console.log("not playing - remove last entry ", localDisplayData.songID);
     }
     
-    if (localDisplayData.hasPlaylistChanged(playlistID, titleInfo.cover)) {
+    if (localDisplayData.hasPlaylistChanged(playlistID)) {
        console.log("playlist has changed - update (", playlistID, ")");
        localDisplayData.loadPlaylist(playlistID, function(playlist) {
                                      console.log("playlist loaded");
@@ -458,9 +470,8 @@ $(document).ready(function () {
         toggleSingle();
     })
 
-    document.getElementById("progress-box2").oninput = function () {
+    document.getElementById("progress-box").oninput = function () {
         setPosition(this.value);
-        //setExtAudioPosition(this.value);
     };
 
     document.getElementById("volume-box").oninput = function () {
@@ -491,9 +502,6 @@ $(document).ready(function () {
                  tmpDisplayData.position = 0;
                  tmpDisplayData.duration = 0;
              }
-             //console.log("old:", localDisplayData);
-             //console.log("new:", tmpDisplayData);
-             //console.log("position: " + tmpDisplayData.position );
              onPlayerMessage(tmpDisplayData, true);
              
          }
@@ -501,6 +509,7 @@ $(document).ready(function () {
      }, 500); 
 
     restorePersistentData();
+    setVolume(15); // init default value
     init();
 });
 
@@ -543,18 +552,20 @@ function restorePersistentData() {
 
 function showSongProgress(position)
 {
-    document.getElementById("progress-box2").value = 1.0*position/100.0;  
+    document.getElementById("progress-box").value = 1.0*position/100.0;  
 }
 
 function setVolume(_volume) {
+    console.log("set volume: ", _volume);    
     if (!useExternalPlayer) {
         if (tmpDisplayData.volume != _volume) {
             tmpDisplayData.volume =_volume;
             $(".my_audio").prop("volume",_volume/100);
-            console.log("volume: ", _volume);
+            console.log("browser");
         }
     }
     else {
+        console.log("external player");
         url = "/player?volume="+_volume;
         $.post(url, "", function (data, textStatus) {}, "json");
     }
@@ -562,10 +573,10 @@ function setVolume(_volume) {
 
 function setPosition(_position) {
     if (!useExternalPlayer) {
-        console.log("new position set to: ", _position, "/", tmpDisplayData.duration);
+        console.log("new position set to: ", _position, "% of ", tmpDisplayData.duration);
         if (tmpDisplayData.duration) {            
             $(".my_audio").prop("currentTime",_position*tmpDisplayData.duration/100);
-            console.log("position: ", _position*tmpDisplayData.duration/100);
+            // console.log("position: ", _position*tmpDisplayData.duration/100);
         }
     }
     else {
@@ -650,8 +661,18 @@ function emphTableEntry(songID) {   //(oldUid, newUid) {
     }
 }
 
+function getPlaylistCover(albumId) {
+    console.log("get playlist cover <", albumId, ">" );
+    if (tmpDisplayData.playing)
+        return;
+    
+    getPlaylistUid(albumId);
+}
 
 function next() {
+    if (!tmpDisplayData.playing)
+        return;
+    
     if (tmpDisplayData.single) {
         console.log("playing only single file - stopping");
         $("#sound_src").attr("src","");
@@ -665,7 +686,6 @@ function next() {
         console.log("play next: ", tmpDisplayData.count, " - ", id, " / ", length);
         if (tmpDisplayData.count >= length) {
             console.log("end found");
-            $("#sound_src").attr("src","");
             play_audio('stop');
         }
         else {
@@ -693,8 +713,8 @@ function play_audio(task) {
           $("#sound_src").attr("src", audioUrl);
           $("#sound_src").attr("title", browserPlaylist[id].title);              
           $(".my_audio").prop("currentTime",0);
-          $("#sound_src").attr("autoplay", true);       
           $(".my_audio").trigger('load');
+          $("#sound_src").attr("autoplay", true);       
           $(".my_audio").trigger('play');
           tmpDisplayData.playing = true;
           tmpDisplayData.paused = false;
@@ -715,7 +735,7 @@ function play_audio(task) {
         tmpDisplayData.playing = false;
         tmpDisplayData.paused = false;
         tmpDisplayData.count = 0;
-
+        getPlaylistCover(tmpDisplayData.playlistID);
       }
       if(task == 'next'){
           next();
@@ -981,8 +1001,9 @@ function getActualPlaylist() {
 }
 
 function getPlaylistUid(uid) {
-    url = "/playlist?show="+uid;
+    url = "/playlist?albumUid="+uid;
     $.getJSON(url).done(function(response) {
+        // test if there are any entries at all ... if (resonse)
         console.log("reply for get playlist (", uid, "): ", response);
         tmpDisplayData.album = response[0].album;
         tmpDisplayData.performer = response[0].performer;

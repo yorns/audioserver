@@ -20,6 +20,7 @@ class PlaylistAccess
     std::string add(const std::string& value);
     std::string create(const std::string& value);
     std::string getAlbumList(const std::string& value);
+    std::string getAlbumUid(const std::string &value);
     std::string change(const std::string& value);
     std::string show(const std::string& value);
     std::string showLists(const std::string& value);

@@ -26,7 +26,7 @@ void SongTagReader::readSongTagFile() {
         boost::trim(identifier);
         boost::trim(tagName);
 
-        logger(Level::debug) << "reading in <"<<identifier<<"> with tag <"<<tagName<<">\n";
+        logger(Level::info) << "reading in <"<<identifier<<"> with tag <"<<tagName<<">\n";
 
         auto tag = TagConverter::getTagId(tagName);
 
@@ -60,12 +60,15 @@ std::vector<Tag> SongTagReader::findSongTagList(const std::string &albumName, co
     for (const auto& elem : m_tagList) {
         // first find tags for title only
         if (stage1 == elem.fullSearchName) {
+            logger(LoggerFramework::Level::info) << "enrich <"<<stage1<<"> with " << (int) elem.tags[0] << "\n";
             songTagList.insert(songTagList.end(), std::begin(elem.tags), std::end(elem.tags));
         }
         else if (stage2 == elem.fullSearchName) {
+            logger(LoggerFramework::Level::info) << "enrich <"<<stage2<<"> with " << (int) elem.tags[0] << "\n";
             songTagList.insert(songTagList.end(), std::begin(elem.tags), std::end(elem.tags));
         }
         else if (stage3 == elem.fullSearchName) {
+            logger(LoggerFramework::Level::info) << "enrich <"<<stage3<<"> with " << (int) elem.tags[0] << "\n";
             songTagList.insert(songTagList.end(), std::begin(elem.tags), std::end(elem.tags));
         }
     }

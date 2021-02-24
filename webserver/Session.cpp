@@ -98,6 +98,8 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         logger(Level::info) << "no range set\n";
     }
 
+    logger(Level::debug) << "<" << m_runID << "> " << "reading target: " << requestHandler_sp->get().target() << "\n";
+
     if (is_unknown_http_method(*requestHandler_sp)) {
         // read until finished
         logger(Level::debug) << "<" << m_runID << "> " << "Method unknown\n";
@@ -117,7 +119,6 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         return;
     }
 
-    logger(Level::debug) << "<" << m_runID << "> " << "reading target: " << requestHandler_sp->get().target() << "\n";
 
     if (m_sessionHandler.isUploadFile(*requestHandler_sp)) {
 

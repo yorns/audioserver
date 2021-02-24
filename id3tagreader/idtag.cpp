@@ -6,6 +6,7 @@ TagConverter::TagIdentifier TagConverter::m_tagIdentifier = {{{"kinder", "childr
                                                {{"pop"}, Tag::Pop },
                                                {{"jazz"}, Tag::Jazz },
                                                {{"playlist:"}, Tag::Playlist },
-                                               {{"radio", "stream"}, Tag::Stream }
+                                               {{"radio", "stream"}, Tag::Stream },
+                                               {{"audiobooks", "hörbücher", "hoerbuecher"}, Tag::AudioBooks }
                                                };
 
