@@ -71,6 +71,10 @@ public:
 
         std::ofstream ofs(jsonFile);
 
+//	    fs::permissions("test.txt",
+//                    fs::perms::owner_all | fs::perms::group_all,
+//                    fs::perm_options::add);
+
         if (!ofs.good()) {
             logger(Level::info) << "cannot open file <" << jsonFile << ">\n";
             return;
@@ -95,13 +99,15 @@ public:
 
         ofs << network;
         ofs.close();
-        system("sync");
+        //system("sync");
+        generateWpaConfig();
 
     }
 
     void generateWpaConfig() {
         // actually done in wpa_generator
         system("wpa_generator");
+        system("sync");
     }
 
     void setSsid(std::string_view ssid, std::string_view psk) {

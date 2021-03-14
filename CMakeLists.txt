@@ -164,7 +164,8 @@ message("snc lib include is ${SNCCLIENT_LIBRARIES}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "audioServer")
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -O0 -g)
+#target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -O0 -g)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -O2)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW ${UNREADABLE})
 
 
@@ -182,6 +183,22 @@ target_link_libraries(
     ituneJsonConverter
         Threads::Threads
         ${Boost_LIBRARIES}
+)
+
+add_executable(wpa_generator
+               wpa_generator/wpa_generator.cpp
+)
+
+target_link_libraries(wpa_generator
+        Threads::Threads
+        ${Boost_LIBRARIES}
+)
+
+target_include_directories(
+        wpa_generator
+        PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${Boost_INCLUDE_DIRS}
 )
 
 
@@ -391,6 +408,13 @@ endif(WITH_ADD)
 
 install(
     TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+)
+
+# cmake -DCMAKE_INSTALL_PREFIX=$OECORE_TARGET_SYSROOT/usr/ ..
+install(TARGETS wpa_generator
     RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}

@@ -340,7 +340,7 @@ function runWebsocket() {
 
                     var trHTML ="";
                     for (var item in msg.SsidMessage) {
-                    console.log('item ' + msg.SsidMessage[item] );
+                    // console.log('item ' + msg.SsidMessage[item] );
                         trHTML += '<tr class="table-row" id="'  + msg.SsidMessage[item] + '"><td></td><td>' + msg.SsidMessage[item] + '</td><td></td></tr>';
                     }
                     $('#wifiList tbody').empty();
@@ -939,6 +939,8 @@ function albumSelect(albumId) {
     else {
         if (console && console.log) {
             console.log("webbrowser play album select: " + albumId);
+            // ensure, shuffle list is set
+            handleShuffle();
         }
         
         $('#player').modal('show');

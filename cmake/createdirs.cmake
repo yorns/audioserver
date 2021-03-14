@@ -70,6 +70,7 @@ install ( FILES
        ${CMAKE_SOURCE_DIR}/html/js/jquery-3.4.1.min.js
        ${CMAKE_SOURCE_DIR}/html/js/popper.min.js
        ${CMAKE_SOURCE_DIR}/html/js/audioserver.js
+       ${CMAKE_SOURCE_DIR}/html/js/NoSleep.min.js
       DESTINATION ${AUDIO_HTMLJS_DIR}
       PERMISSIONS
       OWNER_READ OWNER_WRITE
