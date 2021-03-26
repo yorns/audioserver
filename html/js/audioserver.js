@@ -13,10 +13,11 @@ var noSleep = {};
 var tmpPlaylist = {};
 var browserPlaylist = {};
 
-function LocalStoreData(l_name_typed, l_useExternalPlayer, l_count) {
+function LocalStoreData(l_name_typed, l_useExternalPlayer, l_count, l_volume) {
     this.name_typed = l_name_typed;
     this.useExternalPlayer= l_useExternalPlayer;
     this.count = l_count;
+    this.volume = l_volume;
 }
 
 var localDisplayData = {
@@ -519,9 +520,20 @@ $(document).ready(function () {
      }, 500); 
 
     restorePersistentData();
-    setVolume(15); // init default value
+//    setVolume(15); // init default value
     init();
 });
+
+function resetLocalAudioTag()
+{
+    $('.my_audio').empty(); 
+    $('.my_audio').append("<source id='sound_src' src='' title='' poster='img/unknown.png' type='audio/mpeg'>");
+    $('.my_audio').off('ended');
+    $('.my_audio').on('ended', function() { 
+        console.log("ended trigger received"); 
+        play_audio('next'); 
+    });            
+}
 
 function init()
 {
@@ -531,13 +543,7 @@ function init()
     
     if (!useExternalPlayer) {
         // reset all displayed information and display them from local playback
-        $('.my_audio').empty(); 
-        $('.my_audio').append("<source id='sound_src' src='' title='' poster='img/unknown.png' type='audio/mpeg'>");
-        $('.my_audio').off('ended');
-        $('.my_audio').on('ended', function() { 
-            console.log("ended trigger received"); 
-            play_audio('next'); 
-        });        
+        resetLocalAudioTag();
         localDisplayData.setLocalDisplayData(tmpDisplayData);
     }
     
@@ -545,7 +551,8 @@ function init()
 }
 
 function storePersistentData() {
-    var localStoreData = new LocalStoreData(name_typed, useExternalPlayer, 0);
+    let volume = tmpDisplayData.volume;
+    var localStoreData = new LocalStoreData(name_typed, useExternalPlayer, 0, );
     sessionStorage.setItem('localStoreData', JSON.stringify(localStoreData));
 }
 
@@ -554,6 +561,7 @@ function restorePersistentData() {
     if (localStoreData) {
         useExternalPlayer = localStoreData.useExternalPlayer;
         name_typed = localStoreData.name_typed;
+        localDisplayData.volume = localStoreData.volume;
     }
     else {
         console.log("cannot restore local data");
@@ -793,6 +801,7 @@ function songSelectBrowser(uid) {
         let audioUrl = "/audio/"+uid;
         console.log("play selected audio playlist item <",audioUrl,">");
         tmpDisplayData.songID = uid;
+        resetLocalAudioTag();
         play_audio('play');
     } 
     else {
@@ -840,8 +849,8 @@ function startPlay() {
         console.log("playing: ", tmpDisplayData.playing, " paused: ", tmpDisplayData.paused)
         if (!tmpDisplayData.playing) {
             tmpDisplayData.count = 0;
-            
-                play_audio('play');
+            resetLocalAudioTag();
+            play_audio('play');
         }
         else {
             if (!tmpDisplayData.paused) {

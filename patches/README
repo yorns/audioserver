@@ -1,0 +1,3 @@
+Here are two patches
+* one for patch the boost sources (when unpacked, but befor install)
+* one for patch the installed boost sources

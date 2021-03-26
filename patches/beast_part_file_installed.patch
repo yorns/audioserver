@@ -1,6 +1,6 @@
-diff -ru a/boost/beast/http/basic_file_body.hpp a/boost/beast/http/basic_file_body.hpp
---- a/boost/beast/http/basic_file_body.hpp	2021-02-09 20:39:09.947212383 +0100
-+++ a/boost/beast/http/basic_file_body.hpp	2021-02-09 20:31:23.229057928 +0100
+diff -ru old/include/boost/beast/http/basic_file_body.hpp new/include/boost/beast/http/basic_file_body.hpp
+--- old/include/boost/beast/http/basic_file_body.hpp	2021-02-09 20:39:09.947212383 +0100
++++ new/include/boost/beast/http/basic_file_body.hpp	2021-02-09 20:31:23.229057928 +0100
 @@ -21,6 +21,8 @@
  #include <cstdint>
  #include <utility>
