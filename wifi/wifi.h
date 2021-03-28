@@ -106,7 +106,7 @@ public:
 
     void generateWpaConfig() {
         // actually done in wpa_generator
-        system("wpa_generator");
+        system("wpa_generator.sh");
         system("sync");
     }
 
