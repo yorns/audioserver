@@ -369,7 +369,7 @@ int main(int argc, char* argv[])
     };
 
     sncClient.recvHandler([externalSelect](const std::string& other, const std::string& raw_msg) {
-        logger(Level::info) << "received Message from <" << other << ">: "<<raw_msg<<"\n";
+        logger(Level::debug) << "received Message from <" << other << ">: "<<raw_msg<<"\n";
         externalSelect(other, raw_msg);
     });
 

@@ -106,8 +106,7 @@ public:
 
     void generateWpaConfig() {
         // actually done in wpa_generator
-        system("wpa_generator.sh");
-        system("sync");
+        system("/usr/bin/wpa_generate.sh");
     }
 
     void setSsid(std::string_view ssid, std::string_view psk) {
