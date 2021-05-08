@@ -1,0 +1,16 @@
+target_sources(database
+PRIVATE
+    NameType.h
+    searchitem.h
+    searchaction.h
+    playlist.cpp
+    playlist.h
+    id3repository.cpp
+    id3repository.h
+    playlistcontainer.cpp
+    playlistcontainer.h
+    SimpleDatabase.cpp
+    SimpleDatabase.h
+    songtagreader.cpp
+    songtagreader.h
+)

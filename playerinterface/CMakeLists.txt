@@ -1,0 +1,9 @@
+target_sources(playerinterface
+PRIVATE
+    Player.h
+    Player.cpp
+    mpvplayer.h
+    mpvplayer.cpp
+    gstplayer.h
+    gstplayer.cpp
+)

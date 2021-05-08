@@ -1,0 +1,19 @@
+target_sources(${PROJECT_NAME}
+PRIVATE
+    Listener.cpp
+    Listener.h
+    sessionhandler.cpp
+    sessionhandler.h
+    Session.cpp
+    Session.h
+    databaseaccess.cpp
+    databaseaccess.h
+    playlistaccess.cpp
+    playlistaccess.h
+    playeraccess.cpp
+    playeraccess.h
+    wifiaccess.cpp
+    wifiaccess.h
+    websocketsession.cpp
+    websocketsession.h
+)
