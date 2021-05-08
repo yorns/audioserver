@@ -64,7 +64,7 @@ private:
             break;
         }
         case 'c': {
-            m_player->toogleLoop();
+            m_player->toggleLoop();
             break;
         }
         case 'x': {
