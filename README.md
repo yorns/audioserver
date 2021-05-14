@@ -65,6 +65,14 @@ if no config file is given. The server tries to open the one at /usr/local/etc/a
 audioServer ${HOME}/audioConfig/audioserver.json
 ```
 
+### Page
+
+The player can be found on your system with the url:
+
+http://localhost:8080
+
+The frontpage is empty in the beginning. In case you added any files, you can search them. An asterisk (\*) will show all titles. To set up a nice frontpage, you can use tags (just add your playlist with the tag file **tag/tag.data** and add a playlist: (line could be "Smooth Pop | playlist:")). Please see also setup tags. 
+
 # audioServer setup
 
 ### configuration file
@@ -84,7 +92,7 @@ Within this file, you can configure the following information:
 
 * **IpaAddress** (or better, interface) the server should listen to.
 * **Port** to listen. The connection is not secure and therefor http, so using 443 does not provide any security (the audioserver should only be used in secure home nets, not on the internet)
-* **Base** path to find all relevant information for the webpage or the audio information. This must fit your installation path, defined by the system (**${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/**). You can sym-link your audio files here and remove the cache in case it is in use.
+* **Base** path to find all relevant information for the webpage or the audio information. This must fit your installation path, defined by the system (**${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/**). You can sym-link your audio files into **audioMP3** and remove the cache in case it is in use.
 * **LogLevel** what information should be logged to e.g. systemd logging
   * debug
   * info
