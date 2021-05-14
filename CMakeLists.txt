@@ -4,8 +4,6 @@ project(audioServer)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-message("server build")
-
 # we use boost information from cmake -DBOOST_DIR
 if (BOOST_DIR)
   set(Boost_NO_BOOST_CMAKE ON)
@@ -36,7 +34,6 @@ include(FindPkgConfig)
 pkg_search_module(TagLib REQUIRED IMPORTED_TARGET taglib)
 pkg_check_modules(GST REQUIRED IMPORTED_TARGET gstreamer-1.0)
 
-
 add_library(common)
 add_subdirectory(common)
 target_compile_features(common PUBLIC cxx_std_17)
@@ -44,7 +41,10 @@ target_compile_definitions(common PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW)
 target_include_directories(common
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
-
+target_link_libraries(common
+    PUBLIC
+    Boost::boost
+)
 
 add_library(id3tagreader)
 add_subdirectory(id3tagreader)
@@ -55,11 +55,10 @@ target_include_directories(id3tagreader
 target_link_libraries(id3tagreader
     PUBLIC
     nlohmann_json::nlohmann_json
+    Boost::boost
     Boost::filesystem
     PkgConfig::TagLib
 )
-
-
 
 add_library(database)
 add_subdirectory(database)
@@ -68,10 +67,9 @@ target_include_directories(database
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 target_link_libraries(database PUBLIC id3tagreader)
-
-
-
-
+target_link_libraries(database PUBLIC
+    Boost::boost
+)
 
 
 add_library(playerinterface)
@@ -81,6 +79,10 @@ target_include_directories(playerinterface
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 target_link_libraries(playerinterface PUBLIC PkgConfig::GST)
+target_link_libraries(playerinterface
+    PUBLIC
+    Boost::boost
+)
 
 
 add_executable(${PROJECT_NAME})
@@ -89,21 +91,23 @@ add_subdirectory(audioserver)
 add_subdirectory(webserver)
 add_subdirectory(wifi)
 
-
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         database
         playerinterface
         common
         snc::snc_client
+        Boost::boost
         Boost::regex
         Boost::headers
         Threads::Threads
 )
+
 if (WITH_UNREADABLE)
     target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_UNREADABLE)
 endif ()
 
+message("BOOST: include dir is set to ${Boost_INCLUDE_DIRS}")
 
 add_executable(ituneJsonConverter)
 add_subdirectory(itunesJsonConverter)
@@ -112,6 +116,7 @@ target_link_libraries(
     PUBLIC
         common
         nlohmann_json::nlohmann_json
+        Boost::boost
         Boost::headers
         Threads::Threads
 )
@@ -122,6 +127,7 @@ target_compile_features(wpaGenerator PUBLIC cxx_std_17)
 target_link_libraries(wpaGenerator
     PUBLIC
     nlohmann_json::nlohmann_json
+    Boost::boost
     Boost::headers
     Threads::Threads
 )
