@@ -51,12 +51,14 @@ this will (hopefully in futur)
  - modifies directory rights  
 
 ### calling the server
-easy as this:
+easy as this (in case you sudo install it):
 ```
+audioServer
+# or if you use you own config file
 audioServer [config_file]
 ```
 
-if no config file is given. The server tries to open the one at /etc/audioserver.json
+if no config file is given. The server tries to open the one at /usr/local/etc/audioserver.json
 
 **Example:**
 ```
@@ -82,7 +84,7 @@ Within this file, you can configure the following information:
 
 * **IpaAddress** (or better, interface) the server should listen to.
 * **Port** to listen. The connection is not secure and therefor http, so using 443 does not provide any security (the audioserver should only be used in secure home nets, not on the internet)
-* **Base** path to find all relevant information for the webpage or the audio information. This must fit your installation path, defined by the system (**${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/**)
+* **Base** path to find all relevant information for the webpage or the audio information. This must fit your installation path, defined by the system (**${CMAKE_INSTALL_LOCALSTATEDIR}/audioserver/**). You can sym-link your audio files here and remove the cache in case it is in use.
 * **LogLevel** what information should be logged to e.g. systemd logging
   * debug
   * info
