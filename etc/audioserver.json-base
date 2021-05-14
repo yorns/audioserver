@@ -1,7 +1,7 @@
 {
 	"IpAddress": "0.0.0.0",
-	"Port": "8080",
-	"BasePath": "/usr/local/var/audioserver",
+	"Port": "80",
+	"BasePath": "/var/audioserver",
 	"LogLevel": "info",
 	"EnableCache": false,
 	"AudioInterface": "gst"
