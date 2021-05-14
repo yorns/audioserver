@@ -1,9 +1,9 @@
 # The AudioServer Introduction
 
-The audioServer is a player for mp3 files and streams that is controlled and configured by a web page (and from your browser)
+The audioServer is a player for mp3 files. It streams that files, plays them locally and is controlled and configured via web interface (and therefor from any of your browsers)
 
-The underlying technology is a small, but efficient webserver, that serves as 
-* resource delivery unit (for the webpage and all connected data) 
+The underlying technology is a small, but efficient webserver (developed for embedded systems), that serves as 
+* resource delivery unit (for the webpage and all connected audio data) 
 * REST API to manage the player, the playlists and files
 * websocket API to receive playing information
 * upload unit to upload mp3 files to the system
