@@ -129,7 +129,8 @@ boost::uuids::uuid extractUUID (const std::string& uuidString) {
 
 int main(int argc, char* argv[])
 {
-    std::string configFileName {"/etc/audioserver.json"};
+    // default config file
+    std::string configFileName {"/usr/local/etc/audioserver.json"};
     // Check command line arguments.
     if (argc > 2)
     {

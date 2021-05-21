@@ -18,8 +18,8 @@ if(NOT snc_FOUND)
     include(FetchContent)
     FetchContent_Declare(
       snc
-      GIT_REPOSITORY https://github.com/Bjoe/snc.git
-      GIT_TAG        improve-cmake
+      GIT_REPOSITORY https://github.com/yorns/snc.git
+      GIT_TAG        master
     )
     FetchContent_MakeAvailable(snc)
 endif()
