@@ -46,6 +46,9 @@ void SimpleDatabase::loadDatabase() {
     logger(Level::info) << "Lift up tags from items to playlists\n";
     m_playlistContainer.insertTagsFromItems(m_id3Repository);
 
+    logger(Level::info) << "Read Credentials\n";
+    m_credentials.read();
+
 }
 
 

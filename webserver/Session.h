@@ -10,6 +10,7 @@
 #include <string_view>
 #include "sessionhandler.h"
 #include "websocketsession.h"
+#include "database/SimpleDatabase.h"
 
 using tcp = boost::asio::ip::tcp;
 namespace http = boost::beast::http;
@@ -50,7 +51,11 @@ struct http_range {
 class Session : public std::enable_shared_from_this<Session>
 {
 
+    typedef std::function<std::optional<std::string>(const std::string&)> PasswordFind;
+
     std::weak_ptr<WebsocketSession> webSocket;
+    PasswordFind m_passwordFind;
+
     // Report a failure
     void fail(boost::system::error_code ec, const std::string& what);
 
@@ -127,7 +132,8 @@ class Session : public std::enable_shared_from_this<Session>
 
 public:
 
-    explicit Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath, uint32_t runID);
+    explicit Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath,
+                     PasswordFind&& credentialPW, uint32_t runID);
     Session() = delete;
 
     Session(const Session& ) = delete;

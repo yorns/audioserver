@@ -4,7 +4,7 @@ var songID = "";
 var playlistID = "";
 var name_typed = "";
 var broadcastMsg = "";
-var useExternalPlayer = true;
+var useExternalPlayer = false;
 var websocketConnected = false;
 var websocketError = false;
 //var count = 0;
@@ -15,7 +15,7 @@ var browserPlaylist = {};
 
 function LocalStoreData(l_name_typed, l_useExternalPlayer, l_count, l_volume) {
     this.name_typed = l_name_typed;
-    this.useExternalPlayer= l_useExternalPlayer;
+//    this.useExternalPlayer= l_useExternalPlayer;
     this.count = l_count;
     this.volume = l_volume;
 }
@@ -403,24 +403,25 @@ $(document).ready(function () {
     });
 
     
-    $("#customSwitch1").on('change', function() {
-        if ($(this).is(':checked')) {
-            useExternalPlayer = $(this).is(':checked');
-        }
-        else {
-           useExternalPlayer = $(this).is(':checked');
-//            console.log("playlist ID is ", localDisplayData.playlistID);
-            onPlayerMessage(tmpDisplayData,true);
-        }
-        console.log("changed externalPlayer to ", useExternalPlayer);
-        init();
-    })
+//    $("#customSwitch1").on('change', function() {
+//        if ($(this).is(':checked')) {
+//            useExternalPlayer = $(this).is(':checked');
+//        }
+//        else {
+//           useExternalPlayer = $(this).is(':checked');
+////            console.log("playlist ID is ", localDisplayData.playlistID);
+//            onPlayerMessage(tmpDisplayData,true);
+//        }
+//        console.log("changed externalPlayer to ", useExternalPlayer);
+//        init();
+//    })
     
     $("#act_playlist").on("click", ".table-row", function() {
         var uid = $(this).attr("id");
         if (useExternalPlayer) {
             url = "/player?select=" + uid;
             $.post(url, "", function(data, textStatus) {}, "json");
+            alert("!!!!!");
         }
         else {
             console.log("playing webplayer uid: ", uid);
@@ -537,7 +538,7 @@ function resetLocalAudioTag()
 
 function init()
 {
-    $("#customSwitch1").attr("checked", useExternalPlayer);
+//    $("#customSwitch1").attr("checked", useExternalPlayer);
     $('#albumSearch').val(name_typed);
     showAlbumList(name_typed);
     
@@ -559,7 +560,7 @@ function storePersistentData() {
 function restorePersistentData() {
     var localStoreData = JSON.parse(sessionStorage.getItem('localStoreData'));
     if (localStoreData) {
-        useExternalPlayer = localStoreData.useExternalPlayer;
+        useExternalPlayer = false; //localStoreData.useExternalPlayer;
         name_typed = localStoreData.name_typed;
         localDisplayData.volume = localStoreData.volume;
     }
@@ -923,38 +924,44 @@ function fastBackwardPlayer() {
     }
 }
 
-function albumSelect(albumId) {
+function albumSelect(albumId, albumName, performer) {
     
     if (useExternalPlayer) {
         if (console && console.log) {
             console.log("external play album select: " + albumId);
         }
 
-        // open overlay / new page
-        // show playlist with all album titles
-        var url = "/playlist?change=" + encodeURIComponent(albumId);
-        if (console && console.log)
-            console.log("request: " + url);
-        $.getJSON(url).done(function(response) {
-            if (response.result != "ok") {
-                alert(response.result);
-            } else {
-              localDisplayData.count = 0; //   tmpDisplayData.count = 0;
-              $('#player').modal('show');
-              //localDisplayData.playlistID = albumId; //tmpDisplayData.playlistID = albumId;
-            }
-        });
+          // open overlay / new page
+          // show playlist with all album titles
+          var url = "/playlist?change=" + encodeURIComponent(albumId);
+          if (console && console.log)
+              console.log("request: " + url);
+          $.getJSON(url).done(function(response) {
+              if (response.result != "ok") {
+                  alert(response.result);
+              } else {
+                localDisplayData.count = 0; //   tmpDisplayData.count = 0;
+                $('#player').modal('show');
+                //localDisplayData.playlistID = albumId; //tmpDisplayData.playlistID = albumId;
+              }
+          });
     }
     else {
+      // if albumname is a playlist with ' u' (underneath), search for the performer
+      if (albumName.endsWith(' u')) {
+          showAlbumList(performer);
+      }
+      else {
         if (console && console.log) {
-            console.log("webbrowser play album select: " + albumId);
-            // ensure, shuffle list is set
-            handleShuffle();
+          console.log("webbrowser play album select: " + albumId);
+          // ensure, shuffle list is set
+          handleShuffle();
         }
         
         $('#player').modal('show');
         getPlaylistUid(albumId);
 
+       }
     }
 }
 
@@ -989,7 +996,7 @@ function showAlbumList(searchString) {
 
             $.each(response, function(i, item) {
                 trHTML += `
-                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}")' > 
+                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}", "${item.album}", "${item.performer}")' > 
                             <div class="text-center">
                             <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" >
                             </div>

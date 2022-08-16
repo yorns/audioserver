@@ -88,6 +88,8 @@ std::string getFullQualifiedDirectory(FileType fileType) {
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::cachePath);
     case FileType::Tag:
         return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::tagPath);
+    case FileType::Credential:
+        return std::string(ServerConstant::base_path) + '/' + std::string(ServerConstant::credentialPath);
 
     }
 

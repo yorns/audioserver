@@ -3,10 +3,12 @@
 #include <boost/algorithm/string/trim.hpp>
 
 using namespace LoggerFramework;
+using namespace Database;
 
 void SongTagReader::readSongTagFile() {
     std::fstream inStream;
-    auto tagFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Tag)+ "/" + std::string(ServerConstant::tagFile);
+    auto tagFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Tag)+ "/" +
+            std::string(ServerConstant::tagFile);
     inStream.open(tagFile, std::ios_base::in);
 
     if (!inStream.good()) {

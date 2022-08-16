@@ -18,6 +18,7 @@
 #include "searchaction.h"
 #include "id3repository.h"
 #include "common/generalPlaylist.h"
+#include "credential.h"
 
 namespace Database {
 
@@ -25,6 +26,7 @@ class SimpleDatabase {
 
     PlaylistContainer m_playlistContainer;
     Id3Repository m_id3Repository;
+    Credential m_credentials;
 
 public:
 
@@ -34,10 +36,13 @@ public:
     bool writeChangedPlaylists();
 
     std::vector<Id3Info> searchAudioItems(const std::string &what, SearchItem item, SearchAction action);
+
     std::vector<Id3Info> searchAudioItems(const boost::uuids::uuid &what, SearchItem item, SearchAction action);
+
     std::vector<Id3Info> searchAudioItems(std::string_view what, SearchItem item, SearchAction action) {
         return searchAudioItems(std::string(what), item, action);
     }
+
     std::vector<Id3Info> searchAudioItems(const char* what, SearchItem item, SearchAction action) {
         return searchAudioItems(std::string(what), item, action);
     }
@@ -45,6 +50,7 @@ public:
     std::vector<Playlist> searchPlaylistItems(const std::string &what, SearchAction action = SearchAction::exact) {
         return  m_playlistContainer.searchPlaylists(what, action);
     }
+
     std::vector<Playlist> searchPlaylistItems(const std::string_view &what, SearchAction action = SearchAction::exact) {
         return  m_playlistContainer.searchPlaylists(std::string(what), action);
     }
@@ -88,6 +94,10 @@ public:
 #ifdef WITH_UNITTEST
     bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }
 #endif
+
+    std::optional<std::string> passwordFind(const std::string& name) {
+        logger(Level::info) << "SimpleDatabase::passwordFind\n";
+        return m_credentials.passwordFind(name); }
 
 };
 

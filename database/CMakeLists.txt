@@ -13,4 +13,6 @@ PRIVATE
     SimpleDatabase.h
     songtagreader.cpp
     songtagreader.h
+    credential.cpp
+    credential.h
 )

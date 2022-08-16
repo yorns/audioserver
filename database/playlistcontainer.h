@@ -17,7 +17,6 @@
 #include "playlist.h"
 #include "NameType.h"
 #include "searchaction.h"
-#include "songtagreader.h"
 #include "id3repository.h"
 
 namespace Database {

@@ -9,6 +9,8 @@
 #include "id3tagreader/idtag.h"
 #include "common/filesystemadditions.h"
 
+namespace Database {
+
 class SongTagReader {
 
     struct TagItem {
@@ -28,7 +30,8 @@ class SongTagReader {
     TagList::iterator find(const std::string& searchName) {
         auto it = std::find_if(std::begin(m_tagList),
                              std::end(m_tagList),
-                             [&searchName](const TagItem& item){ return item.fullSearchName == searchName; }
+                             [&searchName](const TagItem& item)
+        { return item.fullSearchName == searchName; }
         );
         return it;
     }
@@ -37,7 +40,9 @@ class SongTagReader {
 public:
     void readSongTagFile();
 
-    std::vector<Tag> findSongTagList(const std::string& albumName, const std::string& titleName, const std::string& performerName) const;
+    std::vector<Tag> findSongTagList(const std::string& albumName,
+                                     const std::string& titleName,
+                                     const std::string& performerName) const;
 
     std::string convert (Tag tag) {
         return TagConverter::getTagName(tag);
@@ -51,5 +56,7 @@ public:
         return tagNameList.str();
     }
 };
+
+}
 
 #endif // SONGTAGREADER_H

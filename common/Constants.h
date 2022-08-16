@@ -9,6 +9,7 @@ namespace ServerConstant {
     extern sv base_path;
 
     static constexpr auto tagFile {sv("tag.data")};
+    static constexpr auto credentialFile{sv("credential.data")};
 
     static constexpr auto audioPathMp3 {sv("audioMp3")};
     static constexpr auto audioPathJson {sv("audioJson")};
@@ -20,9 +21,11 @@ namespace ServerConstant {
     static constexpr auto coverPathWebAlien {sv("img_alien")};
     static constexpr auto cachePath {sv("cache")};
     static constexpr auto tagPath {sv("tag")};
+    static constexpr auto credentialPath {sv("credential")};
     static constexpr auto tmpPath {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
     static constexpr auto mp3Extension{sv(".mp3")};
+
 
     static constexpr int seekForwardSeconds {20};
     static constexpr int seekBackwardSeconds {-20};

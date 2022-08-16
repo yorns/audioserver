@@ -531,11 +531,16 @@ int main(int argc, char* argv[])
 
     websocketSonginfoSenderTimer.start();
 
-    auto sessionCreator = [&sessionHandler](tcp::socket&& socket) {
+    database.loadDatabase();
+
+    auto sessionCreator = [&sessionHandler, &database](tcp::socket&& socket) {
         static uint32_t sessionId { 0 };
-        logger(Level::debug) << "--- new session created with ID <" << sessionId << "> ---\n";
+        logger(Level::info) << "--- new session created with ID <" << sessionId << "> ---\n";
         std::string localHtmlDir { Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Html) };
-        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), sessionId++)->start();
+        std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), [&database]
+                                  (const std::string& name){
+            logger(Level::info) << "audioServer::sessionCreator\n";
+            return database.passwordFind(name); },  sessionId++)->start();
     };
 
 
@@ -548,7 +553,6 @@ int main(int argc, char* argv[])
 
     logger(Level::info) << "Rest Accesspoints:\n" << sessionHandler.generateRESTInterfaceDocumentation();
 
-    database.loadDatabase();
 
     logger(Level::info) << "server started\n";
 

@@ -6,7 +6,7 @@
 #include "common/mime_type.h"
 #include "common/Constants.h"
 #include "common/logger.h"
-
+#include "common/base64.h"
 
 
 void Session::fail(boost::system::error_code ec, const std::string& what) {
@@ -18,13 +18,13 @@ void Session::fail(boost::system::error_code ec, const std::string& what) {
 void Session::start() {
     auto self { shared_from_this() };
 
-    logger(Level::debug) << "<" << m_runID << "> " << "request from client started\n";
+    logger(Level::info) << "<" << m_runID << "> " << "request from client started\n";
     std::shared_ptr<http::request_parser<http::empty_body>> requestHandler(new http::request_parser<http::empty_body>);
     requestHandler->body_limit(std::numeric_limits<std::uint64_t>::max());
 
     http::async_read_header(m_socket, m_buffer, *requestHandler,
                             [this, self, requestHandler]( boost::system::error_code ec, std::size_t bytes_transferred) {
-        logger(Level::debug) << "<" << m_runID << "> " << "read header finished\n";
+        logger(Level::info) << "<" << m_runID << "> " << "read header finished\n";
         on_read_header(requestHandler, ec, bytes_transferred);
     });
 }
@@ -61,6 +61,9 @@ std::shared_ptr<http::response<http::string_body>> Session::generate_result_pack
     auto res = std::make_shared<http::response<http::string_body>>(status, version);
     res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res->set(http::field::content_type, mime_type);
+//    if (status == http::status::unauthorized)
+        res->set(http::field::www_authenticate, "Basic");
+
     res->keep_alive(keep_alive);
     res->body() = why;
     res->prepare_payload();
@@ -73,7 +76,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 
     boost::ignore_unused(bytes_transferred);
 
-    logger(Level::info) << "received:\n" << requestHandler_sp->get() << "\n";
+    //logger(Level::info) << "received:\n" << requestHandler_sp->get() << "\n";
 
     // This means they closed the connection
     if (ec == http::error::end_of_stream) {
@@ -86,7 +89,48 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     }
 
     auto rangeString = requestHandler_sp->get()[http::field::range];
-    //auto encoding = requestHandler_sp->get()[http::field::accept_encoding];
+    auto auth = requestHandler_sp->get()[http::field::authorization];
+
+    logger(Level::info) << "auth orig: "<<auth<<"\n";
+
+    if (auth.empty() || auth.size() < 7) {
+        // read until finished
+        logger(Level::debug) << "<" << m_runID << "> " << "unathorized access\n";
+        answer(generate_result_packet(http::status::unauthorized,
+                                             "Unauthorized", requestHandler_sp->get().version(),
+                                             requestHandler_sp->get().keep_alive()));
+        return;
+
+    } else {
+        auto authVec = utility::base64_decode(std::string(auth.substr(6)));
+        std::string authString (authVec.begin(),authVec.end());
+        std::string name = authString.substr(0,authString.find_last_of(':'));
+        std::string pw = authString.substr(authString.find_last_of(':')+1);
+        logger(Level::info) << "<"<<name<<"> <"<<pw<<">\n";
+        std::optional<std::string> password = m_passwordFind(name);
+        logger(Level::info) << "<"<<name<<"> password is <"<<*password<<">\n";
+
+        if (!password->empty() && !password) {
+            logger(Level::error) << "What the heck! optional is running mad!!\n";
+            abort();
+        }
+
+        if (!password) {
+            logger(Level::info) << "<" << m_runID << "> " << "unathorized access - no password set\n";
+            answer(generate_result_packet(http::status::unauthorized,
+                                                 "Unauthorized", requestHandler_sp->get().version(),
+                                                 requestHandler_sp->get().keep_alive()));
+            return;
+        }
+        if (*password != pw) {
+            logger(Level::info) << "<" << m_runID << "> " << "unathorized access - password does not match\n";
+            answer(generate_result_packet(http::status::unauthorized,
+                                                 "Unauthorized", requestHandler_sp->get().version(),
+                                                 requestHandler_sp->get().keep_alive()));
+            return;
+        }
+
+    }
 
     std::optional<http_range> rangeData;
     if (!rangeString.empty()) {
@@ -416,9 +460,13 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
 }
 
 
-Session::Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath, uint32_t runId)
-        : m_socket(std::move(socket)), m_sessionHandler(sessionHandler), m_filePath(std::move(filePath)), m_runID(runId)
+Session::Session(tcp::socket socket, SessionHandler& sessionHandler, std::string&& filePath,
+                 PasswordFind&& _passwordFind, uint32_t runId)
+        : m_passwordFind(std::move(_passwordFind)), m_socket(std::move(socket)),
+          m_sessionHandler(sessionHandler), m_filePath(std::move(filePath)), m_runID(runId)
 {
+    logger(Level::info) << "Session::Session\n";
+
 }
 
 void Session::do_close() {

@@ -12,7 +12,8 @@ enum class FileType {
     CoversRelative,
     Html,
     Cache,
-    Tag
+    Tag,
+    Credential
 };
 
 }

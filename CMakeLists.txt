@@ -4,6 +4,8 @@ project(audioServer)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+set(Boost_USE_STATIC_LIBS   ON)
+
 # we use boost information from cmake -DBOOST_DIR
 if (BOOST_DIR)
   set(Boost_NO_BOOST_CMAKE ON)
