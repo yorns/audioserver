@@ -3,6 +3,8 @@
 #include <boost/filesystem.hpp>
 #include <functional>
 #include <boost/uuid/uuid_io.hpp>
+#include <stack>
+#include <variant>
 
 #include "common/filesystemadditions.h"
 #include "common/logger.h"
@@ -317,6 +319,94 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const boost::uuids::uui
     return playlist;
 }
 
+std::vector<Playlist> PlaylistContainer::upn_playlist(std::vector<std::string>& whatList) {
+
+    typedef std::variant<std::string, bool> upn_value;
+
+    std::vector<Playlist> retList;
+
+    if (whatList.size() < 2) {
+        return retList;
+    }
+
+    std::for_each(std::begin(m_playlists), std::end(m_playlists),
+                  [&whatList, &retList](const Playlist& info){
+
+        std::stack<upn_value> stack;
+
+        if (whatList.size() > 1) {
+
+        for (auto& it : whatList) {
+
+            if (it == "&" || it == "|") {
+
+                if (stack.size() < 2) {
+                    logger (Level::warning) << "evaluation failed: not enough data\n";
+                    break;
+                }
+
+                upn_value value1 = stack.top();
+                stack.pop();
+
+                upn_value value2 = stack.top();
+                stack.pop();
+
+
+                bool evaluate1{false};
+                bool evaluate2{false};
+
+
+                if (const bool* tmp = std::get_if<bool>(&value1)) {
+                    evaluate1 = *tmp;
+                }
+                else {
+                    evaluate1 = (info.getNameLower().find(std::get<std::string>(value1)) != std::string::npos ||
+                            info.getPerformerLower().find(std::get<std::string>(value1)) != std::string::npos);
+
+                }
+
+                if (const bool* tmp = std::get_if<bool>(&value2)) {
+                    evaluate2 = *tmp;
+                }
+                else {
+                    evaluate2 = (info.getNameLower().find(std::get<std::string>(value2)) != std::string::npos ||
+                            info.getPerformerLower().find(std::get<std::string>(value2)) != std::string::npos);
+                }
+
+                if (it == "&")
+                    stack.push(evaluate1 && evaluate2);
+
+                if (it == "|")
+                    stack.push(evaluate1 || evaluate2);
+
+                logger (Level::info) << "push: <"<< (std::get<bool>(stack.top())?"true":"false") << ">\n";
+
+            }
+            else {
+                logger (Level::info) << "push <"<<it<<">\n";
+                stack.push(it);
+            }
+
+        }
+
+        if (stack.size() != 1) {
+            logger(Level::warning) << "find mechanism failed (stack is " << stack.size() << "\n";
+        } else {
+            if (const bool* tmp = std::get_if<bool>(&stack.top())) {
+                if (*tmp == true)
+                        retList.push_back(info);
+            } else {
+                logger(Level::warning) << "find mechanism failed - no bool evaluation\n";
+            }
+        }
+
+        }
+    });
+
+    return retList;
+}
+
+
 std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what, SearchAction action) {
 
     std::vector<Playlist> playlist;
@@ -342,6 +432,7 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
         break;
     }
     case SearchAction::alike: {
+
         auto whatList = Common::extractWhatList(what);
 
         std::string seperator;
@@ -350,7 +441,20 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
             tmp << seperator << whatElem;
             seperator = ", ";
         }
-        logger(Level::debug) << "alike seaching for string <" << what << "> (" << tmp.str() << ")\n";
+        logger(Level::debug) << "alike playlist seaching for string <" << what << "> (" << tmp.str() << ")\n";
+
+        bool is_upn {false};
+
+        std::for_each (std::begin(whatList), std::end(whatList), [&is_upn](const std::string& index){
+            if (index == "&" || index == "|")
+                is_upn = true;
+        });
+
+        if(is_upn) {
+            playlist = upn_playlist(whatList);
+        }
+        else {
+
 
         for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
             bool found {true};
@@ -368,6 +472,7 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
 
             if (found)
                 playlist.push_back(*playlistItem);
+        }
         }
         break;
     }

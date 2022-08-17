@@ -26,6 +26,8 @@ class PlaylistContainer {
     std::vector<Playlist> m_playlists;
     std::optional<boost::uuids::uuid> m_currentPlaylist;
 
+    std::vector<Playlist> upn_playlist(std::vector<std::string>& whatList);
+
 public:
 
     void addPlaylist(Playlist&& playlist);

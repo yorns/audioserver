@@ -72,6 +72,8 @@ class Id3Repository
                             [&url](const Id3Info& elem) { return elem.informationSource == url; }) != std::cend(m_simpleDatabase);
     }
 
+    std::vector<Id3Info> upn(std::vector<std::string>& whatlist, SearchItem item);
+
 public:
 
     Id3Repository(bool enableCache) : m_enableCache(enableCache) {}

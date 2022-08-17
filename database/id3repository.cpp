@@ -7,6 +7,7 @@
 #include "common/albumlist.h"
 #include <iterator>
 #include <vector>
+#include <stack>
 
 using namespace Database;
 using namespace LoggerFramework;
@@ -518,6 +519,67 @@ std::vector<Id3Info> Id3Repository::search(const boost::uuids::uuid &what, Searc
     return findData;
 }
 
+std::vector<Id3Info> Id3Repository::upn(std::vector<std::string>& whatList, SearchItem item) {
+
+    std::stack<std::string> stack;
+    std::vector<Id3Info> retList;
+
+    if (whatList.size() < 2) {
+        return retList;
+    }
+
+    for (auto& it : whatList) {
+        if (it == "&" || it=="|") {
+            if (stack.size() < 2) {
+                logger (Level::warning) << "UPN failed\n";
+                break;
+            }
+            auto value1 = stack.top();
+            stack.pop();
+            auto value2 = stack.top();
+            stack.pop();
+
+            std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),[&value1, &value2, &item, &it, &retList](const Id3Info& info){
+                if (it == "&") {
+
+                    if (((item == SearchItem::title || item == SearchItem::overall) &&
+                         (info.title_name.find(value1) != std::string::npos &&
+                          info.title_name.find(value2) != std::string::npos)) ||
+                            ((item == SearchItem::album || item == SearchItem::overall) &&
+                             (info.album_name.find(value1) != std::string::npos &&
+                              info.album_name.find(value2) != std::string::npos)) ||
+                            ((item == SearchItem::performer || item == SearchItem::overall) &&
+                             (info.performer_name.find(value1) != std::string::npos &&
+                              info.performer_name.find(value2) != std::string::npos)
+                             )) {
+                        retList.push_back(info);
+                    }
+
+                }
+                if (it == "|") {
+                    if (((item == SearchItem::title || item == SearchItem::overall) &&
+                         (info.title_name.find(value1) != std::string::npos ||
+                          info.title_name.find(value2) != std::string::npos)) ||
+                            ((item == SearchItem::album || item == SearchItem::overall) &&
+                             (info.album_name.find(value1) != std::string::npos ||
+                              info.album_name.find(value2) != std::string::npos)) ||
+                            ((item == SearchItem::performer || item == SearchItem::overall) &&
+                             (info.performer_name.find(value1) != std::string::npos ||
+                              info.performer_name.find(value2) != std::string::npos)
+                             )) {
+                        retList.push_back(info);
+                    }
+                }
+            });
+        } else {
+            stack.push(it);
+        }
+
+    }
+
+    return retList;
+}
+
 std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem item, SearchAction action) {
 
     std::vector<Id3Info> findData;
@@ -539,32 +601,40 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
     else {
         auto whatList = Common::extractWhatList(what);
 
-        std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
-                      [&whatList, &what, &findData, item, action](const Id3Info &info) {
-            if (action == SearchAction::alike) {
-                if (((item == SearchItem::title || item == SearchItem::overall) &&
-                     (info.isAlikeTitle(whatList))) ||
-                    ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
-                     (info.isAlikeAlbum(whatList))) ||
-                    ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
-                     (info.isAlikeTag(whatList))) ||
-                    ((item == SearchItem::performer || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
-                     (info.isAlikePerformer(whatList)))) {
-                    findData.push_back(info);
-                }
-            }
-            else {
+        if(item == SearchItem::overall &&
+                ( what.find_first_of(" & ") != std::string::npos ||
+                  what.find_first_of(" | ") != std::string::npos )
+                ) {
+            findData = upn(whatList, item);
+        }
+        else {
 
-                if (((item == SearchItem::title || item == SearchItem::overall) &&
-                     (info.title_name == what)) ||
-                        ((item == SearchItem::album || item == SearchItem::overall) &&
-                         (info.album_name == what)) ||
-                        ((item == SearchItem::performer || item == SearchItem::overall) &&
-                         (info.performer_name == what))) {
-                    findData.push_back(info);
+            std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
+                          [&whatList, &what, &findData, item, action](const Id3Info &info) {
+                if (action == SearchAction::alike) {
+                    if (((item == SearchItem::title || item == SearchItem::overall) &&
+                         (info.isAlikeTitle(whatList))) ||
+                            ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                             (info.isAlikeAlbum(whatList))) ||
+                            ((item == SearchItem::album || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                             (info.isAlikeTag(whatList))) ||
+                            ((item == SearchItem::performer || item == SearchItem::overall || item == SearchItem::album_and_interpret) &&
+                             (info.isAlikePerformer(whatList)))) {
+                        findData.push_back(info);
+                    }
                 }
-            }
-        });
+                else {
+                    if (((item == SearchItem::title || item == SearchItem::overall) &&
+                         (info.title_name == what)) ||
+                            ((item == SearchItem::album || item == SearchItem::overall) &&
+                             (info.album_name == what)) ||
+                            ((item == SearchItem::performer || item == SearchItem::overall) &&
+                             (info.performer_name == what))) {
+                        findData.push_back(info);
+                    }
+                }
+            });
+        }
     }
     return findData;
 }
