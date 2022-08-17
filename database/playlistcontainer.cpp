@@ -341,7 +341,7 @@ std::vector<Playlist> PlaylistContainer::upn_playlist(std::vector<std::string>& 
             if (it == "&" || it == "|") {
 
                 if (stack.size() < 2) {
-                    logger (Level::warning) << "evaluation failed: not enough data\n";
+                    //logger (Level::warning) << "evaluation failed: not enough data\n";
                     break;
                 }
 
@@ -379,18 +379,18 @@ std::vector<Playlist> PlaylistContainer::upn_playlist(std::vector<std::string>& 
                 if (it == "|")
                     stack.push(evaluate1 || evaluate2);
 
-                logger (Level::info) << "push: <"<< (std::get<bool>(stack.top())?"true":"false") << ">\n";
+                // logger (Level::info) << "push: <"<< (std::get<bool>(stack.top())?"true":"false") << ">\n";
 
             }
             else {
-                logger (Level::info) << "push <"<<it<<">\n";
+                // logger (Level::info) << "push <"<<it<<">\n";
                 stack.push(it);
             }
 
         }
 
         if (stack.size() != 1) {
-            logger(Level::warning) << "find mechanism failed (stack is " << stack.size() << "\n";
+            // logger(Level::warning) << "find mechanism failed (stack is " << stack.size() << "\n";
         } else {
             if (const bool* tmp = std::get_if<bool>(&stack.top())) {
                 if (*tmp == true)
