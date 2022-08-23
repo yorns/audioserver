@@ -35,7 +35,7 @@ void Playlist::setPerformer(const std::string &performer)
 }
 
 
-const std::vector<boost::uuids::uuid> &Playlist::getUniqueIdPlaylist() const
+const std::vector<boost::uuids::uuid> &Playlist::getUniqueAudioIdsPlaylist() const
 {
     return m_playlist;
 }
@@ -64,6 +64,11 @@ bool Playlist::delFromList(const boost::uuids::uuid &audioUID) {
 
     return false;
 }
+
+std::vector<boost::uuids::uuid> Playlist::getPlaylist() {
+    return m_playlist;
+}
+
 
 Playlist::Playlist(std::string filename, ReadType readType, Persistent persistent, Changed changed)
     : m_playlistFileName(std::move(filename)),

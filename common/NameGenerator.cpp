@@ -29,5 +29,11 @@ NameGenerator::GenerationName NameGenerator::create(const std::string &prefix, c
     return retName;
 }
 
+boost::uuids::uuid NameGenerator::createUuid() {
+    boost::uuids::random_generator generator;
+    boost::uuids::uuid name = generator();
+
+    return name;
+}
 
 }

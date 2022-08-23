@@ -41,15 +41,15 @@ public:
     bool readPlaylistsJson(Database::FindAlgo&& findUuidList, Database::InsertCover&& coverInsert);
     bool insertAlbumPlaylists(const std::vector<Common::AlbumListEntry>& albumList);
 
-    std::optional<std::string> createvirtual_m3u(const boost::uuids::uuid& playlistUuid) const;
+    std::optional<std::string> createvirtual_m3u(const boost::uuids::uuid& playlistUuid);
 
     bool writeChangedPlaylists();
 
     std::optional<std::string> convertName(const boost::uuids::uuid& name);
     std::optional<boost::uuids::uuid> convertName(const std::string& name);
 
-    std::optional<const std::vector<boost::uuids::uuid>> getPlaylistByName(const std::string& playlistName) const;
-    std::optional<const std::vector<boost::uuids::uuid>> getPlaylistByUID(const boost::uuids::uuid& uid) const;
+    std::optional<std::reference_wrapper<Playlist>> getPlaylistByName(const std::string& playlistName);
+    std::optional<std::reference_wrapper<Playlist>> getPlaylistByUID(const boost::uuids::uuid &uid);
 
     std::optional<const Playlist> getCurrentPlaylist() const;
     std::optional<const boost::uuids::uuid> getCurrentPlaylistUniqueID() const;
@@ -65,6 +65,13 @@ public:
 
     std::vector<Playlist> searchPlaylists(const std::string& what, SearchAction action = SearchAction::exact);
     std::vector<Playlist> searchPlaylists(const boost::uuids::uuid& what, SearchAction action = SearchAction::exact);
+
+    std::optional<const boost::uuids::uuid> getUIDByName(const std::string& name) {
+        auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&name](const Playlist& item){ return item.getName() == name; });
+        if (it != std::end(m_playlists))
+            return std::nullopt;
+        return it->getUniqueID();
+    }
 
     void insertTagsFromItems(const Database::Id3Repository& repository);
     void addTags(const std::vector<Tag>& tagList);

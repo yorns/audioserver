@@ -65,8 +65,8 @@ public:
     bool addToPlaylistName(const std::string &playlistName, std::string &&uniqueID);
     bool addNewAudioFileUniqueId(const Common::FileNameType &uniqueID);
 
-    std::optional<const std::vector<boost::uuids::uuid>> getPlaylistByName(const std::string& playlistName) const;
-    std::optional<const std::vector<boost::uuids::uuid>> getPlaylistByUID(const boost::uuids::uuid& playlistUniqueId) const;
+    std::optional<Playlist> getPlaylistByName(const std::string& playlistName);
+    std::optional<std::vector<boost::uuids::uuid>> getPlaylistByUID(const boost::uuids::uuid& playlistUniqueId);
 
     bool setCurrentPlaylistUniqueId(boost::uuids::uuid uniqueID);
 
@@ -87,10 +87,34 @@ public:
     std::optional<std::string> getFileFromUUID(boost::uuids::uuid& uuid);
 
     std::optional<std::string> getM3UPlaylistFromUUID(boost::uuids::uuid& uuid) {
-
         return m_playlistContainer.createvirtual_m3u(uuid);
-
     }
+
+    void addSingleSongToAlbumPlaylist(const boost::uuids::uuid& songId) {
+        if (auto info = m_id3Repository.getId3InfoByUid(songId)) {
+            logger(Level::info) << "found file <"<<info->title_name << "/"<<info->album_name<<"> to add\n";
+            if (auto pl_uid = getTemporalPlaylistByName(*info)) {
+                if (auto pl_ref = m_playlistContainer.getPlaylistByUID(*pl_uid)) {
+                    auto& pl = pl_ref->get();
+                    logger(Level::info) << "playlist (" << pl.getUniqueID()
+                                        << ") to add found/created: " << pl.getName()
+                                        << "/" << pl.getPerformer() << "\n";
+                    auto uuid = info->uid;
+                    //if (pl.getCover().empty())
+                        pl.setCover(info->urlCoverFile);
+                    pl.addToList(std::move(uuid));
+                }
+
+            } else {
+                logger(Level::warning) << "no playlist with the album name found or cannot be generated\n";
+            }
+        } else {
+            logger(Level::warning) << "no song with the given ID\n";
+        }
+    }
+
+    std::optional<boost::uuids::uuid> getTemporalPlaylistByName(const Id3Info &name);
+
 #ifdef WITH_UNITTEST
     bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }
 #endif

@@ -5,6 +5,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <stack>
 #include <variant>
+#include <exception>
 
 #include "common/filesystemadditions.h"
 #include "common/logger.h"
@@ -191,7 +192,7 @@ bool PlaylistContainer::insertAlbumPlaylists(const std::vector<AlbumListEntry> &
 
 void PlaylistContainer::insertTagsFromItems(const Database::Id3Repository& repository) {
     for(auto& elem : m_playlists) {
-        for (const auto& item : elem.getUniqueIdPlaylist()) {
+        for (const auto& item : elem.getUniqueAudioIdsPlaylist()) {
             if ( auto id3Info = repository.getId3InfoByUid(item)) {
                 elem.setTagList(id3Info->tags);
             }
@@ -214,14 +215,15 @@ void PlaylistContainer::addTags(const std::vector<Tag>& tagList) {
 }
 
 
-std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid) const {
+std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid)  {
 
-    const auto& list = getPlaylistByUID(playlistUuid);
+    if (getPlaylistByUID(playlistUuid)) {
+    auto list = getPlaylistByUID(playlistUuid)->get();
 //    nlohmann::json virtualPlaylistJson;
     nlohmann::json audioList;
     // std::stringstream m3uOutput;
-    if (list && list->size() > 0) {
-            for (const auto& elem : *list) {
+    if (list.getPlaylist().size() > 0) {
+            for (const auto& elem : list.getPlaylist()) {
                 std::stringstream id;
                 id << "/audio/" << elem << ".mp3";
                 audioList.push_back(id.str());
@@ -233,28 +235,30 @@ std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uui
     else {
         logger(Level::info) << "requested virtual playlist not found: " << playlistUuid << "\n";        
     }
+    }
     return std::nullopt;
 }
 
-std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlaylistByName(const std::string& playlistName) const {
+std::optional<std::reference_wrapper<Playlist>> PlaylistContainer::getPlaylistByName(const std::string& playlistName) {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                            [playlistName](const Playlist& elem) { return elem.getName() == playlistName; });
 
     if (it != std::end(m_playlists)) {
-        return it->getUniqueIdPlaylist();
+        logger(Level::debug) << "playlist found with <"<<it->getUniqueAudioIdsPlaylist().size()<<"> elements\n";
+        return *it;
     }
     return std::nullopt;
 
 }
 
-std::optional<const std::vector<boost::uuids::uuid>> PlaylistContainer::getPlaylistByUID(const boost::uuids::uuid &uid) const {
+std::optional<std::reference_wrapper<Playlist>> PlaylistContainer::getPlaylistByUID(const boost::uuids::uuid &uid) {
     auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                            [uid](const Playlist& elem) {
         return elem.getUniqueID() == uid; });
 
     if (it != std::end(m_playlists)) {
-        logger(Level::debug) << "playlist found with <"<<it->getUniqueIdPlaylist().size()<<"> elements\n";
-        return it->getUniqueIdPlaylist();
+        logger(Level::debug) << "playlist found with <"<<it->getUniqueAudioIdsPlaylist().size()<<"> elements\n";
+        return *it;
     }
     return std::nullopt;
 }

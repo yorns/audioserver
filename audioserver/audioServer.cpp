@@ -507,6 +507,7 @@ int main(int argc, char* argv[])
 
     auto uploadFinishHandler = [&database](const Common::NameGenerator::GenerationName& name)-> bool
     {
+        logger(Level::info) << "file upload was successfull, now add file to database\n";
         Common::FileNameType file;
         file.dir = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::AudioMp3);
         file.name = name.unique_id;

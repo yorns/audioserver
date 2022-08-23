@@ -127,9 +127,10 @@ public:
     std::string getNameLower() const { return m_item.m_name_lower; }
     std::string getPerformerLower() const { return m_item.m_performer_lower; }
 
-    const std::vector<boost::uuids::uuid>& getUniqueIdPlaylist() const;
+    const std::vector<boost::uuids::uuid>& getUniqueAudioIdsPlaylist() const;
     bool addToList(boost::uuids::uuid&& audioUID);
     bool delFromList(const boost::uuids::uuid& audioUID);
+    std::vector<boost::uuids::uuid> getPlaylist();
 
     bool readM3u();
     bool readJson(FindAlgo&& findAlgo, InsertCover&& insertCover);

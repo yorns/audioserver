@@ -61,7 +61,8 @@ class Id3Repository
 
     bool writeJson(nlohmann::json&& data, const std::string& filename) const;
 
-    bool add(std::optional<FullId3Information>&& audioItem);
+    // add a new entry to the audio repository with all information
+    std::optional<boost::uuids::uuid> add(std::optional<FullId3Information>&& audioItem);
 
     bool readCache();
     bool writeCacheInternal();
@@ -80,7 +81,8 @@ public:
 
     const CoverElement& getCover(const boost::uuids::uuid& coverUid) const;
 
-    bool add(const Common::FileNameType& file);
+    // entry point to add a new file
+    std::optional<boost::uuids::uuid> add(const Common::FileNameType& file);
     bool addCover(boost::uuids::uuid&& uuid, std::vector<char>&& data, std::size_t hash);
     bool remove(const boost::uuids::uuid& uuid);
 

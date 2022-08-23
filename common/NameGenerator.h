@@ -2,6 +2,7 @@
 #define SERVER_NAMEGENERATOR_H
 
 #include <string>
+#include <boost/uuid/uuid.hpp>
 
 namespace Common {
 
@@ -14,6 +15,8 @@ struct GenerationName {
 };
 
 extern GenerationName create(const std::string& prefix, const std::string& suffix);
+extern boost::uuids::uuid createUuid();
+
 
 }
 

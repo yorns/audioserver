@@ -18,13 +18,13 @@ void Session::fail(boost::system::error_code ec, const std::string& what) {
 void Session::start() {
     auto self { shared_from_this() };
 
-    logger(Level::info) << "<" << m_runID << "> " << "request from client started\n";
+    logger(Level::debug) << "<" << m_runID << "> " << "request from client started\n";
     std::shared_ptr<http::request_parser<http::empty_body>> requestHandler(new http::request_parser<http::empty_body>);
     requestHandler->body_limit(std::numeric_limits<std::uint64_t>::max());
 
     http::async_read_header(m_socket, m_buffer, *requestHandler,
                             [this, self, requestHandler]( boost::system::error_code ec, std::size_t bytes_transferred) {
-        logger(Level::info) << "<" << m_runID << "> " << "read header finished\n";
+        logger(Level::debug) << "<" << m_runID << "> " << "read header finished\n";
         on_read_header(requestHandler, ec, bytes_transferred);
     });
 }
@@ -91,7 +91,7 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
     auto rangeString = requestHandler_sp->get()[http::field::range];
     auto auth = requestHandler_sp->get()[http::field::authorization];
 
-    logger(Level::info) << "auth orig: "<<auth<<"\n";
+    logger(Level::debug) << "auth orig: "<<auth<<"\n";
 
     if (auth.empty() || auth.size() < 7) {
         // read until finished
@@ -106,17 +106,11 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         std::string authString (authVec.begin(),authVec.end());
         std::string name = authString.substr(0,authString.find_last_of(':'));
         std::string pw = authString.substr(authString.find_last_of(':')+1);
-        logger(Level::info) << "<"<<name<<"> <"<<pw<<">\n";
+        logger(Level::debug) << "<"<<name<<"> <"<<pw<<">\n";
         std::optional<std::string> password = m_passwordFind(name);
-        logger(Level::info) << "<"<<name<<"> password is <"<<*password<<">\n";
-
-        if (!password->empty() && !password) {
-            logger(Level::error) << "What the heck! optional is running mad!!\n";
-            abort();
-        }
 
         if (!password) {
-            logger(Level::info) << "<" << m_runID << "> " << "unathorized access - no password set\n";
+            logger(Level::warning) << "<" << m_runID << "> " << "unathorized access - no password set\n";
             answer(generate_result_packet(http::status::unauthorized,
                                                  "Unauthorized", requestHandler_sp->get().version(),
                                                  requestHandler_sp->get().keep_alive()));
@@ -137,11 +131,11 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
         logger(Level::debug) << "range is <"<< rangeString <<">\n";
         rangeData = http_range(std::string(rangeString));
         if (rangeData) {
-            logger(Level::info) << "range is <"<< rangeData->from << " to "<< rangeData->to <<">\n";
+            logger(Level::debug) << "range is <"<< rangeData->from << " to "<< rangeData->to <<">\n";
         }
     }
     else {
-        logger(Level::info) << "no range set\n";
+        logger(Level::debug) << "no range set\n";
     }
 
     logger(Level::debug) << "<" << m_runID << "> " << "reading target: " << requestHandler_sp->get().target() << "\n";

@@ -43,16 +43,20 @@ bool Id3Repository::addCover(boost::uuids::uuid&& uid, std::vector<char>&& data,
     return isUpdated;
 }
 
-bool Id3Repository::add(const Common::FileNameType& filename) {
-    if (add(m_tagReader.readJsonAudioInfo(filename))) {
+std::optional<boost::uuids::uuid> Id3Repository::add(const Common::FileNameType& filename) {
+
+    if (auto entry = add(m_tagReader.readJsonAudioInfo(filename))) {
         m_cache_dirty = true;
-        return true;
+        logger (Level::info) << "added info " << boost::lexical_cast<std::string>(*entry) << " to repository\n";
+        return entry;
     }
-    if (add(m_tagReader.readMp3AudioInfo(filename))) {
+    if (auto entry = add(m_tagReader.readMp3AudioInfo(filename))) {
         m_cache_dirty = true;
-        return true;
+        logger (Level::info) << "added song " << boost::lexical_cast<std::string>(*entry)
+                             << "(filename: " << filename.name << filename.extension << ") to repository\n";
+        return entry;
     }
-    return false;
+    return std::nullopt;
 }
 
 // from: http://www.zedwood.com/article/cpp-is-valid-utf8-string-function
@@ -270,12 +274,13 @@ bool Id3Repository::writeJson(nlohmann::json &&data, const std::string &filename
     return false;
 }
 
-bool Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
+std::optional<boost::uuids::uuid> Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
 
     if (audioItem) {
         auto uniqueID = audioItem->info.uid;
+        auto uniqueID_cp = uniqueID;
         try {
-        logger(Level::debug) << "adding audio file <" << boost::lexical_cast<std::string>(uniqueID)
+        logger(Level::info) << "adding audio file <" << audioItem->info.urlAudioFile << audioItem->info.audioFileExt //boost::lexical_cast<std::string>(uniqueID)
                              << "> ("<<audioItem->info.title_name <<"/" << audioItem->info.album_name << ") to database\n";
         } catch (std::exception& ex) {
             logger(LoggerFramework::Level::warning) << ex.what() << "\n";
@@ -285,10 +290,10 @@ bool Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
             if (addCover(std::move(uniqueID), std::move(audioItem->data), audioItem->hash))
                 logger(Level::debug) << "added audioItem <" << uniqueID << ">\n";
         }
-        return true;
+        return uniqueID_cp;
     }
 
-    return false;
+    return std::nullopt;
 }
 
 bool Id3Repository::readCache() {
@@ -372,8 +377,6 @@ bool Id3Repository::writeCacheInternal() {
     logger(Level::debug) << "writing cache\n";
 
     std::string id3CacheFileBase = "id3_cache";
-//    std::string id3CacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
-//            + "/id3_cache.json";
     std::string coverCacheFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
             + "/cover_cache.json";
 
