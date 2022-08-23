@@ -139,10 +139,7 @@ public:
 
     std::string getCover() const;
 
-    bool setCover(const std::string& coverUrl) {
-        m_coverName = coverUrl;
-        return true;
-    }
+    bool setCover(std::string coverUrl);
 
 };
 

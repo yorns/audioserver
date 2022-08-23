@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
         std::string title;
         std::string album;
         std::string performer;
-        std::string cover = "/img/unknown.png";
+        std::string cover = "img/unknown.png";
 
         auto emptyUID = boost::uuids::uuid();
         boost::uuids::uuid songID { emptyUID };
@@ -227,8 +227,10 @@ int main(int argc, char* argv[])
             logger(LoggerFramework::Level::info) << "update performer with <"<<performer<<">\n";
 
 
-            if (songData.size() > 0) {
+            if (songData.size() > 0 && !songData[0].urlCoverFile.empty()) {
                 cover = songData[0].urlCoverFile;
+            } else {
+                logger(LoggerFramework::Level::info) << "no cover set\n";
             }
             logger(LoggerFramework::Level::info) << "update cover with <"<<cover<<">\n";
 

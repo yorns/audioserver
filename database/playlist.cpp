@@ -307,3 +307,12 @@ std::string Playlist::getCover() const
     return m_coverName;
 }
 
+bool Playlist::setCover(std::string coverUrl) {
+    if (coverUrl.empty())
+        coverUrl = "img/unknown.png";
+
+    logger(LoggerFramework::Level::info) << "setCover: <"<<coverUrl<<">\n";
+    m_coverName = coverUrl;
+    return true;
+}
+
