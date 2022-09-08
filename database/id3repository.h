@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <boost/uuid/uuid.hpp>
+
 #include "searchitem.h"
 #include "searchaction.h"
 #include "id3tagreader/Id3Info.h"
@@ -14,10 +15,12 @@
 #include "common/filesystemadditions.h"
 #include "nlohmann/json.hpp"
 #include "songtagreader.h"
+#include "common/hash.h"
 
 using namespace LoggerFramework;
 
 namespace Database {
+
 
 enum class AddType {
     Id3,
@@ -25,26 +28,54 @@ enum class AddType {
 };
 
 struct CoverElement {
-    std::vector<boost::uuids::uuid> uidListForCover;
-    std::vector<char> rawData;
-    std::size_t hash {0};
+    std::vector<boost::uuids::uuid> uidListForCover; //< list of uuid of songs with the same cover (identified by hash)
+    std::vector<char> rawData; //< raw image binary
+    std::size_t hash {0}; //< hash value for the cover image
 
     CoverElement() = default;
 
-    bool isConnectedToUid(const boost::uuids::uuid& uid) const {
-        return std::find_if(std::cbegin(uidListForCover), std::cend(uidListForCover),
-                            [&uid](const boost::uuids::uuid& elem) { return uid == elem; } ) != std::cend(uidListForCover);
-    }
+    bool isConnectedToUid(const boost::uuids::uuid& uid) const;
 
     bool hasEqualHash(const std::size_t otherHash) { return hash == otherHash; }
 
     bool insertNewUid(boost::uuids::uuid&& newUid) { uidListForCover.emplace_back(std::move(newUid)); return true; }
+
 };
+
+const std::vector<CoverElement> coverFromJson(const std::string &filename);
+std::optional<nlohmann::json> coverToJson(const std::vector<CoverElement> &coverDb);
+bool writeJson(nlohmann::json &&data, const std::string &filename);
+
+class CoverDatabase {
+
+    std::vector<CoverElement> m_simpleCoverDatabase;
+
+public:
+    bool addCover(std::vector<char>&& rawData, const boost::uuids::uuid& _uid);
+
+    std::optional<std::reference_wrapper<const CoverElement>> getCover(const boost::uuids::uuid& uid) const {
+
+        const auto it = std::find_if(std::cbegin(m_simpleCoverDatabase), std::cend(m_simpleCoverDatabase),
+                            [&uid](const CoverElement& elem) { return elem.isConnectedToUid(uid); } );
+
+        if (it != std::cend(m_simpleCoverDatabase)) {
+            return *it;
+        }
+
+        return std::nullopt;
+    }
+
+    bool readCache(const std::string& coverCacheFile);
+
+    bool writeCache(const std::string& coverCacheFile);
+
+};
+
 
 class Id3Repository
 {
     std::vector<Id3Info> m_simpleDatabase;
-    std::vector<CoverElement> m_simpleCoverDatabase;
+    CoverDatabase m_simpleCoverDatabase;
 
     id3TagReader m_tagReader;
 
@@ -56,10 +87,10 @@ class Id3Repository
     std::optional<nlohmann::json> id3ToJson(const std::vector<Id3Info>::const_iterator& begin, const std::vector<Id3Info>::const_iterator& end) const;
     std::optional<nlohmann::json> id3ToJson(const std::vector<Id3Info>& id3Db) const;
     const std::vector<Id3Info> id3fromJson(const std::string& file) const ;
-    std::optional<nlohmann::json> coverToJson(const std::vector<CoverElement>& coverDb) const;
-    const std::vector<CoverElement> coverFromJson(const std::string& filename) const;
+//    std::optional<nlohmann::json> coverToJson(const std::vector<CoverElement>& coverDb) const;
+//    const std::vector<CoverElement> coverFromJson(const std::string& filename) const;
 
-    bool writeJson(nlohmann::json&& data, const std::string& filename) const;
+//    bool writeJson(nlohmann::json&& data, const std::string& filename) const;
 
     // add a new entry to the audio repository with all information
     std::optional<boost::uuids::uuid> add(std::optional<FullId3Information>&& audioItem);
@@ -67,11 +98,7 @@ class Id3Repository
     bool readCache();
     bool writeCacheInternal();
 
-    bool isCached(const std::string& url) const {
-        logger(LoggerFramework::Level::debug) << "cache test for url <"<<url<<">\n";
-        return std::find_if(std::cbegin(m_simpleDatabase), std::cend(m_simpleDatabase),
-                            [&url](const Id3Info& elem) { return elem.informationSource == url; }) != std::cend(m_simpleDatabase);
-    }
+    bool isCached(const std::string& url) const;
 
     std::vector<Id3Info> upn(std::vector<std::string>& whatlist, SearchItem item);
 
@@ -83,7 +110,7 @@ public:
 
     // entry point to add a new file
     std::optional<boost::uuids::uuid> add(const Common::FileNameType& file);
-    bool addCover(boost::uuids::uuid&& uuid, std::vector<char>&& data, std::size_t hash);
+    bool addCover(boost::uuids::uuid&& uuid, std::vector<char>&& data);
     bool remove(const boost::uuids::uuid& uuid);
 
     void addTags(const SongTagReader& songTagReader);
@@ -105,9 +132,7 @@ public:
     bool utf8_check_is_valid(const std::string& string) const;
 
     bool read();
-    bool writeCache() {
-        return writeCacheInternal();
-    }
+    bool writeCache();
 
 #ifdef WITH_UNITTEST
     bool add(Id3Info&& info) { m_simpleDatabase.emplace_back(info); return true; }

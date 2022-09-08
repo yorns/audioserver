@@ -10,8 +10,8 @@ void SimpleDatabase::loadDatabase() {
 
     // some helper lambdas
     auto addPlaylistCover = [this](boost::uuids::uuid uid, 
-            std::vector<char>&& data, std::size_t hash)
-    { m_id3Repository.addCover(std::move(uid), std::move(data), hash); };
+            std::vector<char>&& data)
+    { m_id3Repository.addCover(std::move(uid), std::move(data)); };
     
     auto findAudioIds = [this](const std::string& what, SearchItem searchItem) {
         std::vector<boost::uuids::uuid> uuidsFound;
@@ -173,7 +173,7 @@ std::vector<Id3Info> SimpleDatabase::getIdListOfItemsInPlaylistId(const boost::u
     std::vector<Id3Info> itemList;
     if (auto playlistNameOpt = m_playlistContainer.getPlaylistByUID(uniqueId)) {
         for (auto playlistItemUID : playlistNameOpt->get().getPlaylist()) {
-            auto id3 = m_id3Repository.search(playlistItemUID, SearchItem::overall, SearchAction::uniqueId);
+            auto id3 = m_id3Repository.search(playlistItemUID, SearchItem::uid, SearchAction::uniqueId);
             if (id3.size() == 1) {
                 itemList.push_back(id3.front());
             }
@@ -260,4 +260,26 @@ std::optional<std::string> SimpleDatabase::getFileFromUUID(boost::uuids::uuid &u
     }
     logger(Level::warning) << "requested uuid <" << uuid << "> not found\n";
     return std::nullopt;
+}
+
+void SimpleDatabase::addSingleSongToAlbumPlaylist(const boost::uuids::uuid &songId) {
+    if (auto info = m_id3Repository.getId3InfoByUid(songId)) {
+        logger(Level::info) << "found file <"<<info->title_name << "/"<<info->album_name<<"> to add\n";
+        if (auto pl_uid = getTemporalPlaylistByName(*info)) {
+            if (auto pl_ref = m_playlistContainer.getPlaylistByUID(*pl_uid)) {
+                auto& pl = pl_ref->get();
+                logger(Level::info) << "playlist (" << pl.getUniqueID()
+                                    << ") to add found/created: " << pl.getName()
+                                    << "/" << pl.getPerformer() << "\n";
+                auto uuid = info->uid;
+                pl.setCover(info->urlCoverFile);
+                pl.addToList(std::move(uuid));
+            }
+
+        } else {
+            logger(Level::warning) << "no playlist with the album name found or cannot be generated\n";
+        }
+    } else {
+        logger(Level::warning) << "no song with the given ID\n";
+    }
 }

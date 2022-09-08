@@ -16,6 +16,8 @@ enum class Level {
 
 extern Level globalLevel;
 
+extern void setGlobalLevel(Level level);
+
 template<class IO>
 class Logger
 {

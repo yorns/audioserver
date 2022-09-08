@@ -228,7 +228,7 @@ std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uui
                 id << "/audio/" << elem << ".mp3";
                 audioList.push_back(id.str());
             }
-            logger(Level::debug) << "created list: " << audioList.dump(2) << "\n";
+            //logger(Level::debug) << "created list: " << audioList.dump(2) << "\n";
             return audioList.dump(2);
         
     }

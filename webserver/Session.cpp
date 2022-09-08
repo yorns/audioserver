@@ -415,6 +415,8 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
     // try finding file within the virtual/cache filesystem
     if(method == http::verb::get || method == http::verb::head) {
 
+        logger(Level::info) << "try finding <"<< target << "> within the virtual/cache filesystem\n";
+
         if ( auto virtualData = m_sessionHandler.getVirtualImage(target) ) {
             logger(Level::debug) << "<"<<m_runID<< "> virtual image file found as <"<<target<<">\n";
             // Cache the size since we need it after the move

@@ -2,22 +2,9 @@
 #define SERVER_ID3TAGREADER_H
 
 #include "Id3Info.h"
-#include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
 #include <optional>
-
-#include <fstream>
-#include <fileref.h>
-#include <mpegfile.h>
-#include <id3v2tag.h>
-#include <id3v2frame.h>
-#include <id3v2header.h>
-#include <id3v1tag.h>
-#include <attachedpictureframe.h>
-
-#include "common/logger.h"
-#include "common/Constants.h"
-#include "common/NameGenerator.h"
+#include <vector>
+#include "Id3Info.h"
 #include "common/filesystemadditions.h"
 
 struct FullId3Information {

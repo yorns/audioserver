@@ -1,7 +1,11 @@
+#include "id3repository.h"
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/string_generator.hpp>
-#include "id3repository.h"
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+
 #include "common/Constants.h"
 #include "common/filesystemadditions.h"
 #include "common/albumlist.h"
@@ -15,27 +19,96 @@ using namespace Common;
 
 namespace fs = boost::filesystem;
 
-bool Id3Repository::addCover(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash) {
+bool Database::writeJson(nlohmann::json &&data, const std::string &filename) {
+    std::ofstream of(filename.c_str());
 
-    logger(Level::debug) << "add cover to database\n";
-    auto coverIt = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
-                                [&hash](const CoverElement& elem){ return elem.hash == hash; });
-
-    bool isUpdated { false };
-
-    if (coverIt == std::end(m_simpleCoverDatabase)) {
-        logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << hash << std::dec << ")\n";
-        CoverElement coverElem;
-        coverElem.insertNewUid(std::move(uid));
-        coverElem.hash = hash;
-        coverElem.rawData = std::move(data);
-        m_simpleCoverDatabase.emplace_back(coverElem);
-        isUpdated = true;
+    if (of.good()) {
+        of << data.dump(2);
+        of.close();
+        return true;
     }
-    else {
-        logger(Level::debug) << "    -----  cover known (0x"<< std::hex << hash << std::dec << ")\n";
-        isUpdated = coverIt->insertNewUid(std::move(uid));
+
+    return false;
+}
+
+
+const std::vector<CoverElement> Database::coverFromJson(const std::string &filename) {
+    std::vector<CoverElement> coverList;
+
+    if (fs::exists(filename)) {
+        FullId3Information fullInfo;
+        try {
+            std::ifstream streamInfoFile(filename.c_str());
+            nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
+            for (const auto& elem : streamInfo) {
+                CoverElement coverElement;
+                coverElement.hash = elem["Hash"];
+                //auto vec = utility::base64_decode(elem["Cover"]);
+                //coverElement.rawData = std::move(vec);
+                for (const auto& uidElem : elem["UidList"]) {
+                    coverElement.uidListForCover.push_back(boost::lexical_cast<boost::uuids::uuid>(std::string(uidElem)));
+                }
+                coverList.emplace_back(coverElement);
+            }
+        } catch (std::exception& ex) {
+            logger(Level::warning) << "error parsing <"<< filename <<"> : " << ex.what() << "\n";
+            return {};
+        }
     }
+
+    return coverList;
+}
+
+std::optional<nlohmann::json> Database::coverToJson(const std::vector<CoverElement> &coverDb) {
+
+    nlohmann::json data;
+
+    try {
+        for (const auto& elem : coverDb) {
+            nlohmann::json jsonElem;
+            jsonElem["Hash"] = elem.hash;
+            jsonElem["HasCover"] = !elem.rawData.empty();
+            //if (!elem.rawData.empty()) {
+            //    jsonElem["Cover"] = utility::base64_encode(elem.rawData.data(), static_cast<uint32_t>(elem.rawData.size()));
+            //}
+            auto& uidList = jsonElem["UidList"];
+            for(const auto& uidElem : elem.uidListForCover)
+                uidList.push_back(boost::uuids::to_string(uidElem));
+            logger(LoggerFramework::Level::debug) << "reading cover hash <" << elem.hash << ">\n";
+            data.push_back(jsonElem);
+        }
+    } catch (std::exception& ex) {
+        logger(Level::warning) << "error in creationg Json for coverElement list: " << ex.what() << "\n";
+        return std::nullopt;
+    }
+
+    return std::optional<nlohmann::json>(data);
+}
+
+
+bool Id3Repository::addCover(boost::uuids::uuid&& uid, std::vector<char>&& data) {
+
+    bool isUpdated = m_simpleCoverDatabase.addCover(std::move(data), uid);
+
+//    logger(Level::debug) << "add cover to database\n";
+//    auto coverIt = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
+//                                [&hash](const CoverElement& elem){ return elem.hash == hash; });
+
+//    bool isUpdated { false };
+
+//    if (coverIt == std::end(m_simpleCoverDatabase)) {
+//        logger(Level::debug) << " +++++ unknown cover adding (0x"<< std::hex << hash << std::dec << ")\n";
+//        CoverElement coverElem;
+//        coverElem.insertNewUid(std::move(uid));
+//        coverElem.hash = hash;
+//        coverElem.rawData = std::move(data);
+//        m_simpleCoverDatabase.emplace_back(coverElem);
+//        isUpdated = true;
+//    }
+//    else {
+//        logger(Level::debug) << "    -----  cover known (0x"<< std::hex << hash << std::dec << ")\n";
+//        isUpdated = coverIt->insertNewUid(std::move(uid));
+//    }
 
     if (isUpdated)
         m_cache_dirty = true;
@@ -63,7 +136,7 @@ std::optional<boost::uuids::uuid> Id3Repository::add(const Common::FileNameType&
 bool Id3Repository::utf8_check_is_valid(const std::string& string) const
 {
     int c,i,ix,n,j;
-    for (i=0, ix=string.length(); i < ix; i++)
+    for (i=0, ix=(int)string.length(); i < ix; i++)
     {
         c = (unsigned char) string[i];
         //if (c==0x09 || c==0x0a || c==0x0d || (0x20 <= c && c <= 0x7e) ) n = 0; // is_printable_ascii
@@ -123,7 +196,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
         return std::nullopt;
     }
 
-    return data;
+    return std::optional<nlohmann::json>(data);
 
 
 }
@@ -157,7 +230,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             jsonElem["AlbumCreation"] = id3Elem.albumCreation;
             jsonElem["Disk"] = id3Elem.cd_no;
             jsonElem["Url"] = id3Elem.urlAudioFile;
-            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
+            jsonElem["lesCoverUrl"] = id3Elem.urlCoverFile;
             data.push_back(jsonElem);
         }
 
@@ -166,7 +239,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
         return std::nullopt;
     }
 
-    return data;
+    return std::optional<nlohmann::json>(data);
 
 }
 
@@ -209,70 +282,8 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
 
 }
 
-std::optional<nlohmann::json> Id3Repository::coverToJson(const std::vector<CoverElement> &coverDb) const {
 
-    nlohmann::json data;
 
-    try {
-        for (const auto& elem : coverDb) {
-            nlohmann::json jsonElem;
-            jsonElem["Hash"] = elem.hash;
-            jsonElem["HasCover"] = !elem.rawData.empty();
-            //if (!elem.rawData.empty()) {
-            //    jsonElem["Cover"] = utility::base64_encode(elem.rawData.data(), static_cast<uint32_t>(elem.rawData.size()));
-            //}
-            auto& uidList = jsonElem["UidList"];
-            for(const auto& uidElem : elem.uidListForCover)
-                uidList.push_back(boost::uuids::to_string(uidElem));
-            logger(LoggerFramework::Level::debug) << "reading cover hash <" << elem.hash << ">\n";
-            data.push_back(jsonElem);
-        }
-    } catch (std::exception& ex) {
-        logger(Level::warning) << "error in creationg Json for coverElement list: " << ex.what() << "\n";
-        return std::nullopt;
-    }
-
-    return data;
-}
-
-const std::vector<CoverElement> Id3Repository::coverFromJson(const std::string &filename) const {
-    std::vector<CoverElement> coverList;
-
-    if (fs::exists(filename)) {
-        FullId3Information fullInfo;
-        try {
-            std::ifstream streamInfoFile(filename.c_str());
-            nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
-            for (const auto& elem : streamInfo) {
-                CoverElement coverElement;
-                coverElement.hash = elem["Hash"];
-                //auto vec = utility::base64_decode(elem["Cover"]);
-                //coverElement.rawData = std::move(vec);
-                for (const auto& uidElem : elem["UidList"]) {
-                    coverElement.uidListForCover.push_back(boost::lexical_cast<boost::uuids::uuid>(std::string(uidElem)));
-                }
-                coverList.emplace_back(coverElement);
-            }
-        } catch (std::exception& ex) {
-            logger(Level::warning) << "error parsing <"<< filename <<"> : " << ex.what() << "\n";
-            return {};
-        }
-    }
-
-    return coverList;
-}
-
-bool Id3Repository::writeJson(nlohmann::json &&data, const std::string &filename) const {
-    std::ofstream of(filename.c_str());
-
-    if (of.good()) {
-        of << data.dump(2);
-        of.close();
-        return true;
-    }
-
-    return false;
-}
 
 std::optional<boost::uuids::uuid> Id3Repository::add(std::optional<FullId3Information>&& audioItem) {
 
@@ -285,9 +296,14 @@ std::optional<boost::uuids::uuid> Id3Repository::add(std::optional<FullId3Inform
         } catch (std::exception& ex) {
             logger(LoggerFramework::Level::warning) << ex.what() << "\n";
         }
+        if (!audioItem->pictureAvailable || audioItem->info.urlCoverFile.empty()) {
+            audioItem->info.urlCoverFile = "img/unknown.png";
+            audioItem->info.coverFileExt = ".png";
+        }
+
         m_simpleDatabase.emplace_back(std::move(audioItem->info));
         if (audioItem->pictureAvailable) {
-            if (addCover(std::move(uniqueID), std::move(audioItem->data), audioItem->hash))
+            if (addCover(std::move(uniqueID), std::move(audioItem->data)))
                 logger(Level::debug) << "added audioItem <" << uniqueID << ">\n";
         }
         return uniqueID_cp;
@@ -308,6 +324,7 @@ bool Id3Repository::readCache() {
             + "/cover_cache.json";
 
 
+    // read audio cach information
     auto cacheFileList = Common::FileSystemAdditions::getAllFilesInDir(FileType::Cache);
     for (auto file : cacheFileList) {
         if ( file.extension == ".json" &&
@@ -319,45 +336,8 @@ bool Id3Repository::readCache() {
             m_simpleDatabase.insert(m_simpleDatabase.end(), std::begin(id3DatabaseList), std::end(id3DatabaseList));
         }
     }
-    // read image cache
-    auto coverDatabaseList = coverFromJson(coverCacheFile);
-    for (auto& elem : coverDatabaseList) {
-        fs::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
-                + "/" + std::to_string(elem.hash) + ".cache";
-        if (fs::exists(filename)) {
-            logger(Level::debug) << "reading file: " << filename <<"\n";
-            std::ifstream ofs(filename.c_str(), std::ios::binary);
-            ofs.unsetf(std::ios::skipws);
-            if (ofs.good()) {
 
-                std::streampos fileSize;
-
-                ofs.seekg(0, std::ios::end);
-                fileSize = ofs.tellg();
-                ofs.seekg(0, std::ios::beg);
-
-                // reserve capacity
-                elem.rawData.reserve(static_cast<std::vector<uint8_t>::size_type>(fileSize));
-                elem.rawData.insert(elem.rawData.begin(),
-                                    std::istream_iterator<uint8_t>(ofs),
-                                    std::istream_iterator<uint8_t>());
-
-
-
-            }
-            else {
-                logger(Level::warning) << "cannot read file <"<<filename<<">\n";
-            }
-        }
-        else {
-            logger(Level::warning) << "file <"<<filename<<"> does not exist\n";
-        }
-
-
-    }
-
-    // convert json to cover Database
-    m_simpleCoverDatabase.insert(m_simpleCoverDatabase.end(), std::begin(coverDatabaseList), std::end(coverDatabaseList));
+    m_simpleCoverDatabase.readCache(coverCacheFile);
 
     return true;
 }
@@ -414,38 +394,16 @@ bool Id3Repository::writeCacheInternal() {
         i++;
     }
     std::cerr << "\n";
-    // write cover database
 
-    logger(Level::info) << "writing <" << m_simpleCoverDatabase.size() << "> cover data entries\n";
-    uint64_t entryCounter {0};
-    std::for_each(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
-                  [&entryCounter](const auto& elem) { entryCounter += elem.uidListForCover.size(); } );
-    logger(Level::info) << "medial number of items with same cover: " << entryCounter/m_simpleCoverDatabase.size() << "\n";
-    auto jsonCover = coverToJson(m_simpleCoverDatabase);
-    if (jsonCover)
-        writeJson(std::move(*jsonCover), coverCacheFile);
-
-    logger(Level::info) << "writing cover cache files\n";
-
-    for (const auto& elem : m_simpleCoverDatabase) {
-        fs::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache) +
-                "/" + std::to_string(elem.hash) + ".cache";
-        // write image if file does not exists
-        if (!fs::exists(filename)) {
-            logger(Level::debug) << "creating file: " << filename <<"\n";
-            std::ofstream ofs(filename.c_str(), std::ios::binary);
-            if (ofs.good()) {
-                for(const auto& val : elem.rawData)
-                    ofs << val;
-            }
-            else {
-                logger(Level::warning) << "cannot create file <"<<filename<<">\n";
-            }
-        }
-
-    }
+    m_simpleCoverDatabase.writeCache(coverCacheFile);
 
     return true;
+}
+
+bool Id3Repository::isCached(const std::string &url) const {
+    logger(LoggerFramework::Level::debug) << "cache test for url <"<<url<<">\n";
+    return std::find_if(std::cbegin(m_simpleDatabase), std::cend(m_simpleDatabase),
+                        [&url](const Id3Info& elem) { return elem.informationSource == url; }) != std::cend(m_simpleDatabase);
 }
 
 bool Id3Repository::remove(const boost::uuids::uuid& uniqueID) {
@@ -593,7 +551,7 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
             std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
                           [&whatUuid, &findData](const Id3Info &info) {
                 if (info.uid == whatUuid) {
-                    logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
+                    logger(Level::info) << "found uniqueId search: " << info.toString() <<"\n";
                     findData.push_back(info);
                 }
             });
@@ -736,6 +694,10 @@ bool Id3Repository::read() {
     return true;
 }
 
+bool Id3Repository::writeCache() {
+    return writeCacheInternal();
+}
+
 void Id3Repository::addTags(const SongTagReader& songTagReader)
 {
     for (auto& elem : m_simpleDatabase) {
@@ -756,13 +718,118 @@ void Id3Repository::addTags(const SongTagReader& songTagReader)
 }
 
 const CoverElement &Id3Repository::getCover(const boost::uuids::uuid& coverUid) const {
-    auto it = std::find_if(std::begin(m_simpleCoverDatabase),
-                           std::end(m_simpleCoverDatabase),
-                           [&coverUid](const CoverElement& elem){
-        return elem.isConnectedToUid(coverUid);
-    });
-    if (it != std::end(m_simpleCoverDatabase)) {
-        return *it;
+
+    if (auto elem = m_simpleCoverDatabase.getCover(coverUid)) {
+        return elem->get();
     }
+
     return emptyElement;
+}
+
+bool CoverElement::isConnectedToUid(const boost::uuids::uuid &uid) const {
+    return std::find_if(std::cbegin(uidListForCover), std::cend(uidListForCover),
+                        [&uid](const boost::uuids::uuid& elem) { return uid == elem; } ) != std::cend(uidListForCover);
+}
+
+bool CoverDatabase::addCover(std::vector<char> &&rawData, const boost::uuids::uuid &_uid) {
+    auto uid {_uid};
+    std::size_t hash = Common::genHash(rawData);
+
+    auto it = std::find_if(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
+                           [&hash](const CoverElement& elem) { return hash == elem.hash; } );
+
+    // is there a cover with this hash?
+    if (it != std::cend(m_simpleCoverDatabase)) {
+        // add the current audio uid
+        it->insertNewUid(std::move(uid));
+        return true;
+    }
+
+    // if cover not found (by hash), create new cover element
+    CoverElement elem;
+    elem.hash = hash;
+    elem.rawData = move(std::move(rawData));
+    elem.insertNewUid(std::move(uid));
+
+    m_simpleCoverDatabase.emplace_back(std::move(elem));
+
+    return true;
+}
+
+bool CoverDatabase::readCache(const std::string &coverCacheFile)
+{
+    // read image cache information
+    auto coverDatabaseList = coverFromJson(coverCacheFile);
+    for (auto& elem : coverDatabaseList) {
+        boost::filesystem::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
+                + "/" + std::to_string(elem.hash) + ".cache";
+        if (boost::filesystem::exists(filename)) {
+            logger(Level::debug) << "reading file: " << filename <<"\n";
+            std::ifstream ofs(filename.c_str(), std::ios::binary);
+            ofs.unsetf(std::ios::skipws);
+            if (ofs.good()) {
+
+                std::streampos fileSize;
+
+                ofs.seekg(0, std::ios::end);
+                fileSize = ofs.tellg();
+                ofs.seekg(0, std::ios::beg);
+
+                // reserve capacity
+                elem.rawData.reserve(static_cast<std::vector<uint8_t>::size_type>(fileSize));
+                elem.rawData.insert(elem.rawData.begin(),
+                                    std::istream_iterator<uint8_t>(ofs),
+                                    std::istream_iterator<uint8_t>());
+
+                m_simpleCoverDatabase.emplace_back(std::move(elem));
+
+            }
+            else {
+                logger(Level::warning) << "cannot read file <"<<filename<<">\n";
+                return false;
+            }
+        }
+        else {
+            logger(Level::warning) << "file <"<<filename<<"> does not exist\n";
+        }
+
+    }
+
+    return true;
+}
+
+bool CoverDatabase::writeCache(const std::string &coverCacheFile) {
+    // write cover database
+
+    logger(Level::info) << "writing <" << m_simpleCoverDatabase.size() << "> cover data entries\n";
+    uint64_t entryCounter {0};
+    std::for_each(std::begin(m_simpleCoverDatabase), std::end(m_simpleCoverDatabase),
+                  [&entryCounter](const auto& elem) { entryCounter += elem.uidListForCover.size(); } );
+    logger(Level::info) << "medial number of items with same cover: " << entryCounter/m_simpleCoverDatabase.size() << "\n";
+    auto jsonCover = coverToJson(m_simpleCoverDatabase);
+    if (jsonCover)
+        writeJson(std::move(*jsonCover), coverCacheFile);
+
+    logger(Level::info) << "writing cover cache files\n";
+
+    for (const auto& elem : m_simpleCoverDatabase) {
+        boost::filesystem::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache) +
+                "/" + std::to_string(elem.hash) + ".cache";
+        // write image if file does not exists
+        if (!boost::filesystem::exists(filename)) {
+            logger(Level::debug) << "creating file: " << filename <<"\n";
+            std::ofstream ofs(filename.c_str(), std::ios::binary);
+            if (ofs.good()) {
+                for(const auto& val : elem.rawData)
+                    ofs << val;
+            }
+            else {
+                logger(Level::warning) << "cannot create file <"<<filename<<">\n";
+                return false;
+            }
+        }
+
+    }
+
+    return true;
 }

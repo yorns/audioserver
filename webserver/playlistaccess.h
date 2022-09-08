@@ -10,8 +10,8 @@
 
 class PlaylistAccess
 {
-    Database::SimpleDatabase& m_database;
-    std::unique_ptr<BasePlayer>& m_player;
+    std::shared_ptr<Database::SimpleDatabase> m_database;
+    std::shared_ptr<BasePlayer> m_player;
 
     std::string convertToJson(const std::optional<std::vector<Id3Info>> list);
     std::string convertToJson(const std::vector<Database::Playlist> list);
@@ -27,7 +27,7 @@ class PlaylistAccess
     std::string getCurrentPlaylistUID(const std::string& value);
 
 public:
-    PlaylistAccess(Database::SimpleDatabase& simpleDatabase, std::unique_ptr<BasePlayer>& player)
+    PlaylistAccess(std::shared_ptr<Database::SimpleDatabase> simpleDatabase, std::shared_ptr<BasePlayer> player)
         : m_database(simpleDatabase), m_player(player) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);

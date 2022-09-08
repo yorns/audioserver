@@ -1,6 +1,10 @@
 #ifndef GSTPLAYER_H
 #define GSTPLAYER_H
 
+#include "config/system_config.h"
+
+#ifdef HAVE_GST
+
 #include "Player.h"
 #include <gst/gst.h>
 #include <memory>
@@ -80,4 +84,53 @@ public:
 
 };
 
+#else
+
+// code for a dummy GST-player
+
+#include "Player.h"
+#include <boost/asio.hpp>
+
+class GstPlayer  : public BasePlayer
+{
+
+    virtual void stopAndRestart() {}
+
+public:
+    GstPlayer(boost::asio::io_context& ) {}
+
+    bool setVolume(uint32_t) { return false; }
+
+    bool startPlay(const boost::uuids::uuid& songUID, uint32_t position) { return false; }
+
+    bool stop() { return false; }
+
+    virtual bool stopPlayerConnection() { return false; }
+
+    bool seek_forward() { return false; }
+
+    bool seek_backward() { return false; }
+
+    bool next_file()  { return false; }
+    bool prev_file()  { return false; }
+
+    bool pause_toggle() { return false; }
+
+    bool jump_to_position(int percent)  { return false; }
+
+    bool jump_to_fileUID(const boost::uuids::uuid& fileId)  { return false; }
+
+    const std::string getTitle() const final { return ""; }
+    const std::string getAlbum() const final { return ""; }
+    const std::string getPerformer() const final { return ""; }
+
+    const std::string getSongName() const final { return ""; }
+    boost::uuids::uuid getSongID() const final { return boost::uuids::uuid(); }
+
+    int getSongPercentage() const final { return 0; }
+
+
+};
+
+#endif
 #endif // GSTPLAYER_H

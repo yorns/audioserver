@@ -50,7 +50,7 @@ struct PlaylistItem {
 };
 
 typedef std::function<std::vector<boost::uuids::uuid>(const std::string& what, SearchItem searchItem)> FindAlgo;
-typedef std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)> InsertCover;
+typedef std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data)> InsertCover;
 
 class Playlist {
     std::string m_playlistFileName;

@@ -102,7 +102,7 @@ class Session : public std::enable_shared_from_this<Session>
             do_close();
         }
         else {
-            logger(Level::info) << "<"<<m_runID<< "> keep alive set, start next receive\n";
+            logger(Level::debug) << "<"<<m_runID<< "> keep alive set, start next receive\n";
             start();
         }
         return true;
@@ -118,12 +118,12 @@ class Session : public std::enable_shared_from_this<Session>
                 return;
             }
 
-            logger(Level::info) << "<"<<m_runID<< "> resonse send without an error\n";
+            logger(Level::debug) << "<"<<m_runID<< "> resonse send without an error\n";
             if (!(response->keep_alive())) {
                 do_close();
             }
             else {
-                logger(Level::info) << "<"<<m_runID<< "> keep alive set, start next receive\n";
+                logger(Level::debug) << "<"<<m_runID<< "> keep alive set, start next receive\n";
                 start();
             }
         });

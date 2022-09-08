@@ -20,6 +20,7 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
             json.push_back(jentry);
         }
     }
+    //logger(Level::info) << json.dump(2)<<"\n";
     return json.dump(2);
 }
 
@@ -61,7 +62,7 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
     logger(Level::info) << "database access cmd <"<<command<<"> parameter:<"<<parameter<<"> value:<"<<value<<">\n";
 
     if (parameter == ServerConstant::Command::getAlbumList) {
-        auto list = m_database.searchPlaylistItems(value, Database::SearchAction::alike);
+        auto list = m_database->searchPlaylistItems(value, Database::SearchAction::alike);
 
         std::sort(std::begin(list), std::end(list), [](Database::Playlist& item1, Database::Playlist& item2) { return item1.getUniqueID() > item2.getUniqueID(); });
 
@@ -69,26 +70,29 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
     }
 
     if ( parameter == ServerConstant::Parameter::Database::overall )
-        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::overall, Database::SearchAction::exact));
+        return convertToJson(m_database->searchAudioItems(value, Database::SearchItem::overall, Database::SearchAction::exact));
 
     if ( parameter == ServerConstant::Parameter::Database::performer )
-        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::performer, Database::SearchAction::exact));
+        return convertToJson(m_database->searchAudioItems(value, Database::SearchItem::performer, Database::SearchAction::exact));
 
     if ( parameter == ServerConstant::Parameter::Database::title )
-        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::title, Database::SearchAction::exact));
+        return convertToJson(m_database->searchAudioItems(value, Database::SearchItem::title, Database::SearchAction::exact));
 
     if ( parameter == ServerConstant::Parameter::Database::album )
-        return convertToJson(m_database.searchAudioItems(value, Database::SearchItem::album, Database::SearchAction::exact));
+        return convertToJson(m_database->searchAudioItems(value, Database::SearchItem::album, Database::SearchAction::exact));
 
     if ( parameter == ServerConstant::Parameter::Database::uid ){
-        auto uidData = m_database.searchAudioItems(value, Database::SearchItem::uid , Database::SearchAction::uniqueId);
+        auto uidData = m_database->searchAudioItems(value, Database::SearchItem::uid , Database::SearchAction::uniqueId);
         logger(Level::debug) << "audio item uid found <"<<uidData.size()<<"> elements\n";
-        if (uidData.size()>0)
-            return convertToJson(uidData);
+        if (uidData.size()>0) {
+            auto retJson = convertToJson(uidData);
+            logger(Level::info) << retJson;
+            return retJson;
+        }
     }
 
     if (parameter == ServerConstant::Parameter::Database::playlist ) {
-        auto plData = m_database.searchPlaylistItems(value);
+        auto plData = m_database->searchPlaylistItems(value);
         logger(Level::debug) << "playlist uid found <"<<plData.size()<<"> elements\n";
         if (plData.size() > 0)
             return convertToJson(plData);
@@ -113,7 +117,7 @@ std::optional<std::vector<char> > DatabaseAccess::getVirtualFile(const std::stri
                 return std::nullopt;
             }
 
-            return m_database.getCover(std::move(uid));
+            return m_database->getCover(std::move(uid));
         }
     }
     return std::nullopt;

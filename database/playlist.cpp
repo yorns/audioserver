@@ -110,7 +110,7 @@ void Playlist::setPersistent(const Persistent &persistent)
     m_persistent = persistent;
 }
 
-bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data, std::size_t hash)>&& coverInsert)
+bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uuid&& uid, std::vector<char>&& data)>&& coverInsert)
 {
 
     std::vector<boost::uuids::uuid> playlist;
@@ -134,9 +134,8 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         /* image handling */
         if (streamInfo.find("Image") != std::end(streamInfo)) {
             coverData = utility::base64_decode(streamInfo.at("Image"));
-            auto hash = Common::genHash(coverData);
             auto coverUid = uid;
-            coverInsert(std::move(coverUid), std::move(coverData), hash);
+            coverInsert(std::move(coverUid), std::move(coverData));
             coverUrl = std::string(ServerConstant::coverPathWeb) + "/"
                     + boost::lexical_cast<std::string>(uid) + extension;
 
@@ -311,7 +310,7 @@ bool Playlist::setCover(std::string coverUrl) {
     if (coverUrl.empty())
         coverUrl = "img/unknown.png";
 
-    logger(LoggerFramework::Level::info) << "setCover: <"<<coverUrl<<">\n";
+    logger(LoggerFramework::Level::debug) << "setCover: <"<<coverUrl<<">\n";
     m_coverName = coverUrl;
     return true;
 }

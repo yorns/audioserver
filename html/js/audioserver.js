@@ -182,7 +182,7 @@ function showTitle(titleInfo) {
 
     $("#actSong").html(allTitle);
     if ($("#actCover").attr("src") != titleInfo.cover) {
-        console.log("set cover");
+        console.log("set cover to "+titleInfo.cover);
         $("#actCover").attr("src", titleInfo.cover);
     }
 
@@ -258,27 +258,26 @@ function onPlayerMessage(msg, isBrowserCall) {
        console.log("playlist has changed - update (", playlistID, ")");
        if (playlistID != "00000000-0000-0000-0000-000000000000") {
            localDisplayData.loadPlaylist(playlistID, function(playlist) {
-                                         console.log("playlist loaded");
+		 console.log("playlist loaded");
 
-                                         setPlaylist(playlist);
-                                         showPlaylist(playlist);
-                                         unshowTitle(titleInfo);
-                                         unemphTableEntry(localDisplayData.songID);
-                                         handleShuffle();
-                                         if (playing) {
-                                             showTitle(titleInfo);
-                                             emphTableEntry(msg.songID);
-                                         }
-                                        else {
-                                            console.log("system is silent");
-                                        }
-                                        localDisplayData.setLocalDisplayData(msg, isBrowserCall);
-                                        });
+		 setPlaylist(playlist);
+		 showPlaylist(playlist);
+		 unshowTitle(titleInfo);
+		 unemphTableEntry(localDisplayData.songID);
+		 handleShuffle();
+		 if (playing) {
+		     showTitle(titleInfo);
+		     emphTableEntry(msg.songID);
+		 }
+		else {
+		    console.log("system is silent");
+		}
+		localDisplayData.setLocalDisplayData(msg, isBrowserCall);
+		});
         }
         else {
             unshowPlaylist();
             unshowTitle();
-            localDisplayData.cover = "/img/unknown.png";
             localDisplayData.setLocalDisplayData(msg, isBrowserCall);
             showTitle();
         }
@@ -289,6 +288,7 @@ function onPlayerMessage(msg, isBrowserCall) {
             unemphTableEntry(localDisplayData.songID);
             if (playing) {
                 emphTableEntry(msg.songID);
+console.log("cover set to "+msg.cover);
             }
          }
          else {
@@ -297,8 +297,12 @@ function onPlayerMessage(msg, isBrowserCall) {
              else
                  console.log("system is silent - playing");
          }
-        showTitle(titleInfo);
+//            unshowTitle();
+//            localDisplayData.cover = "/img/unknown.png";
+console.log("again cover: "+msg.cover);
         localDisplayData.setLocalDisplayData(msg, isBrowserCall);        
+        showTitle(titleInfo);
+//        alert("image 2");
     }
 
     showPlayerData(localDisplayData);

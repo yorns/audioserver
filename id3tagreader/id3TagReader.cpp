@@ -1,10 +1,27 @@
 #include "id3TagReader.h"
-#include "nlohmann/json.hpp"
-#include "common/hash.h"
-#include "common/base64.h"
+
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
+#include <fstream>
+#include <fileref.h>
+#include <mpegfile.h>
+#include <id3v2tag.h>
+#include <id3v2frame.h>
+#include <id3v2header.h>
+#include <id3v1tag.h>
+#include <attachedpictureframe.h>
 #include <mp4file.h>
 #include <cctype>
-#include <boost/uuid/uuid_io.hpp>
+
+#include "common/logger.h"
+#include "common/Constants.h"
+#include "common/NameGenerator.h"
+#include "common/hash.h"
+#include "common/base64.h"
+
+#include "nlohmann/json.hpp"
 
 namespace fs = boost::filesystem;
 using namespace LoggerFramework;
@@ -130,6 +147,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             } catch (std::exception& ex) {
                 logger(LoggerFramework::Level::warning) << ex.what() << "\n";
             }
+            info.urlCoverFile = "img/unknown.png";
 
             FullId3Information fullId3Info;
             fullId3Info.info = std::move(info);
@@ -165,6 +183,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
 
                     logger(Level::debug) << "image found for <" << fullId3Info.info.toString() << ">\n";
                 }
+
             }
 
             if (!fullId3Info.pictureAvailable)
@@ -191,6 +210,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                 // TODO read CD number information
                 info.urlAudioFile = fileUrl;
                 info.informationSource = fileUrl;
+                info.urlCoverFile = "img/unknown.png";
                 info.finishEntry();     // help search by adding strings on lowercase
             } catch (std::exception& ex) {
                 logger(LoggerFramework::Level::warning) << ex.what() << "\n";
@@ -222,6 +242,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
                 info.performer_name = idData->artist().to8Bit(true);
                 info.album_name = idData->album().to8Bit(true);
                 info.track_no = idData->track();
+                info.urlCoverFile = "img/unknown.png";
                 info.all_tracks_no = 0; // no API to get overall number of tracks (even, when it is hold)
                 // TRCK (Track number/Position in set): 14/14
                 auto disk = idData->itemListMap().find("disk");

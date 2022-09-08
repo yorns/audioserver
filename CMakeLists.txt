@@ -4,9 +4,11 @@ project(audioServer)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-set(Boost_USE_STATIC_LIBS   ON)
+# in case this should be generated for an external system, all libs should be static
+set(Boost_USE_STATIC_LIBS ON)
 
 # we use boost information from cmake -DBOOST_DIR
+# typically cmake -DBOOST_DIR=/opt/booooost/ ..
 if (BOOST_DIR)
   set(Boost_NO_BOOST_CMAKE ON)
   set(BOOST_ROOT ${BOOST_DIR}) # This can be also set via cmake -DBOOST_ROOT=...
@@ -18,6 +20,7 @@ endif (BOOST_DIR)
 find_package(snc QUIET CONFIG)
 if(NOT snc_FOUND)
     include(FetchContent)
+    message(INFO "fetching snc git")
     FetchContent_Declare(
       snc
       GIT_REPOSITORY https://github.com/yorns/snc.git
@@ -33,8 +36,27 @@ find_package(nlohmann_json REQUIRED)
 include(createdirs)
 include(FindPkgConfig)
 
+if (NOT PKG_CONFIG_FOUND)
+    message(FATAL_ERROR "no pkgConfig found in your system")
+endif()
+
+# taglib is mandatory
 pkg_search_module(TagLib REQUIRED IMPORTED_TARGET taglib)
-pkg_check_modules(GST REQUIRED IMPORTED_TARGET gstreamer-1.0)
+
+# gstreamer can be omitted
+if (WITH_GST)
+  message("User request, so find gstreamer libraries")
+  pkg_check_modules(GST IMPORTED_TARGET gstreamer-1.0)
+endif()
+
+if (NOT GST_FOUND)
+    message(STATUS "gstreamer not found, web only version is generated!")
+else()
+    message(STATUS "gstreamer found!")
+    option(HAVE_GST "Enable Foo" ON)
+endif()
+
+configure_file(cmake/config.h.in config/system_config.h)
 
 add_library(common)
 add_subdirectory(common)
@@ -79,15 +101,19 @@ add_subdirectory(playerinterface)
 target_compile_features(playerinterface PUBLIC cxx_std_17)
 target_include_directories(playerinterface
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 )
+if (GST_FOUND)
 target_link_libraries(playerinterface PUBLIC PkgConfig::GST)
+endif()
+
 target_link_libraries(playerinterface
     PUBLIC
     Boost::boost
 )
 
-
 add_executable(${PROJECT_NAME})
+target_compile_options(${PROJECT_NAME} PRIVATE -g -O0)
 
 add_subdirectory(audioserver)
 add_subdirectory(webserver)
@@ -206,6 +232,7 @@ if (WITH_ADD)
             Threads::Threads
     )
 
+if (NOT WITHOUT_GST)
     target_link_libraries(
             gstTest
             PUBLIC
@@ -214,6 +241,7 @@ if (WITH_ADD)
             Boost::headers
             Threads::Threads
     )
+endif()
 
     target_link_libraries(
             urlTest

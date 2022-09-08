@@ -1,5 +1,6 @@
 #include "gstplayer.h"
 
+#ifdef HAVE_GST
 
 gboolean GstPlayer::_handle_message(GstBus *, GstMessage *msg) {
 
@@ -467,3 +468,5 @@ int GstPlayer::getSongPercentage() const {
     return 0;
 
 }
+
+#endif

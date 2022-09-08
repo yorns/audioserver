@@ -7,7 +7,7 @@ using namespace LoggerFramework;
 
 std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
-    if (!urlInfo || urlInfo->m_parameterList.size() != 1) {
+    if (!hasPlayer() || !urlInfo || urlInfo->m_parameterList.size() != 1) {
         logger(Level::warning) << "invalid url given for database access\n";
         return R"({"result": "illegal url given" })";
     }

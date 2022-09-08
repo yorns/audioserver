@@ -24,4 +24,6 @@ target_sources(common
     hash.h
     base64.cpp
     base64.h
+    misc.cpp
+    misc.h
 )

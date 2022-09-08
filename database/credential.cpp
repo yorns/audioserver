@@ -2,8 +2,6 @@
 
 std::optional<std::string> Database::Credential::passwordFind(const std::string &name) {
 
-    logger(Level::info) << "Credential::passwordFind\n";
-
     std::vector<std::tuple<std::string, std::string>>::iterator pw =  std::find_if(
                 begin(credentialList),
                 end(credentialList),
@@ -16,10 +14,9 @@ std::optional<std::string> Database::Credential::passwordFind(const std::string 
         return std::nullopt;
 
     std::optional<std::string> ret(std::get<1>(*pw));
-    //ret.value() = ;
 
     if (ret)
-        logger(Level::info) << "password found\n";
+        logger(Level::debug) << "password found\n";
 
     return ret;
 }
