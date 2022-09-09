@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "webserver/sessionhandler.h"
-#include "snc/client.h"
+#include <snc/client.h>
 #include "playerinterface/Player.h"
 #include "database/SimpleDatabase.h"
 #include "logger.h"

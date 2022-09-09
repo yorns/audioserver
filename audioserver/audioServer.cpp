@@ -17,7 +17,7 @@
 #include "common/logger.h"
 #include "common/generalPlaylist.h"
 #include "common/repeattimer.h"
-#include "config/config.h"
+#include "common/config.h"
 
 #include "webserver/Listener.h"
 #include "webserver/Session.h"
@@ -38,9 +38,9 @@ using namespace std::chrono_literals;
 
 int helpOutput(const char* command) {
     logger(Level::info) <<
-        "Usage:" << command << " [config file name]\n" <<
-        "Example:\n" <<
-        "    "<< command <<" /my/path/config.json\n";
+                           "Usage:" << command << " [config file name]\n" <<
+                           "Example:\n" <<
+                           "    "<< command <<" /my/path/config.json\n";
     return EXIT_FAILURE;
 }
 
@@ -88,42 +88,25 @@ int main(int argc, char* argv[])
     logger(Level::info) << "connection client <audioserver> to broker\n";
     std::shared_ptr<snc::Client> sncClient; // = std::make_shared<snc::Client>("audioserver", ioc, "127.0.0.1", 12001);
 
-    /* generate the databe and fill it */
-    std::shared_ptr<Database::SimpleDatabase> database = std::make_shared<Database::SimpleDatabase>(config->m_enableCache);
-    database->loadDatabase();
-
     /* generate a wifi manager */
     WifiManager wifiManager;
-    std::shared_ptr<BasePlayer> player(nullptr);
-
-    /* generate the player */
-    if (config->isPlayerType(Common::Config::PlayerType::GstPlayer)) {
-        player = std::shared_ptr<BasePlayer>(new GstPlayer(ioc));
-        player->setAmplify(config->m_amplify);
-    }
-    if (config->isPlayerType(Common::Config::PlayerType::MpvPlayer)) {
-        player = std::shared_ptr<BasePlayer>(new MpvPlayer(ioc));
-        player->setAmplify(config->m_amplify);
-    }
-
-    if (!player) {
-        logger(Level::info) << "no player set, using web version only\n";
-    }
 
     /* generate dynamic access point */
     SessionHandler sessionHandler;
-    DatabaseAccess databaseWrapper(database);
-    PlayerAccess   playerWrapper(player);
+    DatabaseAccess databaseWrapper(std::make_shared<Database::SimpleDatabase>(config->m_enableCache));
+    PlayerAccess   playerWrapper(config, ioc);
     WifiAccess     wifiWrapper(wifiManager);
-    PlaylistAccess playlistWrapper(database, player);
+    PlaylistAccess playlistWrapper(databaseWrapper, playerWrapper);
+
+    databaseWrapper.loadDatabase();
 
     /* create a new full qualified name (with uuid) */
     auto generateName = []() -> Common::NameGenerator::GenerationName
     {
-        auto name = Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::AudioMp3) , ".mp3");
-        logger(Level::debug) << "generating file name: " << name.filename << "\n";
-        return name;
-    };
+            auto name = Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::AudioMp3) , ".mp3");
+            logger(Level::debug) << "generating file name: " << name.filename << "\n";
+            return name;
+};
 
     /* handler that is called, when upload has finished for a specific file */
     auto uploadFinishHandler = [&databaseWrapper](const Common::NameGenerator::GenerationName& name)-> bool
@@ -143,7 +126,7 @@ int main(int argc, char* argv[])
         std::string localHtmlDir { Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Html) };
         std::make_shared<Session>(std::move(socket), sessionHandler, std::move(localHtmlDir), [&databaseWrapper]
                                   (const std::string& name){
-            logger(Level::info) << "audioServer::sessionCreator\n";
+            logger(Level::debug) << "audioServer::sessionCreator\n";
             return databaseWrapper.getDatabase()->passwordFind(name); },  sessionId++)->start();
     };
 
@@ -154,13 +137,13 @@ int main(int argc, char* argv[])
         });
     }
 
-    if (player) {
+    if (playerWrapper.hasPlayer()) {
         auto songEndCallback = [&sessionHandler, &sncClient, & playerWrapper, &databaseWrapper](const boost::uuids::uuid& songID){
             boost::ignore_unused(songID);
             Common::audioserver_updateUI(sessionHandler, sncClient, playerWrapper, databaseWrapper);
             logger(Level::info) << "end handler called for current song\n";
         };
-      player->setSongEndCB(std::move(songEndCallback));
+        playerWrapper.setSongEndCB(std::move(songEndCallback));
     }
 
     /* set session handler for different access points (mostly REST) */
@@ -219,7 +202,7 @@ int main(int argc, char* argv[])
     /*  */
     sessionHandler.addVirtualPlaylistHandler([&databaseWrapper]
                                              (const std::string_view& target)
-       { return databaseWrapper.virtualPlaylistHandler(target); } );
+    { return databaseWrapper.virtualPlaylistHandler(target); } );
 
     sessionHandler.addUploadHandler(ServerConstant::AccessPoints::upload,
                                     generateName,
@@ -231,8 +214,6 @@ int main(int argc, char* argv[])
     websocketSonginfoSenderTimer.setHandler([&sessionHandler, &sncClient, &playerWrapper, &databaseWrapper](){
         if (playerWrapper.hasPlayer()) {
             Common::audioserver_updateUI(sessionHandler, sncClient, playerWrapper, databaseWrapper);
-
-        //    updateUI();
         }
     });
 

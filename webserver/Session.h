@@ -97,7 +97,7 @@ class Session : public std::enable_shared_from_this<Session>
             do_close();
             return false;
         }
-        logger(Level::info) << "<"<<m_runID<< "> resonse send without an error\n";
+        logger(Level::debug) << "<"<<m_runID<< "> resonse send without an error\n";
         if (!keep_alive) {
             do_close();
         }

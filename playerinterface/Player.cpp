@@ -192,3 +192,35 @@ void BasePlayer::setPlaylistEndCB(PlaylistEndCallback&& endfunc) {
 void BasePlayer::setSongEndCB(SongEndCallback&& endfunc) {
     m_songEndCallback = std::move(endfunc);
 }
+
+void BasePlayer::resetPlayer() {
+
+    m_shuffle = false;
+    m_doCycle = false;
+    m_isPlaying = false;
+    m_pause = false;
+    m_single = false;
+
+    m_playlist.clear();
+    m_playlist_orig.clear();
+    m_currentItemIterator = m_playlist.end();
+    m_playlistUniqueId = boost::uuids::uuid();
+    m_playlistName = "";
+
+}
+
+bool BasePlayer::setPlaylist(const Common::AlbumPlaylistAndNames &albumPlaylistAndNames) {
+
+    if (albumPlaylistAndNames.m_playlist.empty()) {
+        logger(LoggerFramework::Level::warning) << "playing failed, no album list set\n";
+        return false;
+    }
+
+    m_playlist = albumPlaylistAndNames.m_playlist;
+    m_playlist_orig = albumPlaylistAndNames.m_playlist;
+    m_currentItemIterator = m_playlist.begin();
+    m_playlistUniqueId = albumPlaylistAndNames.m_playlistUniqueId;
+    m_playlistName = albumPlaylistAndNames.m_playlistName;
+
+    return true;
+}

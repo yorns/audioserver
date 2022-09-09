@@ -372,7 +372,7 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
 
     auto const size = body.size();
 
-    logger(Level::info) << "<"<<m_runID<< "> returning reguar file <"<< path <<">\n";
+    logger(Level::debug) << "<"<<m_runID<< "> returning reguar file <"<< path <<">\n";
     // Respond to GET request
     auto status = with_range?http::status::partial_content:http::status::ok;
 
@@ -384,7 +384,7 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
 
     if (with_range) {
         auto rangeString = "bytes "+std::to_string(rangeData->from)+"-"+std::to_string(rangeData->to)+"/"+std::to_string(file_size);
-        logger(LoggerFramework::Level::info) << "<"<<m_runID<< "> range string <" << rangeString << ">\n";
+        logger(LoggerFramework::Level::debug) << "<"<<m_runID<< "> range string <" << rangeString << ">\n";
         res->set(http::field::content_range, rangeString);
     }
 
@@ -415,7 +415,7 @@ void Session::handle_file_request(std::string target, http::verb method, uint32_
     // try finding file within the virtual/cache filesystem
     if(method == http::verb::get || method == http::verb::head) {
 
-        logger(Level::info) << "try finding <"<< target << "> within the virtual/cache filesystem\n";
+        logger(Level::debug) << "try finding <"<< target << "> within the virtual/cache filesystem\n";
 
         if ( auto virtualData = m_sessionHandler.getVirtualImage(target) ) {
             logger(Level::debug) << "<"<<m_runID<< "> virtual image file found as <"<<target<<">\n";

@@ -4,14 +4,15 @@
 #include <string>
 #include <memory>
 
-#include "database/SimpleDatabase.h"
+#include "webserver/databaseaccess.h"
+#include "webserver/playeraccess.h"
 #include "database/playlist.h"
 #include "playerinterface/Player.h"
 
 class PlaylistAccess
 {
-    std::shared_ptr<Database::SimpleDatabase> m_database;
-    std::shared_ptr<BasePlayer> m_player;
+    DatabaseAccess m_database;
+    PlayerAccess m_player;
 
     std::string convertToJson(const std::optional<std::vector<Id3Info>> list);
     std::string convertToJson(const std::vector<Database::Playlist> list);
@@ -27,8 +28,8 @@ class PlaylistAccess
     std::string getCurrentPlaylistUID(const std::string& value);
 
 public:
-    PlaylistAccess(std::shared_ptr<Database::SimpleDatabase> simpleDatabase, std::shared_ptr<BasePlayer> player)
-        : m_database(simpleDatabase), m_player(player) {}
+    PlaylistAccess(DatabaseAccess database, PlayerAccess player)
+        : m_database(database), m_player(player) {}
 
     std::string access(const utility::Extractor::UrlInformation &urlInfo);
 

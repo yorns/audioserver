@@ -26,7 +26,7 @@ struct Config : std::enable_shared_from_this<Config> {
 
     LoggerFramework::Level m_logLevel;
 
-    constexpr bool isPlayerType(const PlayerType& playerType) { return (playerType == m_playerType); }
+    bool isPlayerType(const PlayerType& playerType) const { return (playerType == m_playerType); }
     void readConfig(std::string configFile);
 
     void print();

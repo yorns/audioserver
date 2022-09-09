@@ -53,7 +53,7 @@ if (NOT GST_FOUND)
     message(STATUS "gstreamer not found, web only version is generated!")
 else()
     message(STATUS "gstreamer found!")
-    option(HAVE_GST "Enable Foo" ON)
+    option(HAVE_GST "Enable GStreamer" ON)
 endif()
 
 configure_file(cmake/config.h.in config/system_config.h)
@@ -64,10 +64,12 @@ target_compile_features(common PUBLIC cxx_std_17)
 target_compile_definitions(common PUBLIC BOOST_BEAST_USE_STD_STRING_VIEW)
 target_include_directories(common
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 )
 target_link_libraries(common
     PUBLIC
     Boost::boost
+    snc::snc_client
 )
 
 add_library(id3tagreader)
@@ -102,6 +104,7 @@ target_compile_features(playerinterface PUBLIC cxx_std_17)
 target_include_directories(playerinterface
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+
 )
 if (GST_FOUND)
 target_link_libraries(playerinterface PUBLIC PkgConfig::GST)

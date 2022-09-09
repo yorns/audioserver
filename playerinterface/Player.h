@@ -79,37 +79,9 @@ public:
     void setPlaylistEndCB(PlaylistEndCallback&& endfunc);
     void setSongEndCB(SongEndCallback&& endfunc);
 
-    void resetPlayer() {
+    void resetPlayer();
 
-        m_shuffle = false;
-        m_doCycle = false;
-        m_isPlaying = false;
-        m_pause = false;
-        m_single = false;
-
-        m_playlist.clear();
-        m_playlist_orig.clear();
-        m_currentItemIterator = m_playlist.end();
-        m_playlistUniqueId = boost::uuids::uuid();
-        m_playlistName = "";
-
-    }
-
-    bool setPlaylist(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames) {
-
-        if (albumPlaylistAndNames.m_playlist.empty()) {
-            logger(LoggerFramework::Level::warning) << "playing failed, no album list set\n";
-            return false;
-        }
-
-        m_playlist = albumPlaylistAndNames.m_playlist;
-        m_playlist_orig = albumPlaylistAndNames.m_playlist;
-        m_currentItemIterator = m_playlist.begin();
-        m_playlistUniqueId = albumPlaylistAndNames.m_playlistUniqueId;
-        m_playlistName = albumPlaylistAndNames.m_playlistName;
-
-        return true;
-    }
+    bool setPlaylist(const Common::AlbumPlaylistAndNames& albumPlaylistAndNames);
 
     bool startPlay() { return startPlay(boost::uuids::uuid()); }
     bool startPlay(const boost::uuids::uuid& songUID) { return startPlay(songUID, 0); }

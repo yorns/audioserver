@@ -23,7 +23,7 @@ std::string PlaylistAccess::convertToJson(const std::optional<boost::uuids::uuid
 }
 
 std::string PlaylistAccess::add(const std::string &value) {
-    auto currentPlaylist { m_database->getCurrentPlaylistUniqueID() };
+    auto currentPlaylist { m_database.getDatabase()->getCurrentPlaylistUniqueID() };
     if ( currentPlaylist) {
         logger(Level::debug) << "add audio file with unique ID <" << value
                              << "> to playlist <"
@@ -39,8 +39,8 @@ std::string PlaylistAccess::add(const std::string &value) {
             return R"({"result": "cannot add <)" + value + "> to playlist <" + boost::uuids::to_string( *currentPlaylist ) + ">}";
         }
 
-        if (m_database->addToPlaylistUID(*currentPlaylist, std::move(uniqueID))) {
-            m_database->writeChangedPlaylists();
+        if (m_database.getDatabase()->addToPlaylistUID(*currentPlaylist, std::move(uniqueID))) {
+            m_database.getDatabase()->writeChangedPlaylists();
             logger(Level::debug) << "adding audio file <" << value
                                  << "> to playlist ID <" << boost::uuids::to_string(*currentPlaylist)
                                  << ">\n";
@@ -54,11 +54,11 @@ std::string PlaylistAccess::add(const std::string &value) {
 }
 
 std::string PlaylistAccess::create(const std::string &value) {
-    auto ID = m_database->createPlaylist(value, Database::Persistent::isPermanent);
+    auto ID = m_database.getDatabase()->createPlaylist(value, Database::Persistent::isPermanent);
     if (ID && !ID->is_nil()) {
         logger(Level::info) << "create playlist with name <" << value << "> "<<"-> "<<*ID<<" \n";
-        m_database->setCurrentPlaylistUniqueId(std::move(*ID));
-        m_database->writeChangedPlaylists();
+        m_database.getDatabase()->setCurrentPlaylistUniqueId(std::move(*ID));
+        m_database.getDatabase()->writeChangedPlaylists();
         return R"({"result": "ok"})";
     } else {
         logger(Level::warning) << "create playlist with name <" << value << "> failed, name is not new\n";
@@ -67,7 +67,7 @@ std::string PlaylistAccess::create(const std::string &value) {
 }
 
 std::string PlaylistAccess::getAlbumList(const std::string &value) {
-    auto list = m_database->searchPlaylistItems(value, Database::SearchAction::alike);
+    auto list = m_database.getDatabase()->searchPlaylistItems(value, Database::SearchAction::alike);
 
     std::sort(std::begin(list), std::end(list), [](Database::Playlist& item1, Database::Playlist& item2) { return item1.getUniqueID() > item2.getUniqueID(); });
 
@@ -75,14 +75,14 @@ std::string PlaylistAccess::getAlbumList(const std::string &value) {
 }
 
 std::string PlaylistAccess::getAlbumUid(const std::string &value) {
-    auto list = m_database->searchPlaylistItems(value, Database::SearchAction::uniqueId);
+    auto list = m_database.getDatabase()->searchPlaylistItems(value, Database::SearchAction::uniqueId);
 
     return convertToJson(list);
 }
 
 std::string PlaylistAccess::change(const std::string &value) {
 
-    auto playlistList = m_database->searchPlaylistItems(value, Database::SearchAction::uniqueId);
+    auto playlistList = m_database.getDatabase()->searchPlaylistItems(value, Database::SearchAction::uniqueId);
 
     if (playlistList.size() != 1) {
         logger(Level::warning) << "playlist with uniqueId <" << value << "> not found\n";
@@ -96,13 +96,13 @@ std::string PlaylistAccess::change(const std::string &value) {
         logger(LoggerFramework::Level::warning) << ex.what() << "\n";
     }
 
-    if (m_player) {
-        m_player->stop();
-        m_player->resetPlayer();
+    if (m_player.hasPlayer()) {
+        m_player.stop();
+        m_player.resetPlayer();
     }
-    m_database->setCurrentPlaylistUniqueId(playlistList[0].getUniqueID());
+    m_database.getDatabase()->setCurrentPlaylistUniqueId(playlistList[0].getUniqueID());
 
-    if (!m_player || m_player->setPlaylist(m_database->getAlbumPlaylistAndNames()))
+    if (!m_player.hasPlayer() || m_player.setPlaylist(m_database.getDatabase()->getAlbumPlaylistAndNames()))
         return R"({"result": "ok"})";
     else
         return R"({"result": "could not set playlist"})";
@@ -120,16 +120,14 @@ std::string PlaylistAccess::show(const std::string &value) {
             playlistName = boost::uuids::uuid();
         }
     }
-    else if ( auto playlist = m_database->getCurrentPlaylistUniqueID() ) {
+    else if ( auto playlist = m_database.getDatabase()->getCurrentPlaylistUniqueID() ) {
         playlistName = *playlist;
     }
 
-    auto itemList = m_database->getIdListOfItemsInPlaylistId(playlistName);
+    auto itemList = m_database.getDatabase()->getIdListOfItemsInPlaylistId(playlistName);
 
     logger(Level::info) << "show (" << itemList.size() << ") elements for playlist <" << boost::uuids::to_string(playlistName) << ">\n";
-    auto x = convertToJson(itemList);
-    logger(Level::info) << x << "\n";
-    return x;
+    return convertToJson(itemList);
 
 }
 
@@ -138,7 +136,7 @@ std::string PlaylistAccess::showLists(const std::string &value) {
     boost::ignore_unused(value);
 
     logger(Level::info) << "show all playlists\n";
-    std::vector<std::pair<std::string, boost::uuids::uuid>> lists = m_database->getAllPlaylists();
+    std::vector<std::pair<std::string, boost::uuids::uuid>> lists = m_database.getDatabase()->getAllPlaylists();
     if (!lists.empty()) {
         logger(Level::debug) << "playlists are \n";
         nlohmann::json json;
@@ -152,8 +150,8 @@ std::string PlaylistAccess::showLists(const std::string &value) {
                 jsonList.push_back(jentry);
             }
             json["playlists"] = jsonList;
-            if (auto currentPlaylistUniqueID = m_database->getCurrentPlaylistUniqueID()) {
-                if (auto playlistRealname = m_database->convertPlaylist(*currentPlaylistUniqueID))
+            if (auto currentPlaylistUniqueID = m_database.getDatabase()->getCurrentPlaylistUniqueID()) {
+                if (auto playlistRealname = m_database.getDatabase()->convertPlaylist(*currentPlaylistUniqueID))
                     json["actualPlaylist"] = *playlistRealname;
                 else
                     json["actualPlaylist"] = std::string("");
@@ -172,7 +170,7 @@ std::string PlaylistAccess::getCurrentPlaylistUID(const std::string &value) {
 
     boost::ignore_unused(value);
 
-    auto playlistUID = m_database->getCurrentPlaylistUniqueID();
+    auto playlistUID = m_database.getDatabase()->getCurrentPlaylistUniqueID();
     return convertToJson(playlistUID);
 }
 

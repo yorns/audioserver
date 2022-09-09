@@ -20,6 +20,8 @@ target_sources(common
     stringmanipulator.cpp
     stringmanipulator.h
     albumlist.h
+    config.cpp
+    config.h
     hash.cpp
     hash.h
     base64.cpp

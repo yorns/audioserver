@@ -48,6 +48,19 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
     return json.dump(2);
 }
 
+std::optional<std::string> DatabaseAccess::extractUuidFromTarget(std::string_view target)
+{
+    auto pos1 = target.find_last_of("/");
+    if (pos1 != std::string_view::npos) {
+        auto pos2 = target.find_last_of(".");
+        {
+            return std::string(target.substr(pos1+1, pos2-pos1-1));
+        }
+    }
+
+    return std::nullopt;
+}
+
 std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
     if (!urlInfo || !urlInfo->m_parsed || urlInfo->m_parameterList.size() != 1) {
@@ -118,6 +131,82 @@ std::optional<std::vector<char> > DatabaseAccess::getVirtualFile(const std::stri
             }
 
             return m_database->getCover(std::move(uid));
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::vector<char> > DatabaseAccess::virtualImageHandler(const std::string_view &_target)  {
+    // split target
+    auto target = utility::urlConvert(std::string(_target));
+    logger(Level::debug) << "test for virtual image request for <"<<target<<">\n";
+
+    if (testUrlPath(target, "img")) {
+        logger(LoggerFramework::Level::debug) << "searching for cover at <"<<target<<">\n";
+        if (auto uidStr = extractUuidFromTarget(target)) {
+            logger(LoggerFramework::Level::info) << "searching for cover UID <"<<*uidStr<<">\n";
+            boost::uuids::uuid uid;
+            try {
+                uid = boost::lexical_cast<boost::uuids::uuid>(*uidStr);
+            } catch(std::exception& ex) {
+                logger(Level::warning) << "could not interpret <"<<*uidStr<<">: "<< ex.what()<<"\n";
+                return std::nullopt;
+            }
+
+            return getDatabase()->getCover(std::move(uid));
+        }
+        else {
+            boost::uuids::uuid unknownCover;
+            try {
+                unknownCover = boost::lexical_cast<boost::uuids::uuid>(ServerConstant::unknownCoverFileUid);
+            } catch(std::exception& ex) {
+                logger(Level::error) << " ERROR: cannot convert unknown cover uuid string: " << ex.what() << "\n";
+            }
+            return getDatabase()->getCover(unknownCover);
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> DatabaseAccess::virtualAudioHandler(const std::string_view &_target)  {
+
+    auto target = utility::urlConvert(std::string(_target));
+    logger(Level::debug) << "test virtual audio request for <"<<target<<">\n";
+
+    if (testUrlPath(target, "audio")) {
+        if (auto uidStr = extractUuidFromTarget(target)) {
+            logger(LoggerFramework::Level::debug) << "searching for audio UID <"<<*uidStr<<">\n";
+            boost::uuids::uuid uid;
+            try {
+                uid = boost::lexical_cast<boost::uuids::uuid>(*uidStr);
+            } catch(std::exception& ex) {
+                logger(Level::warning) << "could not interpret <"<<*uidStr<<">: "<< ex.what()<<"\n";
+                return std::nullopt;
+            }
+
+            return getDatabase()->getFileFromUUID(uid);
+        }
+
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> DatabaseAccess::virtualPlaylistHandler(const std::string_view &_target) {
+
+    auto target = utility::urlConvert(std::string(_target));
+    logger(Level::debug) << "virtual playlist request for <"<<target<<">\n";
+
+    if (testUrlPath(target, "pl")) {
+        if (auto uidStr = extractUuidFromTarget(target)) {
+            logger(LoggerFramework::Level::debug) << "searching for playlist UID <"<<*uidStr<<">\n";
+            boost::uuids::uuid uid;
+            try {
+                uid = boost::lexical_cast<boost::uuids::uuid>(*uidStr);
+            } catch(std::exception& ex) {
+                logger(Level::warning) << "could not interpret <"<<*uidStr<<">: "<< ex.what()<<"\n";
+                return std::nullopt;
+            }
+            return getDatabase()->getM3UPlaylistFromUUID(uid);
         }
     }
     return std::nullopt;

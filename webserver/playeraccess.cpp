@@ -5,6 +5,25 @@
 
 using namespace LoggerFramework;
 
+PlayerAccess::PlayerAccess(std::shared_ptr<Common::Config> config, boost::asio::io_context &ioc)
+    : m_player() {
+
+    /* generate the player */
+    if (config->isPlayerType(Common::Config::PlayerType::GstPlayer)) {
+        m_player = std::shared_ptr<BasePlayer>(new GstPlayer(ioc));
+        m_player->setAmplify(config->m_amplify);
+    }
+    if (config->isPlayerType(Common::Config::PlayerType::MpvPlayer)) {
+        m_player = std::shared_ptr<BasePlayer>(new MpvPlayer(ioc));
+        m_player->setAmplify(config->m_amplify);
+    }
+
+    if (!m_player) {
+        logger(LoggerFramework::Level::info) << "no player set, using web version only\n";
+    }
+
+}
+
 std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlInfo) {
 
     if (!hasPlayer() || !urlInfo || urlInfo->m_parameterList.size() != 1) {
@@ -146,4 +165,8 @@ std::string PlayerAccess::access(const utility::Extractor::UrlInformation &urlIn
     }
 
     return R"({"result": "player command unknown"})";
+}
+
+void PlayerAccess::setSongEndCB(SongEndCallback &&endfunc) {
+    m_player->setSongEndCB(std::move(endfunc));
 }
