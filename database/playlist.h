@@ -138,6 +138,7 @@ public:
     bool write();
 
     std::string getCover() const;
+    std::string getUrl() const;
 
     bool setCover(std::string coverUrl);
 

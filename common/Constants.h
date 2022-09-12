@@ -72,6 +72,7 @@ namespace ServerConstant {
             static constexpr auto overall {sv("overall")};
             static constexpr auto playlist {sv("playlist")};
             static constexpr auto imageFile {sv("cover")};
+            static constexpr auto url{sv("url")};
         }
         namespace Player {
             static constexpr auto next {sv("next")};

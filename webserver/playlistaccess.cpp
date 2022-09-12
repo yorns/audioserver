@@ -188,6 +188,7 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
                 jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
                 jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
                 jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
+                jentry[std::string(ServerConstant::Parameter::Database::url)] = item.urlAudioFile;
                 json.push_back(jentry);
             }
         }

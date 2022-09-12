@@ -293,7 +293,12 @@ void Session::handle_regular_file_request(std::string target, http::verb method,
         path = target.substr(7);
     }
     else {
-        path = m_filePath + '/' + target;
+        // http/https should be filtered on client side .. code should not be placed here
+        if (!(target.substr(0,7) == "http://") && !(target.substr(0,8) == "https://")) {
+            path = m_filePath + '/' + target;
+        } else {
+            path = target;
+        }
     }
     if(target.back() == '/')
         path.append("index.html");

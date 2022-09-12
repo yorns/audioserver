@@ -4,7 +4,7 @@ var songID = "";
 var playlistID = "";
 var name_typed = "";
 var broadcastMsg = "";
-var useExternalPlayer = true;
+var useExternalPlayer = false;
 var websocketConnected = false;
 var websocketError = false;
 //var count = 0;
@@ -57,6 +57,7 @@ var localDisplayData = {
                 this.cover = titleInfoList.cover;
                 this.title = titleInfoList.title;
                 this.songID = titleInfoList.uid;
+		this.url = titleList.url;
                 showTitleFunction(titleInfoList);
             } catch (e) {
                 console.log("failed to parse title json: ", response);
@@ -69,6 +70,7 @@ var localDisplayData = {
         console.log("request for show actual playlist: ", url);
         $.getJSON(url).done(function(jsonResponse) {
             console.log("playlist reply: ", jsonResponse);
+
             if (jsonResponse != null) {
                 var playlist = jsonResponse;
                 setPlaylist(playlist);
@@ -220,7 +222,7 @@ function handleShuffle() {
     console.log("shuffle list is: ", tmpDisplayData.shuffle_list);
 }
 
-function setPlaylist(playlist) {
+function setPlaylist(playlist) {    
     if (useExternalPlayer) {
         tmpPlaylist = playlist;
     }
@@ -729,6 +731,9 @@ function play_audio(task) {
           tmpDisplayData.songID = browserPlaylist[id];
           // set new title/album etc
           let audioUrl = "/audio/" + browserPlaylist[id].uid; 
+	  if (browserPlaylist[id].url.startsWith('http://') || browserPlaylist[id].url.startsWith('https://')) {
+            audioUrl = browserPlaylist[id].url;
+	  }
           console.log("go on playing: ", browserPlaylist[id].title, " ", 
                             browserPlaylist[id].album, " " + 
                             browserPlaylist[id].performer);
@@ -927,7 +932,13 @@ function fastBackwardPlayer() {
     }
 }
 
-function albumSelect(albumId) {
+function albumSelect(albumId, selector) {
+
+    alert("selector: " + selector);
+    if (selector != "") {
+        showAlbumList(selector);
+        return;
+    }
     
     if (useExternalPlayer) {
         if (console && console.log) {
@@ -992,8 +1003,16 @@ function showAlbumList(searchString) {
             })
 
             $.each(response, function(i, item) {
+
+                let selector = "";
+		if (item.album.endsWith(" u")) {
+                        item.album = item.album.replace(' u','');
+                        selector = item.performer;
+                        item.performer = "";
+		}
+                
                 trHTML += `
-                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}")' > 
+                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}", "${selector}")' > 
                             <div class="text-center">
                             <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" >
                             </div>
@@ -1030,6 +1049,7 @@ function getPlaylistUid(uid) {
     $.getJSON(url).done(function(response) {
         // test if there are any entries at all ... if (resonse)
         console.log("reply for get playlist (", uid, "): ", response);
+
         tmpDisplayData.album = response[0].album;
         tmpDisplayData.performer = response[0].performer;
         tmpDisplayData.cover = response[0].cover;
