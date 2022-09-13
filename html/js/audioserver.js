@@ -934,7 +934,6 @@ function fastBackwardPlayer() {
 
 function albumSelect(albumId, selector) {
 
-    alert("selector: " + selector);
     if (selector != "") {
         showAlbumList(selector);
         return;

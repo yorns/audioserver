@@ -17,6 +17,7 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
             jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
             jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
             jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
+            jentry[std::string(ServerConstant::Parameter::Database::url)] = item.urlAudioFile;
             json.push_back(jentry);
         }
     }
@@ -38,6 +39,7 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
             std::string relativCoverPath = item.getCover();
             jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
             jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = 0;
+            jentry[std::string(ServerConstant::Parameter::Database::url)] = ""; //item.getUrl();
             json.push_back(jentry);
         }
 
