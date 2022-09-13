@@ -135,14 +135,16 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         if (streamInfo.find("Image") != std::end(streamInfo)) {
             coverData = utility::base64_decode(streamInfo.at("Image"));
             auto coverUid = uid;
+            logger(Level::info) << "inserting from json playlist cover id <"<<coverUid<<">\n";
             coverInsert(std::move(coverUid), std::move(coverData));
             coverUrl = std::string(ServerConstant::coverPathWeb) + "/"
                     + boost::lexical_cast<std::string>(uid) + extension;
-
+            logger(Level::info) << "  - cover url is <"<<coverUrl<<">\n";
         }
         else {
             if (streamInfo.find("ImageUrl") != std::end(streamInfo)) {
                 coverUrl = streamInfo.at("ImageUrl");
+                logger(Level::info) << "  - external Image url is <"<<coverUrl<<">\n";
             }
             else {
                 logger(LoggerFramework::Level::error) << "no image or image url given for playlist <" << playlistName <<">\n";

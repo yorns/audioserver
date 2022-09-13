@@ -79,6 +79,9 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
                 if (streamInfo.find("ImageUrl") != streamInfo.end()) {
 
                     info.urlCoverFile = streamInfo.at("ImageUrl");
+                    fullInfo.pictureAvailable = true;
+                    logger(Level::info) << "  - external cover url for <" << boost::uuids::to_string(info.uid) << "> is <"<<info.urlCoverFile<<">\n";
+
                 }
                 else {
                     fullInfo.pictureAvailable = false;
