@@ -81,7 +81,7 @@ Playlist::Playlist(std::string filename, ReadType readType, Persistent persisten
 Playlist::Playlist(boost::uuids::uuid&& uniqueId, std::vector<boost::uuids::uuid> &&playlist, ReadType readType, Persistent persistent, Changed changed)
     : m_item(std::move(uniqueId)),
       m_playlist(std::move(playlist)),
-      m_coverName("/img/unknown.png"),
+      m_coverName(ServerConstant::unknownCoverUrl),
 //      m_coverType(CoverType::none),
       m_changed(changed),
       m_persistent(persistent),
@@ -126,14 +126,18 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         std::ifstream streamInfoFile(m_playlistFileName.c_str());
         nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
 
-        uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at("Id")));
-        playlistName = streamInfo.at("Name");
-        performerName = streamInfo.at("Performer");
-        extension = streamInfo.at("Extension");
+        uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at(ServerConstant::JsonField::id)));
+//        playlistName = streamInfo.at("Name");
+//        performerName = streamInfo.at("Performer");
+//        extension = streamInfo.at("Extension");
+
+        playlistName = streamInfo.at(ServerConstant::JsonField::name);
+        performerName = streamInfo.at(ServerConstant::JsonField::performer);
+        extension = streamInfo.at(ServerConstant::JsonField::extension);
 
         /* image handling */
-        if (streamInfo.find("Image") != std::end(streamInfo)) {
-            coverData = utility::base64_decode(streamInfo.at("Image"));
+        if (streamInfo.find(ServerConstant::JsonField::image) != std::end(streamInfo)) {
+            coverData = utility::base64_decode(streamInfo.at(ServerConstant::JsonField::image));
             auto coverUid = uid;
             logger(Level::info) << "inserting from json playlist cover id <"<<coverUid<<">\n";
             coverInsert(std::move(coverUid), std::move(coverData));
@@ -142,48 +146,49 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
             logger(Level::info) << "  - cover url is <"<<coverUrl<<">\n";
         }
         else {
-            if (streamInfo.find("ImageUrl") != std::end(streamInfo)) {
-                coverUrl = streamInfo.at("ImageUrl");
+            if (streamInfo.find(ServerConstant::JsonField::imageUrl) != std::end(streamInfo)) {
+                coverUrl = streamInfo.at(ServerConstant::JsonField::imageUrl);
                 logger(Level::info) << "  - external Image url is <"<<coverUrl<<">\n";
             }
             else {
                 logger(LoggerFramework::Level::error) << "no image or image url given for playlist <" << playlistName <<">\n";
-                coverUrl = std::string(ServerConstant::coverPathWeb) + "/"
-                        + std::string(ServerConstant::unknownCoverFile)
-                        + std::string(ServerConstant::unknownCoverExtension);
+                coverUrl = ServerConstant::unknownCoverUrl;
+//                std::string(ServerConstant::coverPathWeb) + "/"
+//                        + std::string(ServerConstant::unknownCoverFile)
+//                        + std::string(ServerConstant::unknownCoverExtension);
             }
         }
 
-        if (streamInfo.find("Items") != streamInfo.end()) {
-            auto items = streamInfo.at("Items");
+        if (streamInfo.find(ServerConstant::JsonField::items) != streamInfo.end()) {
+            auto items = streamInfo.at(ServerConstant::JsonField::items);
             for (auto elem : items) {
-                if (elem.find("Id") != elem.end()) {
-                    auto audioItemList = findAlgo(elem.at("Id"), SearchItem::uid);
+                if (elem.find(ServerConstant::JsonField::id) != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at(ServerConstant::JsonField::id), SearchItem::uid);
                     if (audioItemList.size() == 1)
                         playlist.emplace_back(audioItemList.at(0));
                 }
-                else if (elem.find("Album") != elem.end()) {
-                    auto audioItemList = findAlgo(elem.at("Album"), SearchItem::album);
+                else if (elem.find(ServerConstant::JsonField::album) != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at(ServerConstant::JsonField::album), SearchItem::album);
                     for (const auto& UuidItem : audioItemList) {
                         playlist.emplace_back(UuidItem);
                     }
                 }
-                else if (elem.find("Performer") != elem.end()) {
-                    auto audioItemList = findAlgo(elem.at("Performer"), SearchItem::performer);
+                else if (elem.find(ServerConstant::JsonField::performer) != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at(ServerConstant::JsonField::performer), SearchItem::performer);
                     for (const auto& UuidItem : audioItemList) {
                         playlist.emplace_back(UuidItem);
                     }
                 }
-                else if (elem.find("Title") != elem.end()) {
-                    auto audioItemList = findAlgo(elem.at("Title"), SearchItem::title);
+                else if (elem.find(ServerConstant::JsonField::title) != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at(ServerConstant::JsonField::title), SearchItem::title);
                     for (const auto& UuidItem : audioItemList) {
                         playlist.emplace_back(UuidItem);
                     }
                 }
             }
         }
-        if (streamInfo.find("Tag") != streamInfo.end()) {
-            auto tags = streamInfo["Tag"];
+        if (streamInfo.find(ServerConstant::JsonField::tag) != streamInfo.end()) {
+            auto tags = streamInfo[ServerConstant::JsonField::tag];
             for (auto elem : tags ) {
                 auto tag = TagConverter::getTagId(elem);
                 tagList.push_back(tag);
@@ -310,7 +315,7 @@ std::string Playlist::getCover() const
 
 bool Playlist::setCover(std::string coverUrl) {
     if (coverUrl.empty())
-        coverUrl = "img/unknown.png";
+        coverUrl = ServerConstant::unknownCoverUrl;
 
     logger(LoggerFramework::Level::debug) << "setCover: <"<<coverUrl<<">\n";
     m_coverName = coverUrl;

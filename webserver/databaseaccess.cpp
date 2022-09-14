@@ -11,13 +11,20 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
     if (list) {
         for(auto item : list.value()) {
             nlohmann::json jentry;
-            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.uid);
-            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
-            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
-            jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
-            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
-            jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
-            jentry[std::string(ServerConstant::Parameter::Database::url)] = item.urlAudioFile;
+//            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.uid);
+//            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
+//            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
+//            jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
+//            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
+//            jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
+//            jentry[std::string(ServerConstant::Parameter::Database::url)] = item.urlAudioFile;
+            jentry[ServerConstant::JsonField::uid] = boost::uuids::to_string(item.uid);
+            jentry[ServerConstant::JsonField::performer] = item.performer_name;
+            jentry[ServerConstant::JsonField::album] = item.album_name;
+            jentry[ServerConstant::JsonField::title] = item.title_name;
+            jentry[ServerConstant::JsonField::imageUrl] = item.urlCoverFile;
+            jentry[ServerConstant::JsonField::trackNo] = item.track_no;
+            jentry[ServerConstant::JsonField::audioUrl] = item.urlAudioFile;
             json.push_back(jentry);
         }
     }
@@ -32,14 +39,23 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
     try {
         for(auto item : list) {
             nlohmann::json jentry;
-            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.getUniqueID());
-            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
-            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.getPerformer();
-            jentry[std::string(ServerConstant::Parameter::Database::title)] = "";
+            //            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.getUniqueID());
+            //            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
+            //            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.getPerformer();
+            //            jentry[std::string(ServerConstant::Parameter::Database::title)] = "";
+            //            std::string relativCoverPath = item.getCover();
+            //            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
+            //            jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = 0;
+            //            jentry[std::string(ServerConstant::Parameter::Database::url)] = "";
+            jentry[ServerConstant::JsonField::uid] = boost::uuids::to_string(item.getUniqueID());
+            jentry[ServerConstant::JsonField::album] = item.getName();
+            jentry[ServerConstant::JsonField::performer] = item.getPerformer();
+            jentry[ServerConstant::JsonField::title] = "";
             std::string relativCoverPath = item.getCover();
-            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = relativCoverPath;
-            jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = 0;
-            jentry[std::string(ServerConstant::Parameter::Database::url)] = ""; //item.getUrl();
+            jentry[ServerConstant::JsonField::cover] = relativCoverPath;
+            jentry[ServerConstant::JsonField::trackNo] = 0;
+            jentry[ServerConstant::JsonField::url] = "";
+
             json.push_back(jentry);
         }
 
@@ -47,6 +63,7 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
         logger(Level::error) << "conversion to json failed: " << ex.what();
     }
 
+    logger(Level::info) << "json data:\n" << json.dump(2)<<"\n";
     return json.dump(2);
 }
 
@@ -140,10 +157,10 @@ std::optional<std::vector<char> > DatabaseAccess::getVirtualFile(const std::stri
 
 std::optional<std::vector<char> > DatabaseAccess::virtualImageHandler(const std::string_view &_target)  {
     // split target
-    auto target = utility::urlConvert(std::string(_target));
+    auto target = utility::toJson(std::string(_target));
     logger(Level::debug) << "test for virtual image request for <"<<target<<">\n";
 
-    if (testUrlPath(target, "img")) {
+    if (testUrlPath(target, ServerConstant::imagePath)) {
         logger(LoggerFramework::Level::debug) << "searching for cover at <"<<target<<">\n";
         if (auto uidStr = extractUuidFromTarget(target)) {
             logger(LoggerFramework::Level::info) << "searching for cover UID <"<<*uidStr<<">\n";
@@ -172,10 +189,10 @@ std::optional<std::vector<char> > DatabaseAccess::virtualImageHandler(const std:
 
 std::optional<std::string> DatabaseAccess::virtualAudioHandler(const std::string_view &_target)  {
 
-    auto target = utility::urlConvert(std::string(_target));
+    auto target = utility::toJson(std::string(_target));
     logger(Level::debug) << "test virtual audio request for <"<<target<<">\n";
 
-    if (testUrlPath(target, "audio")) {
+    if (testUrlPath(target, ServerConstant::audioPath)) {
         if (auto uidStr = extractUuidFromTarget(target)) {
             logger(LoggerFramework::Level::debug) << "searching for audio UID <"<<*uidStr<<">\n";
             boost::uuids::uuid uid;
@@ -195,10 +212,10 @@ std::optional<std::string> DatabaseAccess::virtualAudioHandler(const std::string
 
 std::optional<std::string> DatabaseAccess::virtualPlaylistHandler(const std::string_view &_target) {
 
-    auto target = utility::urlConvert(std::string(_target));
+    auto target = utility::toJson(std::string(_target));
     logger(Level::debug) << "virtual playlist request for <"<<target<<">\n";
 
-    if (testUrlPath(target, "pl")) {
+    if (testUrlPath(target, ServerConstant::playlistPath)) {
         if (auto uidStr = extractUuidFromTarget(target)) {
             logger(LoggerFramework::Level::debug) << "searching for playlist UID <"<<*uidStr<<">\n";
             boost::uuids::uuid uid;

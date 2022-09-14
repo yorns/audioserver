@@ -25,7 +25,38 @@ namespace ServerConstant {
     static constexpr auto tmpPath {sv("tmp")};
     static constexpr auto playerLogPath {sv("player_log")};
     static constexpr auto mp3Extension{sv(".mp3")};
+    static constexpr auto mp4Extension{sv(".m4a")};
+    static constexpr auto pngExtension{sv(".png")};
+    static constexpr auto jpegExtension{sv(".jpeg")};
+    static constexpr auto imagePath{sv("img")};
+    static constexpr auto audioPath{sv("audio")};
+    static constexpr auto playlistPath{sv("pl")};
 
+    namespace JsonField {
+        static const std::string title{"Title"};
+        static const std::string album{"Album"};
+        static const std::string performer{"Performer"};
+        static const std::string trackNo{"TrackNo"};
+        static const std::string allTrackNo{"AllTrackNo"};
+        static const std::string url{"Url"};
+        static const std::string extension{"Extension"};
+        static const std::string albumCreation{"AlbumCreation"};
+        static const std::string image{"Image"};
+        static const std::string imageUrl{"ImageUrl"};
+        static const std::string audioUrl{"AudioUrl"};
+        static const std::string uid{"Uid"};
+        static const std::string cover{"Cover"};
+        static const std::string infoSrc{"InfoSrc"};
+        static const std::string disk{"Disk"};
+        static const std::string coverUrl{"CoverUrl"};
+        static const std::string id{"Id"};
+        static const std::string name{"Name"};
+        static const std::string items{"Items"};
+        static const std::string tag{"Tag"};
+        static const std::string hash{"Hash"};
+        static const std::string hasCover{"HasCover"};
+        static const std::string uidList{"UidList"};
+    }
 
     static constexpr int seekForwardSeconds {20};
     static constexpr int seekBackwardSeconds {-20};
@@ -33,6 +64,7 @@ namespace ServerConstant {
     static constexpr auto unknownCoverFile {sv("unknown")};
     static constexpr auto unknownCoverFileUid {sv("b7ac2645-1667-46be-0000-000000000000")};
     static constexpr auto unknownCoverExtension {sv(".png")};
+    static constexpr auto unknownCoverUrl {"img/unknown.png"};
 
     namespace AccessPoints {
         static constexpr auto playlist {sv("/playlist")};

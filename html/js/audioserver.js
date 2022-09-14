@@ -52,12 +52,12 @@ var localDisplayData = {
             try {
                 titleInfoList = response[0];
                 console.log("uid info: ", titleInfoList);
-                this.performer = titleInfoList.performer;
-                this.album = titleInfoList.album;
-                this.cover = titleInfoList.cover;
-                this.title = titleInfoList.title;
-                this.songID = titleInfoList.uid;
-		this.url = titleList.url;
+                this.performer = titleInfoList.Performer;
+                this.album = titleInfoList.Album;
+                this.cover = titleInfoList.Cover;
+                this.title = titleInfoList.Title;
+                this.songID = titleInfoList.Uid;
+		this.url = titleList.Url;
                 showTitleFunction(titleInfoList);
             } catch (e) {
                 console.log("failed to parse title json: ", response);
@@ -986,38 +986,38 @@ function showAlbumList(searchString) {
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         if (response) {
             response.sort(function(a,b){
-                if (a.performer == b.performer) {
-                  if (a.album == b.album)    
+                if (a.Performer == b.Performer) {
+                  if (a.Album == b.Album)    
                     return 0;
-                if (a.album < b.album) 
+                if (a.Album < b.Album) 
                     return -1;
-                if (a.album > b.album)
+                if (a.Album > b.Album)
                     return 1;                
 
                 }
-                if (a.performer < b.performer) 
+                if (a.Performer < b.Performer) 
                     return -1;
-                if (a.performer > b.performer)
+                if (a.Performer > b.Performer)
                     return 1;
             })
 
             $.each(response, function(i, item) {
 
                 let selector = "";
-		if (item.album.endsWith(" u")) {
-                        item.album = item.album.replace(' u','');
-                        selector = item.performer;
-                        item.performer = "";
+		if (item.Album.endsWith(" u")) {
+                        item.Album = item.Album.replace(' u','');
+                        selector = item.Performer;
+                        item.Performer = "";
 		}
                 
                 trHTML += `
-                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.uid}", "${selector}")' > 
+                            <div class='card bg-black-1 border-3 mx-sm-2 mb-sm-3' onclick='albumSelect("${item.Uid}", "${selector}")' > 
                             <div class="text-center">
-                            <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.cover}" alt="${item.album}" >
+                            <img class="card-img" style="max-width: 96%; padding-top: 2%" src="${item.Cover}" alt="${item.Album}" >
                             </div>
                             <div class="card-body" >
-                              <h5 class="card-title">${item.album}</h5>
-                              <p class="card-text">${item.performer}</p>
+                              <h5 class="card-title">${item.Album}</h5>
+                              <p class="card-text">${item.Performer}</p>
                             </div>
                             </div>`
             });

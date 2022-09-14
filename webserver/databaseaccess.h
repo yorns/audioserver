@@ -24,6 +24,15 @@ class DatabaseAccess
             return false;
     }
 
+    bool testUrlPath(std::string_view url, std::string_view path) {
+        if (url.substr(0,1) == "/" &&
+                url.substr(1, path.length()) == path &&
+                url.substr(1+path.length(),1) == "/")
+            return true;
+        else
+            return false;
+    }
+
 
 public:
     DatabaseAccess() = delete;

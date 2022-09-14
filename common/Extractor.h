@@ -17,7 +17,7 @@ struct Parameter {
     std::string value;
 };
 
-    static std::string_view urlConvert(std::string_view url) {
+    static std::string_view toJson(std::string_view url) {
 
         if (url.empty())
             return std::string_view("");
@@ -111,7 +111,7 @@ struct Parameter {
                 Parameter parameter;
                 parameter.name = tmp.substr(0,pos);
                 auto value = tmp.substr(pos+1);
-                parameter.value = urlConvert(value);
+                parameter.value = toJson(value);
                 parameterList.emplace_back(std::move(parameter));
             } else if (tmp.size() > 0) {
                 Parameter parameter;

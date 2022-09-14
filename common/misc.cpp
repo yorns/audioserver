@@ -47,7 +47,7 @@ void Common::audioserver_updateUI(SessionHandler &sessionHandler,
     std::string title;
     std::string album;
     std::string performer;
-    std::string cover = "img/unknown.png";
+    std::string cover = ServerConstant::unknownCoverUrl;
 
     auto emptyUID = boost::uuids::uuid();
     boost::uuids::uuid songID { emptyUID };
