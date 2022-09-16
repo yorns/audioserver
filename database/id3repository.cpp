@@ -174,18 +174,32 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             }
 
             nlohmann::json jsonElem;
-            jsonElem["Uid"] = boost::uuids::to_string(id3Elem.uid);
-            jsonElem["InfoSrc"] = id3Elem.informationSource;
-            jsonElem["Title"] = id3Elem.title_name;
-            jsonElem["Album"] = id3Elem.album_name;
-            jsonElem["Performer"] = id3Elem.performer_name;
-            jsonElem["TrackNo"] = id3Elem.track_no;
-            jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
-            jsonElem["Extension"] = id3Elem.coverFileExt;
-            jsonElem["AlbumCreation"] = id3Elem.albumCreation;
-            jsonElem["Disk"] = id3Elem.cd_no;
-            jsonElem["Url"] = id3Elem.urlAudioFile;
-            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
+//            jsonElem["Uid"] = boost::uuids::to_string(id3Elem.uid);
+//            jsonElem["InfoSrc"] = id3Elem.informationSource;
+//            jsonElem["Title"] = id3Elem.title_name;
+//            jsonElem["Album"] = id3Elem.album_name;
+//            jsonElem["Performer"] = id3Elem.performer_name;
+//            jsonElem["TrackNo"] = id3Elem.track_no;
+//            jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
+//            jsonElem["Extension"] = id3Elem.coverFileExt;
+//            jsonElem["AlbumCreation"] = id3Elem.albumCreation;
+//            jsonElem["Disk"] = id3Elem.cd_no;
+//            jsonElem["Url"] = id3Elem.urlAudioFile;
+//            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
+
+            jsonElem[ServerConstant::JsonField::uid] = boost::uuids::to_string(id3Elem.uid);
+            jsonElem[ServerConstant::JsonField::infoSrc] = id3Elem.informationSource;
+            jsonElem[ServerConstant::JsonField::title] = id3Elem.title_name;
+            jsonElem[ServerConstant::JsonField::album] = id3Elem.album_name;
+            jsonElem[ServerConstant::JsonField::performer] = id3Elem.performer_name;
+            jsonElem[ServerConstant::JsonField::trackNo] = id3Elem.track_no;
+            jsonElem[ServerConstant::JsonField::allTrackNo] = id3Elem.all_tracks_no;
+            jsonElem[ServerConstant::JsonField::extension] = id3Elem.coverFileExt;
+            jsonElem[ServerConstant::JsonField::albumCreation] = id3Elem.albumCreation;
+            jsonElem[ServerConstant::JsonField::disk] = id3Elem.cd_no;
+            jsonElem[ServerConstant::JsonField::url] = id3Elem.urlAudioFile;
+            jsonElem[ServerConstant::JsonField::coverUrl] = id3Elem.urlCoverFile;
+
             data.push_back(jsonElem);
         }
 
@@ -404,12 +418,12 @@ bool Id3Repository::writeCacheInternal() {
 
         auto jsonDatabase = id3ToJson(start, stop);
 
-        std::cerr << ".";//jsonDatabase->dump(2);
+        std::cerr << ".";
 
         // write simple database
         if (jsonDatabase) {
             writeJson(std::move(*jsonDatabase), genCacheName(i));
-            std::cerr << "#("<<i<<")";//jsonDatabase->dump(2);
+            std::cerr << "#("<<i<<")";
         }
         else {
             endFound = true;
@@ -787,7 +801,7 @@ bool CoverDatabase::readCache(const std::string &coverCacheFile)
         boost::filesystem::path filename = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Cache)
                 + "/" + std::to_string(elem.hash) + ".cache";
         if (boost::filesystem::exists(filename)) {
-            logger(Level::debug) << "reading file: " << filename <<"\n";
+            logger(Level::debug) << "reading file: " << filename << "\n";
             std::ifstream ofs(filename.c_str(), std::ios::binary);
             ofs.unsetf(std::ios::skipws);
             if (ofs.good()) {

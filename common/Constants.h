@@ -56,6 +56,24 @@ namespace ServerConstant {
         static const std::string hash{"Hash"};
         static const std::string hasCover{"HasCover"};
         static const std::string uidList{"UidList"};
+        namespace Config {
+            static const std::string ipAddress {"IpAddress"};
+            static const std::string port {"Port"};
+            static const std::string basePath {"BasePath"};
+            static const std::string enableCache {"EnableCache"};
+            static const std::string logLevel {"LogLevel"};
+            static const std::string amplify {"Amplify"};
+            static const std::string audioInterface {"AudioInterface"};
+            namespace PlayerType {
+              static const std::string gstreamer {"gst"};
+              static const std::string mpl {"mpl"};
+            }
+            namespace LogLevel {
+                static const std::string info {"info"};
+                static const std::string  warning {"warning"};
+                static const std::string error {"error"};
+            }
+        }
     }
 
     static constexpr int seekForwardSeconds {20};

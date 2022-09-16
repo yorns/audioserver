@@ -1,4 +1,5 @@
 #include "config.h"
+#include "Constants.h"
 #include <nlohmann/json.hpp>
 
 void Common::Config::readConfig(std::string configFile) {
@@ -10,35 +11,36 @@ void Common::Config::readConfig(std::string configFile) {
     auto config = shared_from_this();
 
     try {
-        config->m_address = configData["IpAddress"];
-        config->m_port = configData["Port"];
-        config->m_basePath = configData["BasePath"];
-        config->m_enableCache = configData["EnableCache"];
-        debugLogLevel = configData["LogLevel"];
-        if (configData.find("Amplify") != configData.end()) {
-            config->m_amplify = configData["Amplify"];
+        config->m_address = configData[ServerConstant::JsonField::Config::ipAddress];
+
+        config->m_port = configData[ServerConstant::JsonField::Config::port];
+        config->m_basePath = configData[ServerConstant::JsonField::Config::basePath];
+        config->m_enableCache = configData[ServerConstant::JsonField::Config::enableCache];
+        debugLogLevel = configData[ServerConstant::JsonField::Config::logLevel];
+        if (configData.find(ServerConstant::JsonField::Config::amplify) != configData.end()) {
+            config->m_amplify = configData[ServerConstant::JsonField::Config::amplify];
         }
         else {
             config->m_amplify = 1;
         }
 
-        if (configData.find("AudioInterface") != configData.end()) {
-            std::string audioInterface = configData["AudioInterface"];
-            if (audioInterface == "gst")
+        if (configData.find(ServerConstant::JsonField::Config::audioInterface) != configData.end()) {
+            std::string audioInterface = configData[ServerConstant::JsonField::Config::audioInterface];
+            if (audioInterface == ServerConstant::JsonField::Config::PlayerType::gstreamer)
                 config->m_playerType = Common::Config::PlayerType::GstPlayer;
-            if (audioInterface == "mpl")
+            if (audioInterface == ServerConstant::JsonField::Config::PlayerType::mpl)
                 config->m_playerType = Common::Config::PlayerType::MpvPlayer;
         }
 
         config->m_logLevel = LoggerFramework::Level::debug;
 
-        if (debugLogLevel == "info") {
+        if (debugLogLevel == ServerConstant::JsonField::Config::LogLevel::info) {
             config->m_logLevel = LoggerFramework::Level::info;
         }
-        else if (debugLogLevel == "warning") {
+        else if (debugLogLevel == ServerConstant::JsonField::Config::LogLevel::warning) {
             config->m_logLevel = LoggerFramework::Level::warning;
         }
-        else if (debugLogLevel == "error") {
+        else if (debugLogLevel == ServerConstant::JsonField::Config::LogLevel::error) {
             config->m_logLevel = LoggerFramework::Level::error;
     }
 
