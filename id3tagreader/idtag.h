@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include "common/logger.h"
+#include "common/stringmanipulator.h"
 
 enum class Tag {
     Children,
@@ -31,8 +32,9 @@ private:
     static TagIdentifier m_tagIdentifier;
 
 public:
-    static Tag getTagId(const std::string& tagName) {
-        if (!tagName.empty()) {
+    static Tag getTagId(const std::string& _tagName) {
+        if (!_tagName.empty()) {
+            std::string tagName {Common::str_tolower(_tagName)};
             for (const auto& id : m_tagIdentifier) {
                 for (const auto& tagIdentifier : id.identifier) {
                     if (tagIdentifier.substr(0, tagName.length()) == tagName)
@@ -43,7 +45,8 @@ public:
         return Tag::unknown;
     }
 
-    static Tag getTagIdAlike(const std::string& tagName) {
+    static Tag getTagIdAlike(const std::string& _tagName) {
+        std::string tagName {Common::str_tolower(_tagName)};
         for (const auto& id : m_tagIdentifier) {
             for (const auto& tagIdentifier : id.identifier) {
                 if (tagIdentifier.substr(0,tagName.length()) == tagName)

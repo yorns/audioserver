@@ -96,6 +96,8 @@ std::string DatabaseAccess::access(const utility::Extractor::UrlInformation &url
     if (parameter == ServerConstant::Command::getAlbumList) {
         auto list = m_database->searchPlaylistItems(value, Database::SearchAction::alike);
 
+        logger(Level::info) << "found a list of <"<<list.size()<< "> elements\n";
+
         std::sort(std::begin(list), std::end(list), [](Database::Playlist& item1, Database::Playlist& item2) { return item1.getUniqueID() > item2.getUniqueID(); });
 
         return convertToJson(list);

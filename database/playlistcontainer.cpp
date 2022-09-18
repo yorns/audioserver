@@ -54,8 +54,8 @@ bool PlaylistContainer::removePlaylistUID(const boost::uuids::uuid &playlistUniq
     if (it != std::end(m_playlists) ) {
         m_playlists.erase(it);
         try {
-        auto rmResult = FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
-        return rmResult;
+            auto rmResult = FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
+            return rmResult;
         } catch (std::exception& ex) {
             logger(LoggerFramework::Level::warning) << ex.what() << "\n";
             return false;
@@ -73,8 +73,8 @@ bool PlaylistContainer::removePlaylistName(const std::string &playlistName) {
         auto playlistUniqueId { it->getUniqueID() };
         m_playlists.erase(it);
         try {
-        auto rmFile = FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
-        return rmFile;
+            auto rmFile = FileSystemAdditions::removeFile(FileType::PlaylistM3u, boost::lexical_cast<std::string>(playlistUniqueId));
+            return rmFile;
         } catch (std::exception& ex) {
             logger(LoggerFramework::Level::warning) << ex.what() << "\n";
             return false;
@@ -114,36 +114,36 @@ std::optional<std::string> PlaylistContainer::convertName(const boost::uuids::uu
 
 std::optional<boost::uuids::uuid> PlaylistContainer::convertName(const std::string &name) {
 
-        auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&name] (const Playlist& playlist) {
-            return playlist.getName() == name;
-        });
-        if (it != std::end(m_playlists))
-            return it->getUniqueID();
+    auto it = std::find_if(std::begin(m_playlists), std::end(m_playlists), [&name] (const Playlist& playlist) {
+        return playlist.getName() == name;
+    });
+    if (it != std::end(m_playlists))
+        return it->getUniqueID();
 
-        return std::nullopt;
+    return std::nullopt;
 }
 
 bool PlaylistContainer::readPlaylistsM3U() {
 
     // read m3u actually not supported
     return false;
-//    auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistM3u);
+    //    auto fileList = FileSystemAdditions::getAllFilesInDir(FileType::PlaylistM3u);
 
-//    for (auto file : fileList) {
-//        logger(Level::debug) << "reading m3u playlist <"<<file.name<<">\n";
-//        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u) + '/';
-//        fileName += file.name + file.extension;
-//        if (file.extension == ".m3u") {
-//            Playlist playlist(file.name, ReadType::isM3u, Persistent::isPermanent, Changed::isUnchanged);
-//            if (playlist.readM3u()) {
-//                m_playlists.emplace_back(playlist);
-//            }
-//            else
-//                logger(Level::warning) << "reading file <"<<file.name+file.extension <<"> failed\n";
-//        }
-//    }
+    //    for (auto file : fileList) {
+    //        logger(Level::debug) << "reading m3u playlist <"<<file.name<<">\n";
+    //        std::string fileName = FileSystemAdditions::getFullQualifiedDirectory(FileType::PlaylistM3u) + '/';
+    //        fileName += file.name + file.extension;
+    //        if (file.extension == ".m3u") {
+    //            Playlist playlist(file.name, ReadType::isM3u, Persistent::isPermanent, Changed::isUnchanged);
+    //            if (playlist.readM3u()) {
+    //                m_playlists.emplace_back(playlist);
+    //            }
+    //            else
+    //                logger(Level::warning) << "reading file <"<<file.name+file.extension <<"> failed\n";
+    //        }
+    //    }
 
-//    return true;
+    //    return true;
 }
 
 bool PlaylistContainer::readPlaylistsJson(Database::FindAlgo&& findUuidList,
@@ -202,15 +202,15 @@ void PlaylistContainer::insertTagsFromItems(const Database::Id3Repository& repos
 
 void PlaylistContainer::addTags(const std::vector<Tag>& tagList, const boost::uuids::uuid& playlistID) {
     for(auto& elem : m_playlists) {
-            if (elem.getUniqueID() == playlistID) {
-                elem.setTagList(tagList);
-            }
+        if (elem.getUniqueID() == playlistID) {
+            elem.setTagList(tagList);
         }
+    }
 }
 
 void PlaylistContainer::addTags(const std::vector<Tag>& tagList) {
     for(auto& elem : m_playlists) {
-            elem.setTagList(tagList);
+        elem.setTagList(tagList);
     }
 }
 
@@ -218,11 +218,11 @@ void PlaylistContainer::addTags(const std::vector<Tag>& tagList) {
 std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid)  {
 
     if (getPlaylistByUID(playlistUuid)) {
-    auto list = getPlaylistByUID(playlistUuid)->get();
-//    nlohmann::json virtualPlaylistJson;
-    nlohmann::json audioList;
-    // std::stringstream m3uOutput;
-    if (list.getPlaylist().size() > 0) {
+        auto list = getPlaylistByUID(playlistUuid)->get();
+        //    nlohmann::json virtualPlaylistJson;
+        nlohmann::json audioList;
+        // std::stringstream m3uOutput;
+        if (list.getPlaylist().size() > 0) {
             for (const auto& elem : list.getPlaylist()) {
                 std::stringstream id;
                 id << "/audio/" << elem << ".mp3";
@@ -230,11 +230,11 @@ std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uui
             }
             //logger(Level::debug) << "created list: " << audioList.dump(2) << "\n";
             return audioList.dump(2);
-        
-    }
-    else {
-        logger(Level::info) << "requested virtual playlist not found: " << playlistUuid << "\n";        
-    }
+
+        }
+        else {
+            logger(Level::info) << "requested virtual playlist not found: " << playlistUuid << "\n";
+        }
     }
     return std::nullopt;
 }
@@ -340,69 +340,69 @@ std::vector<Playlist> PlaylistContainer::upn_playlist(std::vector<std::string>& 
 
         if (whatList.size() > 1) {
 
-        for (auto& it : whatList) {
+            for (auto& it : whatList) {
 
-            if (it == "&" || it == "|") {
+                if (it == "&" || it == "|") {
 
-                if (stack.size() < 2) {
-                    //logger (Level::warning) << "evaluation failed: not enough data\n";
-                    break;
-                }
+                    if (stack.size() < 2) {
+                        //logger (Level::warning) << "evaluation failed: not enough data\n";
+                        break;
+                    }
 
-                upn_value value1 = stack.top();
-                stack.pop();
+                    upn_value value1 = stack.top();
+                    stack.pop();
 
-                upn_value value2 = stack.top();
-                stack.pop();
-
-
-                bool evaluate1{false};
-                bool evaluate2{false};
+                    upn_value value2 = stack.top();
+                    stack.pop();
 
 
-                if (const bool* tmp = std::get_if<bool>(&value1)) {
-                    evaluate1 = *tmp;
+                    bool evaluate1{false};
+                    bool evaluate2{false};
+
+
+                    if (const bool* tmp = std::get_if<bool>(&value1)) {
+                        evaluate1 = *tmp;
+                    }
+                    else {
+                        evaluate1 = (info.getNameLower().find(std::get<std::string>(value1)) != std::string::npos ||
+                                info.getPerformerLower().find(std::get<std::string>(value1)) != std::string::npos);
+
+                    }
+
+                    if (const bool* tmp = std::get_if<bool>(&value2)) {
+                        evaluate2 = *tmp;
+                    }
+                    else {
+                        evaluate2 = (info.getNameLower().find(std::get<std::string>(value2)) != std::string::npos ||
+                                info.getPerformerLower().find(std::get<std::string>(value2)) != std::string::npos);
+                    }
+
+                    if (it == "&")
+                        stack.push(evaluate1 && evaluate2);
+
+                    if (it == "|")
+                        stack.push(evaluate1 || evaluate2);
+
+                    // logger (Level::info) << "push: <"<< (std::get<bool>(stack.top())?"true":"false") << ">\n";
+
                 }
                 else {
-                    evaluate1 = (info.getNameLower().find(std::get<std::string>(value1)) != std::string::npos ||
-                            info.getPerformerLower().find(std::get<std::string>(value1)) != std::string::npos);
-
+                    // logger (Level::info) << "push <"<<it<<">\n";
+                    stack.push(it);
                 }
-
-                if (const bool* tmp = std::get_if<bool>(&value2)) {
-                    evaluate2 = *tmp;
-                }
-                else {
-                    evaluate2 = (info.getNameLower().find(std::get<std::string>(value2)) != std::string::npos ||
-                            info.getPerformerLower().find(std::get<std::string>(value2)) != std::string::npos);
-                }
-
-                if (it == "&")
-                    stack.push(evaluate1 && evaluate2);
-
-                if (it == "|")
-                    stack.push(evaluate1 || evaluate2);
-
-                // logger (Level::info) << "push: <"<< (std::get<bool>(stack.top())?"true":"false") << ">\n";
 
             }
-            else {
-                // logger (Level::info) << "push <"<<it<<">\n";
-                stack.push(it);
-            }
 
-        }
-
-        if (stack.size() != 1) {
-            // logger(Level::warning) << "find mechanism failed (stack is " << stack.size() << "\n";
-        } else {
-            if (const bool* tmp = std::get_if<bool>(&stack.top())) {
-                if (*tmp == true)
-                        retList.push_back(info);
+            if (stack.size() != 1) {
+                // logger(Level::warning) << "find mechanism failed (stack is " << stack.size() << "\n";
             } else {
-                logger(Level::warning) << "find mechanism failed - no bool evaluation\n";
+                if (const bool* tmp = std::get_if<bool>(&stack.top())) {
+                    if (*tmp == true)
+                        retList.push_back(info);
+                } else {
+                    logger(Level::warning) << "find mechanism failed - no bool evaluation\n";
+                }
             }
-        }
 
         }
     });
@@ -425,7 +425,7 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
 
     switch(action) {
     case SearchAction::exact: {
-        logger(Level::debug) << "exact seaching for string <" << what << ">\n";
+        logger(Level::info) << "exact seaching for string <" << what << ">\n";
         for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
             if ( playlistItem->getName() == what ||
                  playlistItem->getPerformer() == what ||
@@ -445,7 +445,7 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
             tmp << seperator << whatElem;
             seperator = ", ";
         }
-        logger(Level::debug) << "alike playlist seaching for string <" << what << "> (" << tmp.str() << ")\n";
+        logger(Level::info) << "alike playlist seaching for string <" << what << "> (" << tmp.str() << ")\n";
 
         bool is_upn {false};
 
@@ -460,27 +460,30 @@ std::vector<Playlist> PlaylistContainer::searchPlaylists(const std::string &what
         else {
 
 
-        for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
-            bool found {true};
-            for(auto whatElem : whatList) {
-                if (playlistItem->getNameLower().find(whatElem) == std::string::npos &&
-                        playlistItem->getPerformerLower().find(whatElem) == std::string::npos) {
-                    found = false;
-                    break;
+            for(auto playlistItem{std::cbegin(m_playlists)}; playlistItem != std::cend(m_playlists); ++playlistItem) {
+                bool found {true};
+                for(auto whatElem : whatList) {
+                    if (playlistItem->getNameLower().find(whatElem) == std::string::npos &&
+                            playlistItem->getPerformerLower().find(whatElem) == std::string::npos) {
+                        // logger(Level::info) << "not found <"<<whatElem <<"> in name or performer\n";
+                        found = false;
+                        break;
+                    }
                 }
-            }
-            if (playlistItem->isTagAlike(whatList)) {
-                logger(Level::debug) << "found <"<<playlistItem->strTag() <<">\n";
-                found = true;
-            }
+                if (playlistItem->isTagAlike(whatList)) {
+                    logger(Level::info) << "found tag <" << tmp.str() << "> in <" <<playlistItem->getName() <<">\n";
+                    found = true;
+                }
 
-            if (found)
-                playlist.push_back(*playlistItem);
-        }
+                if (found)
+                    playlist.push_back(*playlistItem);
+            }
         }
         break;
     }
     case SearchAction::uniqueId : {
+        logger(Level::info) << "uid playlist seaching for string <" << what << ">\n";
+
         if (uidValid) {
             auto playlist_it = std::find_if(std::begin(m_playlists), std::end(m_playlists),
                                             [&whatUid](const Playlist& playlist){ return playlist.getUniqueID() == whatUid; });
