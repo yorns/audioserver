@@ -172,6 +172,7 @@ bool SimpleDatabase::addNewAudioFileUniqueId(const Common::FileNameType &uniqueI
 std::vector<Id3Info> SimpleDatabase::getIdListOfItemsInPlaylistId(const boost::uuids::uuid &uniqueId) {
     std::vector<Id3Info> itemList;
     if (auto playlistNameOpt = m_playlistContainer.getPlaylistByUID(uniqueId)) {
+        logger(Level::info) << "playlist found for <"<<uniqueId<<"> (name:" << playlistNameOpt->get().getName()<<" | num:" << playlistNameOpt->get().getPlaylist().size() << ")\n";
         for (auto playlistItemUID : playlistNameOpt->get().getPlaylist()) {
             auto id3 = m_id3Repository.search(playlistItemUID, SearchItem::uid, SearchAction::uniqueId);
             if (id3.size() == 1) {

@@ -53,7 +53,7 @@ std::optional<FullId3Information> id3TagReader::readJsonAudioInfo(const Common::
             nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
 
             Id3Info info;
-            info.uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at("Id")));
+            info.uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at(ServerConstant::JsonField::uid)));
             info.informationSource = "file://" + streamFileName;
             info.title_name = streamInfo.at(ServerConstant::JsonField::title);
             info.album_name = streamInfo.at(ServerConstant::JsonField::album);

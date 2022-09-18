@@ -583,6 +583,7 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
     std::vector<Id3Info> findData;
 
     if (action == SearchAction::uniqueId || item == SearchItem::uid) {
+        logger(Level::info) << "searching uid (" << what << ")\n";
         try {
             auto whatUuid = boost::lexical_cast<boost::uuids::uuid>(what);
             std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),

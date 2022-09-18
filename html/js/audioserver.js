@@ -46,12 +46,12 @@ var localDisplayData = {
     },    
         
     loadTitle : function(uid, showTitleFunction) {
-        console.log("uid is ", uid);
         var url = "/database?uid="+uid;
+        console.log("request <database uid>: ", url);
         $.getJSON(url).done(function(response) {
             try {
                 titleInfoList = response[0];
-                console.log("uid info: ", titleInfoList);
+                console.log("reply <database uid>: ", titleInfoList);
                 this.performer = titleInfoList.Performer;
                 this.album = titleInfoList.Album;
                 this.cover = titleInfoList.Cover;
@@ -67,9 +67,9 @@ var localDisplayData = {
     
     loadPlaylist : function(uid, showPlaylistFunction) {
         let url = "/playlist?show="+uid;
-        console.log("request for show actual playlist: ", url);
+        console.log("request <playlist show>: ", url);
         $.getJSON(url).done(function(jsonResponse) {
-            console.log("playlist reply: ", jsonResponse);
+            console.log("reply <playlist show>: ", jsonResponse);
 
             if (jsonResponse != null) {
                 var playlist = jsonResponse;
@@ -726,14 +726,14 @@ function play_audio(task) {
           if (tmpDisplayData.count >= length) {
             alert("chosen id is out of range");
           }
-          //handleShuffle();        
           let id = tmpDisplayData.shuffle_list[tmpDisplayData.count];
           
           tmpDisplayData.songID = browserPlaylist[id];
           // set new title/album etc
-          let audioUrl = "/audio/" + browserPlaylist[id].Uid; 
+          let audioUrl = "/audio/" + browserPlaylist[id].Uid;
+          console.log("url is: " + browserPlaylist[id].Url);
 	  if (browserPlaylist[id].Url.startsWith('http://') || browserPlaylist[id].Url.startsWith('https://')) {
-            audioUrl = browserPlaylist[id].url;
+            audioUrl = browserPlaylist[id].Url;
 	  }
           console.log("go on playing: ", browserPlaylist[id].Title, " ", 
                             browserPlaylist[id].Album, " " + 
@@ -801,9 +801,6 @@ function play_audio(task) {
 function songSelectBrowser(uid) {
     var found = false;
     console.log("searching " + uid + " in " + Object.keys(browserPlaylist).length+ " elements");
-    for(i = 0; i < Object.keys(browserPlaylist).length; i++) {
-        console.log(" - " + localDisplayData.shuffle_list[i]);
-    }
     for(i = 0; i < Object.keys(browserPlaylist).length; i++) {
         let id = localDisplayData.shuffle_list[i];
 //        console.log(" - " , browserPlaylist[id]);
@@ -956,11 +953,12 @@ function albumSelect(albumId, selector) {
         // show playlist with all album titles
         var url = "/playlist?change=" + encodeURIComponent(albumId);
         if (console && console.log)
-            console.log("request: " + url);
+            console.log("request <playlist change>: " + url);
         $.getJSON(url).done(function(response) {
             if (response.result != "ok") {
                 alert(response.result);
             } else {
+              console.log("reply <playlist change>: " + response);
               localDisplayData.count = 0; //   tmpDisplayData.count = 0;
               $('#player').modal('show');
               //localDisplayData.playlistID = albumId; //tmpDisplayData.playlistID = albumId;
@@ -989,9 +987,9 @@ function showAlbumList(searchString) {
     }
         
     var url = "/database?albumList=" + encodeURIComponent(searchString);
-console.log("request: "+url);
+    console.log("request <database albumList>: "+url);
     $.getJSON(url).done(function(response) {
-        console.log("response: "+ JSON.stringify(response));
+        console.log("reply <database albumList>: "+ JSON.stringify(response));
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         if (response) {
@@ -1039,9 +1037,9 @@ console.log("request: "+url);
 
 function getActualPlaylist() {
     url = "/playlist?show";
-    console.log("request for show actual playlist: ", url);
+    console.log("request <playlist show>: ", url);
     $.getJSON(url).done(function(response) {
-        console.log("reply for show actual playlist: ", response);
+        console.log("reply <playlist show>: ", response);
         $('#act_playlist tbody').empty();
         var trHTML ="";
         $.each(response, function(i, item) {
@@ -1055,9 +1053,10 @@ function getActualPlaylist() {
 
 function getPlaylistUid(uid) {
     url = "/playlist?albumUid="+uid;
+    console.log("request <playlist albumID>: ", url);
     $.getJSON(url).done(function(response) {
         // test if there are any entries at all ... if (resonse)
-        console.log("reply for get playlist (", uid, "): ", response);
+        console.log("reply <playlist albumID> (", uid, "): ", response);
 
         tmpDisplayData.album = response[0].Album;
         tmpDisplayData.performer = response[0].Performer;
