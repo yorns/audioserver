@@ -150,8 +150,8 @@ function showPlaylist(playlist) {
     $('#act_playlist tbody').empty();
     var trHTML ="";
     $.each(playlist, function(i, item) {
-        trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.title 
-            + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+        trHTML += '<tr class="table-row" id="' + item.Uid + '"><td>' + item.Title 
+            + '</td><td>' + item.Performer + '</td><td>' + item.Album + '</td></tr>';
     });
     $('#act_playlist tbody').append(trHTML);
 }
@@ -228,6 +228,7 @@ function setPlaylist(playlist) {
     }
     else {
         browserPlaylist = playlist;
+        console.log("browserplaylist: ", browserPlaylist);
     }
 }
 
@@ -301,7 +302,7 @@ console.log("cover set to "+msg.cover);
          }
 //            unshowTitle();
 //            localDisplayData.cover = "/img/unknown.png";
-console.log("again cover: "+msg.cover);
+//            console.log("again cover: "+msg.cover);
         localDisplayData.setLocalDisplayData(msg, isBrowserCall);        
         showTitle(titleInfo);
 //        alert("image 2");
@@ -730,15 +731,15 @@ function play_audio(task) {
           
           tmpDisplayData.songID = browserPlaylist[id];
           // set new title/album etc
-          let audioUrl = "/audio/" + browserPlaylist[id].uid; 
-	  if (browserPlaylist[id].url.startsWith('http://') || browserPlaylist[id].url.startsWith('https://')) {
+          let audioUrl = "/audio/" + browserPlaylist[id].Uid; 
+	  if (browserPlaylist[id].Url.startsWith('http://') || browserPlaylist[id].Url.startsWith('https://')) {
             audioUrl = browserPlaylist[id].url;
 	  }
-          console.log("go on playing: ", browserPlaylist[id].title, " ", 
-                            browserPlaylist[id].album, " " + 
-                            browserPlaylist[id].performer);
+          console.log("go on playing: ", browserPlaylist[id].Title, " ", 
+                            browserPlaylist[id].Album, " " + 
+                            browserPlaylist[id].Performer);
           $("#sound_src").attr("src", audioUrl);
-          $("#sound_src").attr("title", browserPlaylist[id].title);              
+          $("#sound_src").attr("title", browserPlaylist[id].Title);              
           $(".my_audio").prop("currentTime",0);
           $(".my_audio").trigger('load');
           $("#sound_src").attr("autoplay", true);       
@@ -747,11 +748,11 @@ function play_audio(task) {
           tmpDisplayData.paused = false;
 
           if (browserPlaylist) {
-              tmpDisplayData.songID = browserPlaylist[id].uid;
-              tmpDisplayData.title = browserPlaylist[id].title;
-              tmpDisplayData.album = browserPlaylist[id].album;
-              tmpDisplayData.performer = browserPlaylist[id].performer;
-              tmpDisplayData.cover = browserPlaylist[id].cover;
+              tmpDisplayData.songID = browserPlaylist[id].Uid;
+              tmpDisplayData.title = browserPlaylist[id].Title;
+              tmpDisplayData.album = browserPlaylist[id].Album;
+              tmpDisplayData.performer = browserPlaylist[id].Performer;
+              tmpDisplayData.cover = browserPlaylist[id].Cover;
           }
       }
       if(task == 'stop'){
@@ -799,9 +800,15 @@ function play_audio(task) {
 
 function songSelectBrowser(uid) {
     var found = false;
+    console.log("searching " + uid + " in " + Object.keys(browserPlaylist).length+ " elements");
+    for(i = 0; i < Object.keys(browserPlaylist).length; i++) {
+        console.log(" - " + localDisplayData.shuffle_list[i]);
+    }
     for(i = 0; i < Object.keys(browserPlaylist).length; i++) {
         let id = localDisplayData.shuffle_list[i];
-        if (browserPlaylist[id].uid == uid) {
+//        console.log(" - " , browserPlaylist[id]);
+//       console.log(" # " + browserPlaylist[id].Uid + " == " + uid);
+        if (browserPlaylist[id].Uid == uid) {
             found = true;
             tmpDisplayData.count = i;     
         }
@@ -814,6 +821,7 @@ function songSelectBrowser(uid) {
         play_audio('play');
     } 
     else {
+
         alert("not found audio file ", uid);
     }
 }
@@ -981,7 +989,9 @@ function showAlbumList(searchString) {
     }
         
     var url = "/database?albumList=" + encodeURIComponent(searchString);
+console.log("request: "+url);
     $.getJSON(url).done(function(response) {
+        console.log("response: "+ JSON.stringify(response));
         $('#cover').empty();
         var trHTML = '<div class="container-fluid"> <div class="row mt-5 justify-content-center" id="myimg">';
         if (response) {
@@ -1035,8 +1045,8 @@ function getActualPlaylist() {
         $('#act_playlist tbody').empty();
         var trHTML ="";
         $.each(response, function(i, item) {
-            trHTML += '<tr class="table-row" id="' + item.uid + '"><td>' + item.title 
-                + '</td><td>' + item.performer + '</td><td>' + item.album + '</td></tr>';
+            trHTML += '<tr class="table-row" id="' + item.Uid + '"><td>' + item.Title 
+                + '</td><td>' + item.Performer + '</td><td>' + item.Album + '</td></tr>';
         });
         $('#act_playlist tbody').append(trHTML);
     });
@@ -1049,9 +1059,9 @@ function getPlaylistUid(uid) {
         // test if there are any entries at all ... if (resonse)
         console.log("reply for get playlist (", uid, "): ", response);
 
-        tmpDisplayData.album = response[0].album;
-        tmpDisplayData.performer = response[0].performer;
-        tmpDisplayData.cover = response[0].cover;
+        tmpDisplayData.album = response[0].Album;
+        tmpDisplayData.performer = response[0].Performer;
+        tmpDisplayData.cover = response[0].Cover;
         tmpDisplayData.playlistID = uid;
     });
 }

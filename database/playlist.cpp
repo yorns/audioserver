@@ -126,7 +126,7 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         std::ifstream streamInfoFile(m_playlistFileName.c_str());
         nlohmann::json streamInfo = nlohmann::json::parse(streamInfoFile);
 
-        uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at(ServerConstant::JsonField::id)));
+        uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at(ServerConstant::JsonField::uid)));
 //        playlistName = streamInfo.at("Name");
 //        performerName = streamInfo.at("Performer");
 //        extension = streamInfo.at("Extension");
@@ -162,8 +162,8 @@ bool Playlist::readJson(FindAlgo&& findAlgo, std::function<void(boost::uuids::uu
         if (streamInfo.find(ServerConstant::JsonField::items) != streamInfo.end()) {
             auto items = streamInfo.at(ServerConstant::JsonField::items);
             for (auto elem : items) {
-                if (elem.find(ServerConstant::JsonField::id) != elem.end()) {
-                    auto audioItemList = findAlgo(elem.at(ServerConstant::JsonField::id), SearchItem::uid);
+                if (elem.find(ServerConstant::JsonField::uid) != elem.end()) {
+                    auto audioItemList = findAlgo(elem.at(ServerConstant::JsonField::uid), SearchItem::uid);
                     if (audioItemList.size() == 1)
                         playlist.emplace_back(audioItemList.at(0));
                 }

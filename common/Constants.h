@@ -49,13 +49,16 @@ namespace ServerConstant {
         static const std::string infoSrc{"InfoSrc"};
         static const std::string disk{"Disk"};
         static const std::string coverUrl{"CoverUrl"};
-        static const std::string id{"Id"};
+//        static const std::string id{"Id"};
         static const std::string name{"Name"};
         static const std::string items{"Items"};
         static const std::string tag{"Tag"};
         static const std::string hash{"Hash"};
         static const std::string hasCover{"HasCover"};
         static const std::string uidList{"UidList"};
+        static const std::string playlist {"Playlist"};
+        static const std::string playlists {"Playlists"};
+        static const std::string currentPlaylist {"CurrentPlaylist"};
         namespace Config {
             static const std::string ipAddress {"IpAddress"};
             static const std::string port {"Port"};

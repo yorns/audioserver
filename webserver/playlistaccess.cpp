@@ -145,16 +145,16 @@ std::string PlaylistAccess::showLists(const std::string &value) {
             for (auto item : lists) {
                 logger(Level::debug) << item.first << " - " << item.second << "\n";
                 nlohmann::json jentry;
-                jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::lexical_cast<std::string>(item.second);
-                jentry[std::string(ServerConstant::Parameter::Database::playlist)] = item.first;
+                jentry[std::string(ServerConstant::JsonField::uid)] = boost::lexical_cast<std::string>(item.second);
+                jentry[std::string(ServerConstant::JsonField::playlist)] = item.first;
                 jsonList.push_back(jentry);
             }
-            json["playlists"] = jsonList;
+            json[ServerConstant::JsonField::playlists] = jsonList;
             if (auto currentPlaylistUniqueID = m_database.getDatabase()->getCurrentPlaylistUniqueID()) {
                 if (auto playlistRealname = m_database.getDatabase()->convertPlaylist(*currentPlaylistUniqueID))
-                    json["actualPlaylist"] = *playlistRealname;
+                    json[ServerConstant::JsonField::currentPlaylist] = *playlistRealname;
                 else
-                    json["actualPlaylist"] = std::string("");
+                    json[ServerConstant::JsonField::currentPlaylist] = std::string("");
             }
         } catch (std::exception& e) {
             logger(Level::warning) << "error: " << e.what() << "\n";
@@ -182,13 +182,20 @@ std::string PlaylistAccess::convertToJson(const std::optional<std::vector<Id3Inf
         if (list) {
             for(auto item : *list) {
                 nlohmann::json jentry;
-                jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.uid);
-                jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
-                jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
-                jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
-                jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
-                jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
-                jentry[std::string(ServerConstant::Parameter::Database::url)] = item.urlAudioFile;
+//                jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.uid);
+//                jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.performer_name;
+//                jentry[std::string(ServerConstant::Parameter::Database::album)] = item.album_name;
+//                jentry[std::string(ServerConstant::Parameter::Database::title)] = item.title_name;
+//                jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.urlCoverFile;
+//                jentry[std::string(ServerConstant::Parameter::Database::trackNo)] = item.track_no;
+//                jentry[std::string(ServerConstant::Parameter::Database::url)] = item.urlAudioFile;
+                jentry[std::string(ServerConstant::JsonField::uid)] = boost::uuids::to_string(item.uid);
+                jentry[std::string(ServerConstant::JsonField::performer)] = item.performer_name;
+                jentry[std::string(ServerConstant::JsonField::album)] = item.album_name;
+                jentry[std::string(ServerConstant::JsonField::title)] = item.title_name;
+                jentry[std::string(ServerConstant::JsonField::cover)] = item.urlCoverFile;
+                jentry[std::string(ServerConstant::JsonField::trackNo)] = item.track_no;
+                jentry[std::string(ServerConstant::JsonField::url)] = item.urlAudioFile;
                 json.push_back(jentry);
             }
         }
@@ -207,10 +214,14 @@ std::string PlaylistAccess::convertToJson(const std::vector<Database::Playlist> 
     try {
         for(auto item : list) {
             nlohmann::json jentry;
-            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.getUniqueID());
-            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
-            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.getPerformer();
-            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.getCover();
+//            jentry[std::string(ServerConstant::Parameter::Database::uid)] = boost::uuids::to_string(item.getUniqueID());
+//            jentry[std::string(ServerConstant::Parameter::Database::album)] = item.getName();
+//            jentry[std::string(ServerConstant::Parameter::Database::performer)] = item.getPerformer();
+//            jentry[std::string(ServerConstant::Parameter::Database::imageFile)] = item.getCover();
+            jentry[std::string(ServerConstant::JsonField::uid)] = boost::uuids::to_string(item.getUniqueID());
+            jentry[std::string(ServerConstant::JsonField::album)] = item.getName();
+            jentry[std::string(ServerConstant::JsonField::performer)] = item.getPerformer();
+            jentry[std::string(ServerConstant::JsonField::cover)] = item.getCover();
             json.push_back(jentry);
         }
 
