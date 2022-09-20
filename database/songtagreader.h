@@ -23,18 +23,9 @@ class SongTagReader {
     typedef std::vector<TagItem> TagList;
     TagList m_tagList;
 
-    void addTagId(std::string&& identifier, Tag&& tag) {
-        m_tagList.emplace_back(TagItem(std::move(identifier), std::move(tag)));
-    }
+    void addTagId(std::string&& identifier, Tag&& tag);
 
-    TagList::iterator find(const std::string& searchName) {
-        auto it = std::find_if(std::begin(m_tagList),
-                             std::end(m_tagList),
-                             [&searchName](const TagItem& item)
-        { return item.fullSearchName == searchName; }
-        );
-        return it;
-    }
+    TagList::iterator find(const std::string& searchName);
 
 
 public:
@@ -44,7 +35,7 @@ public:
                                      const std::string& titleName,
                                      const std::string& performerName) const;
 
-    std::string convert (Tag tag) {
+    std::string convert (Tag tag) const {
         return TagConverter::getTagName(tag);
     }
 

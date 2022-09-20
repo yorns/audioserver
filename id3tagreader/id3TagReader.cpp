@@ -263,7 +263,7 @@ std::optional<FullId3Information> id3TagReader::readMp3AudioInfo(const Common::F
             fullId3Info.info = std::move(info);
 
             TagLib::MP4::ItemListMap itemsListMap = idData->itemListMap();
-            TagLib::MP4::Item coverItem = itemsListMap["covr"];
+            TagLib::MP4::Item coverItem = itemsListMap[ServerConstant::id3::covr];
             TagLib::MP4::CoverArtList coverArtList = coverItem.toCoverArtList();
 
             if (!coverArtList.isEmpty() && coverArtList.front().data().size() > 0) {

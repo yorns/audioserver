@@ -32,6 +32,26 @@ namespace ServerConstant {
     static constexpr auto audioPath{sv("audio")};
     static constexpr auto playlistPath{sv("pl")};
 
+    namespace id3 {
+        static const std::string covr {"covr"};
+    }
+
+    namespace SNC {
+        static const std::string songBroadcastMessage{"SongBroadcastMessage"};
+        static const std::string commandMessage{"CmdMsg"};
+        static const std::string ssidMessage{"SsidMessage"};
+        static const std::string commandRequest{"Request"};
+        static const std::string CommandReply{"Reply"};
+        static const std::string commandStart{"Start"};
+        static const std::string commandStop{"Stop"};
+        static const std::string dataMessage{"Data"};
+        static const std::string position{"Position"};
+        static const std::string album{"Album"};
+        static const std::string title{"Title"};
+        static const std::string albumId{"AlbumID"};
+        static const std::string titleId{"TitleID"};
+    }
+
     namespace JsonField {
         static const std::string title{"Title"};
         static const std::string album{"Album"};
@@ -49,7 +69,6 @@ namespace ServerConstant {
         static const std::string infoSrc{"InfoSrc"};
         static const std::string disk{"Disk"};
         static const std::string coverUrl{"CoverUrl"};
-//        static const std::string id{"Id"};
         static const std::string name{"Name"};
         static const std::string items{"Items"};
         static const std::string tag{"Tag"};
@@ -59,6 +78,7 @@ namespace ServerConstant {
         static const std::string playlist {"Playlist"};
         static const std::string playlists {"Playlists"};
         static const std::string currentPlaylist {"CurrentPlaylist"};
+        static const std::string current {"Current"};
         namespace Config {
             static const std::string ipAddress {"IpAddress"};
             static const std::string port {"Port"};
@@ -76,6 +96,29 @@ namespace ServerConstant {
                 static const std::string  warning {"warning"};
                 static const std::string error {"error"};
             }
+        }
+        namespace Websocket {
+            static const std::string songId {"SongID"};
+            static const std::string playlistId {"PlaylistID"};
+            static const std::string curPlaylistId {"CurPlaylistID"};
+            static const std::string song {"SongID"};
+            static const std::string playlist {"Playlist"};
+            static const std::string position {"Position"};
+            static const std::string loop {"Loop"};
+            static const std::string shuffle {"Shuffel"};
+            static const std::string playing {"Playing"};
+            static const std::string paused {"Paused"};
+            static const std::string volume {"Volume"};
+            static const std::string single {"Single"};
+            static const std::string title {"Title"};
+            static const std::string album {"Album"};
+            static const std::string performer {"Performer"};
+            static const std::string cover {"Cover"};
+        }
+        namespace wifi {
+        static const std::string ssid {"Ssid"};
+        static const std::string psk {"Psk"};
+        static const std::string networks {"Networks"};
         }
     }
 

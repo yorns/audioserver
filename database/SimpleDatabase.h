@@ -36,28 +36,13 @@ public:
     bool writeChangedPlaylists();
 
     std::vector<Id3Info> searchAudioItems(const std::string &what, SearchItem item, SearchAction action);
-
     std::vector<Id3Info> searchAudioItems(const boost::uuids::uuid &what, SearchItem item, SearchAction action);
+    std::vector<Id3Info> searchAudioItems(std::string_view what, SearchItem item, SearchAction action);
+    std::vector<Id3Info> searchAudioItems(const char* what, SearchItem item, SearchAction action);
 
-    std::vector<Id3Info> searchAudioItems(std::string_view what, SearchItem item, SearchAction action) {
-        return searchAudioItems(std::string(what), item, action);
-    }
-
-    std::vector<Id3Info> searchAudioItems(const char* what, SearchItem item, SearchAction action) {
-        return searchAudioItems(std::string(what), item, action);
-    }
-
-    std::vector<Playlist> searchPlaylistItems(const std::string &what, SearchAction action = SearchAction::exact) {
-        return  m_playlistContainer.searchPlaylists(what, action);
-    }
-
-    std::vector<Playlist> searchPlaylistItems(const std::string_view &what, SearchAction action = SearchAction::exact) {
-        return  m_playlistContainer.searchPlaylists(std::string(what), action);
-    }
-
-    std::vector<Playlist> searchPlaylistItems(const boost::uuids::uuid &what, SearchAction action = SearchAction::exact) {
-        return  m_playlistContainer.searchPlaylists(what, action);
-    }
+    std::vector<Playlist> searchPlaylistItems(const std::string &what, SearchAction action = SearchAction::exact);
+    std::vector<Playlist> searchPlaylistItems(const std::string_view &what, SearchAction action = SearchAction::exact);
+    std::vector<Playlist> searchPlaylistItems(const boost::uuids::uuid &what, SearchAction action = SearchAction::exact);
 
     std::optional<boost::uuids::uuid> createPlaylist(const std::string &name, Database::Persistent persistent);
 
@@ -86,9 +71,7 @@ public:
 
     std::optional<std::string> getFileFromUUID(boost::uuids::uuid& uuid);
 
-    std::optional<std::string> getM3UPlaylistFromUUID(boost::uuids::uuid& uuid) {
-        return m_playlistContainer.createvirtual_m3u(uuid);
-    }
+    std::optional<std::string> getM3UPlaylistFromUUID(boost::uuids::uuid& uuid);
 
     void addSingleSongToAlbumPlaylist(const boost::uuids::uuid& songId);
 
@@ -98,9 +81,7 @@ public:
     bool testInsert(Id3Info&& info) { return m_id3Repository.add(std::move(info)); }
 #endif
 
-    std::optional<std::string> passwordFind(const std::string& name) {
-        logger(Level::info) << "SimpleDatabase::passwordFind\n";
-        return m_credentials.passwordFind(name); }
+    std::optional<std::string> passwordFind(const std::string& name);
 
 };
 

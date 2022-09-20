@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "common/NameGenerator.h"
+#include "common/Constants.h"
 #include "boost/lexical_cast.hpp"
 
 struct PodcastEntry {
@@ -63,16 +64,16 @@ int main(int argc, char* argv[])
 
         nlohmann::json json;
         std::string uid = Common::NameGenerator::create("","").unique_id;
-        json["Id"] = uid;
-        json["Title"] = entry.titleName;
-        json["Album"] = list.albumName;
-        json["Performer"] = list.performerName;
-        json["Extension"] = ".png";
-        json["AlbumCreation"] = true;
-        json["TrackNo"] = boost::lexical_cast<int>(entry.titleNo);
-        json["AllTrackNo"] = list.titleList.size(); // BEWARE: this is best guess
-        json["Url"] = entry.streamUrl;
-        json["ImageUrl"] = list.coverUrl;
+        json[ServerConstant::JsonField::uid] = uid;
+        json[ServerConstant::JsonField::title] = entry.titleName;
+        json[ServerConstant::JsonField::album] = list.albumName;
+        json[ServerConstant::JsonField::performer] = list.performerName;
+        json[ServerConstant::JsonField::extension] = ".png";
+        json[ServerConstant::JsonField::albumCreation] = true;
+        json[ServerConstant::JsonField::trackNo] = boost::lexical_cast<int>(entry.titleNo);
+        json[ServerConstant::JsonField::allTrackNo] = list.titleList.size(); // BEWARE: this is best guess
+        json[ServerConstant::JsonField::url] = entry.streamUrl;
+        json[ServerConstant::JsonField::imageUrl] = list.coverUrl;
 
         std::string filename (list.performerName+"_"+entry.titleNo+".json");
         std::ofstream ofs(filename);

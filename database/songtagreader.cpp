@@ -5,6 +5,19 @@
 using namespace LoggerFramework;
 using namespace Database;
 
+void SongTagReader::addTagId(std::string &&identifier, Tag &&tag) {
+    m_tagList.emplace_back(TagItem(std::move(identifier), std::move(tag)));
+}
+
+SongTagReader::TagList::iterator SongTagReader::find(const std::string &searchName) {
+    auto it = std::find_if(std::begin(m_tagList),
+                           std::end(m_tagList),
+                           [&searchName](const TagItem& item)
+    { return item.fullSearchName == searchName; }
+    );
+    return it;
+}
+
 void SongTagReader::readSongTagFile() {
     std::fstream inStream;
     auto tagFile = Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::Tag)+ "/" +

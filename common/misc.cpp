@@ -115,31 +115,32 @@ void Common::audioserver_updateUI(SessionHandler &sessionHandler,
     nlohmann::json songBroadcast;
     nlohmann::json songInfo;
     try {
-        songInfo["songID"] = boost::lexical_cast<std::string>(songID);
-        songInfo["playlistID"] = boost::lexical_cast<std::string>(playlistID);
-        songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(currPlaylistID);
-        songInfo["song"] = title;
-        songInfo["playlist"] = album;
+        songInfo[ServerConstant::JsonField::Websocket::songId] = boost::lexical_cast<std::string>(songID);
+        songInfo[ServerConstant::JsonField::Websocket::playlistId] = boost::lexical_cast<std::string>(playlistID);
+        songInfo[ServerConstant::JsonField::Websocket::curPlaylistId] = boost::lexical_cast<std::string>(currPlaylistID);
+        songInfo[ServerConstant::JsonField::Websocket::song] = title;
+        songInfo[ServerConstant::JsonField::Websocket::playlist] = album;
     } catch (std::exception& ) {
         logger(Level::warning) << "cannot convert ID to string - sending empty information\n";
-        songInfo["songID"] = boost::lexical_cast<std::string>(emptyUID);
-        songInfo["playlistID"] = boost::lexical_cast<std::string>(emptyUID);
-        songInfo["curPlaylistID"] = boost::lexical_cast<std::string>(emptyUID);
-        songInfo["song"] = "";
-        songInfo["playlist"] = "";
+        songInfo[ServerConstant::JsonField::Websocket::songId] = boost::lexical_cast<std::string>(emptyUID);
+        songInfo[ServerConstant::JsonField::Websocket::playlistId] = boost::lexical_cast<std::string>(emptyUID);
+        songInfo[ServerConstant::JsonField::Websocket::curPlaylistId] = boost::lexical_cast<std::string>(emptyUID);
+        songInfo[ServerConstant::JsonField::Websocket::song] = "";
+        songInfo[ServerConstant::JsonField::Websocket::playlist] = "";
     }
-    songInfo["position"] = playerWrapper.getSongPercentage();
-    songInfo["loop"] = playerWrapper.getLoop();
-    songInfo["shuffle"] = playerWrapper.getShuffle();
-    songInfo["playing"] = playerWrapper.isPlaying();
-    songInfo["paused"] = playerWrapper.isPause();
-    songInfo["volume"] = playerWrapper.getVolume();
-    songInfo["single"] = playerWrapper.isSingle();
-    songInfo["title"] = title;
-    songInfo["album"] = album;
-    songInfo["performer"] = performer;
-    songInfo["cover"] = cover;
-    songBroadcast["SongBroadcastMessage"] = songInfo;
+    songInfo[ServerConstant::JsonField::Websocket::position] = playerWrapper.getSongPercentage();
+    songInfo[ServerConstant::JsonField::Websocket::loop] = playerWrapper.getLoop();
+    songInfo[ServerConstant::JsonField::Websocket::shuffle] = playerWrapper.getShuffle();
+    songInfo[ServerConstant::JsonField::Websocket::playing] = playerWrapper.isPlaying();
+    songInfo[ServerConstant::JsonField::Websocket::paused] = playerWrapper.isPause();
+    songInfo[ServerConstant::JsonField::Websocket::volume] = playerWrapper.getVolume();
+    songInfo[ServerConstant::JsonField::Websocket::single] = playerWrapper.isSingle();
+    songInfo[ServerConstant::JsonField::Websocket::title] = title;
+    songInfo[ServerConstant::JsonField::Websocket::album] = album;
+    songInfo[ServerConstant::JsonField::Websocket::performer] = performer;
+    songInfo[ServerConstant::JsonField::Websocket::cover] = cover;
+
+    songBroadcast[ServerConstant::SNC::songBroadcastMessage] = songInfo;
 
     sessionHandler.broadcast(songBroadcast.dump());
 
@@ -159,21 +160,23 @@ void Common::audioserver_externalSelect(DatabaseAccess& databaseWrapper,
 
     try {
         nlohmann::json msg = nlohmann::json::parse(raw_msg);
-        if (msg.find("CmdMsg") != msg.end()) {
-            auto command = msg.at("CmdMsg");
-            if (command == "start" && msg.find("data") != msg.end()) {
-                auto data = msg.at("data");
+        if (msg.find(ServerConstant::SNC::commandMessage) != msg.end()) {
+            auto command = msg.at(ServerConstant::SNC::commandMessage);
+            if (command == ServerConstant::SNC::commandStart && msg.find(ServerConstant::SNC::dataMessage) != msg.end()) {
+                auto data = msg.at(ServerConstant::SNC::dataMessage);
                 boost::uuids::uuid albumId{0}, titleId{0};
                 uint32_t position {0};
-                if (data.find("albumID") != data.end() && data.find("titleID") != data.end()) {
-                    albumId = extractUUID(std::string(data.at("albumID")));
-                    titleId = extractUUID(std::string(data.at("titleID")));
+                if (data.find(ServerConstant::SNC::albumId) != data.end() &&
+                        data.find(ServerConstant::SNC::titleId) != data.end()) {
+                    albumId = extractUUID(std::string(data.at(ServerConstant::SNC::albumId)));
+                    titleId = extractUUID(std::string(data.at(ServerConstant::SNC::titleId)));
                     logger(Level::info) << "received album <" << albumId << "> and title <" << titleId << ">\n";
                 }
-                else if (data.find("album") != data.end() && data.find("title") != data.end()) {
+                else if (data.find(ServerConstant::SNC::album) != data.end() &&
+                         data.find(ServerConstant::SNC::title) != data.end()) {
 
-                    const auto& albumName = std::string(data.at("album"));
-                    const auto& titleName = std::string(data.at("title"));
+                    const auto& albumName = std::string(data.at(ServerConstant::SNC::album));
+                    const auto& titleName = std::string(data.at(ServerConstant::SNC::title));
 
                     logger(Level::info) << "received album <" << albumName << "> and title <" << titleName << ">\n";
 
@@ -200,7 +203,7 @@ void Common::audioserver_externalSelect(DatabaseAccess& databaseWrapper,
 
                 if (!albumId.is_nil() && !titleId.is_nil() ) {
                     databaseWrapper.getDatabase()->setCurrentPlaylistUniqueId(std::move(albumId));
-                    position = data.at("position");
+                    position = data.at(ServerConstant::SNC::position);
 
                     if (playerWrapper.hasPlayer()) {
                         playerWrapper.setPlaylist(databaseWrapper.getDatabase()->getAlbumPlaylistAndNames());
@@ -211,21 +214,23 @@ void Common::audioserver_externalSelect(DatabaseAccess& databaseWrapper,
                     logger(Level::warning) << "could not set album and/or title\n";
                 }
             }
-            if (command == "stop") {
+            if (command == ServerConstant::SNC::commandStop) {
                 logger(Level::info) << "stop play\n";
                 if (playerWrapper.hasPlayer())
                     playerWrapper.stop();
             }
         }
-        if (msg.find("SsidMessage") != msg.end()) {
+        if (msg.find(ServerConstant::SNC::ssidMessage) != msg.end()) {
             sessionHandler.broadcast(msg.dump());
 
         }
-        if (msg.find("Request") != msg.end()) {
+        if (msg.find(ServerConstant::SNC::commandRequest) != msg.end()) {
+
             logger(Level::info) << "request for album and song id\n";
-            auto request = msg.at("Request");
-            const auto& albumName = std::string(request.at("album"));
-            const auto& titleName = std::string(request.at("title"));
+            auto request = msg.at(ServerConstant::SNC::commandRequest);
+
+            const auto& albumName = std::string(request.at(ServerConstant::SNC::album));
+            const auto& titleName = std::string(request.at(ServerConstant::SNC::title));
 
             const auto& albumPlaylists = databaseWrapper.getDatabase()->searchPlaylistItems(albumName);
 
@@ -238,9 +243,9 @@ void Common::audioserver_externalSelect(DatabaseAccess& databaseWrapper,
                                             << albumPlaylists[0].getUniqueID() << " " << elem.uid <<"\n";
                         nlohmann::json msg;
                         nlohmann::json reply;
-                        reply["albumID"] = boost::uuids::to_string(albumPlaylists[0].getUniqueID());
-                        reply["titleID"] = boost::uuids::to_string(elem.uid);
-                        msg["reply"] = reply;
+                        reply[ServerConstant::SNC::albumId] = boost::uuids::to_string(albumPlaylists[0].getUniqueID());
+                        reply[ServerConstant::SNC::titleId] = boost::uuids::to_string(elem.uid);
+                        msg[ServerConstant::SNC::CommandReply] = reply;
                         if (sncClient)
                             sncClient->send(snc::Client::SendType::cl_send, other, msg.dump());
                     }

@@ -66,11 +66,20 @@ target_include_directories(common
   PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 )
+if (GST_FOUND)
+target_link_libraries(common
+    PUBLIC
+    Boost::boost
+    snc::snc_client
+    PkgConfig::GST
+)
+else (GST_FOUND)
 target_link_libraries(common
     PUBLIC
     Boost::boost
     snc::snc_client
 )
+endif (GST_FOUND)
 
 add_library(id3tagreader)
 add_subdirectory(id3tagreader)
@@ -102,18 +111,24 @@ add_library(playerinterface)
 add_subdirectory(playerinterface)
 target_compile_features(playerinterface PUBLIC cxx_std_17)
 target_include_directories(playerinterface
-  PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
 
 )
 if (GST_FOUND)
-target_link_libraries(playerinterface PUBLIC PkgConfig::GST)
-endif()
-
+    target_link_libraries(playerinterface
+        PUBLIC
+        Boost::boost
+        PkgConfig::GST
+    )
+else (GST_FOUND)
 target_link_libraries(playerinterface
     PUBLIC
     Boost::boost
 )
+endif(GST_FOUND)
+
 
 add_executable(${PROJECT_NAME})
 target_compile_options(${PROJECT_NAME} PRIVATE -g -O0)

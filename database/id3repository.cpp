@@ -66,9 +66,6 @@ std::optional<nlohmann::json> Database::coverToJson(const std::vector<CoverEleme
             nlohmann::json jsonElem;
             jsonElem[ServerConstant::JsonField::hash] = elem.hash;
             jsonElem[ServerConstant::JsonField::hasCover] = !elem.rawData.empty();
-            //if (!elem.rawData.empty()) {
-            //    jsonElem["Cover"] = utility::base64_encode(elem.rawData.data(), static_cast<uint32_t>(elem.rawData.size()));
-            //}
             auto& uidList = jsonElem[ServerConstant::JsonField::uidList];
             for(const auto& uidElem : elem.uidListForCover)
                 uidList.push_back(boost::uuids::to_string(uidElem));
@@ -174,18 +171,6 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             }
 
             nlohmann::json jsonElem;
-//            jsonElem["Uid"] = boost::uuids::to_string(id3Elem.uid);
-//            jsonElem["InfoSrc"] = id3Elem.informationSource;
-//            jsonElem["Title"] = id3Elem.title_name;
-//            jsonElem["Album"] = id3Elem.album_name;
-//            jsonElem["Performer"] = id3Elem.performer_name;
-//            jsonElem["TrackNo"] = id3Elem.track_no;
-//            jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
-//            jsonElem["Extension"] = id3Elem.coverFileExt;
-//            jsonElem["AlbumCreation"] = id3Elem.albumCreation;
-//            jsonElem["Disk"] = id3Elem.cd_no;
-//            jsonElem["Url"] = id3Elem.urlAudioFile;
-//            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
 
             jsonElem[ServerConstant::JsonField::uid] = boost::uuids::to_string(id3Elem.uid);
             jsonElem[ServerConstant::JsonField::infoSrc] = id3Elem.informationSource;
@@ -231,18 +216,6 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             }
 
             nlohmann::json jsonElem;
-//            jsonElem["Uid"] = boost::uuids::to_string(id3Elem.uid);
-//            jsonElem["InfoSrc"] = id3Elem.informationSource;
-//            jsonElem["Title"] = id3Elem.title_name;
-//            jsonElem["Album"] = id3Elem.album_name;
-//            jsonElem["Performer"] = id3Elem.performer_name;
-//            jsonElem["TrackNo"] = id3Elem.track_no;
-//            jsonElem["AllTrackNo"] = id3Elem.all_tracks_no;
-//            jsonElem["Extension"] = id3Elem.coverFileExt;
-//            jsonElem["AlbumCreation"] = id3Elem.albumCreation;
-//            jsonElem["Disk"] = id3Elem.cd_no;
-//            jsonElem["Url"] = id3Elem.urlAudioFile;
-//            jsonElem["CoverUrl"] = id3Elem.urlCoverFile;
 
             jsonElem[ServerConstant::JsonField::uid] = boost::uuids::to_string(id3Elem.uid);
             jsonElem[ServerConstant::JsonField::infoSrc] = id3Elem.informationSource;
@@ -256,6 +229,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             jsonElem[ServerConstant::JsonField::disk] = id3Elem.cd_no;
             jsonElem[ServerConstant::JsonField::url] = id3Elem.urlAudioFile;
             jsonElem[ServerConstant::JsonField::coverUrl] = id3Elem.urlCoverFile;
+
             data.push_back(jsonElem);
         }
 
@@ -281,17 +255,6 @@ const std::vector<Id3Info> Id3Repository::id3fromJson(const std::string &file) c
             for (const auto& streamInfo : streamList) {
             Id3Info info;
             info.uid = boost::lexical_cast<boost::uuids::uuid>(std::string(streamInfo.at("Uid")));
-//            info.informationSource = streamInfo.at("InfoSrc");
-//            info.title_name = streamInfo.at("Title");
-//            info.album_name = streamInfo.at("Album");
-//            info.performer_name = streamInfo.at("Performer");
-//            info.track_no = streamInfo.at("TrackNo");
-//            info.all_tracks_no = streamInfo.at("AllTrackNo");
-//            info.coverFileExt = streamInfo.at("Extension");
-//            info.albumCreation = streamInfo.at("AlbumCreation");
-//            info.cd_no = streamInfo.at("Disk");
-//            info.urlAudioFile = streamInfo.at("Url");
-//            info.urlCoverFile = streamInfo.at("CoverUrl");
 
             info.informationSource = streamInfo.at(ServerConstant::JsonField::infoSrc);
             info.title_name = streamInfo.at(ServerConstant::JsonField::title);

@@ -60,12 +60,32 @@ std::vector<Id3Info> SimpleDatabase::searchAudioItems(const boost::uuids::uuid &
         return m_id3Repository.search(what, item, action);
 }
 
+std::vector<Id3Info> SimpleDatabase::searchAudioItems(std::string_view what, SearchItem item, SearchAction action) {
+    return searchAudioItems(std::string(what), item, action);
+}
+
+std::vector<Id3Info> SimpleDatabase::searchAudioItems(const char *what, SearchItem item, SearchAction action) {
+    return searchAudioItems(std::string(what), item, action);
+}
+
+std::vector<Playlist> SimpleDatabase::searchPlaylistItems(const std::string &what, SearchAction action) {
+    return  m_playlistContainer.searchPlaylists(what, action);
+}
+
+std::vector<Playlist> SimpleDatabase::searchPlaylistItems(const std::string_view &what, SearchAction action) {
+    return  m_playlistContainer.searchPlaylists(std::string(what), action);
+}
+
+std::vector<Playlist> SimpleDatabase::searchPlaylistItems(const boost::uuids::uuid &what, SearchAction action) {
+    return  m_playlistContainer.searchPlaylists(what, action);
+}
+
 
 std::optional<boost::uuids::uuid> SimpleDatabase::createPlaylist(const std::string &name, Persistent ) {
 
     if (!m_playlistContainer.isUniqueName(name))
         return std::nullopt;
-     return std::nullopt;
+    return std::nullopt;
 // TODO
 //    const auto newPlaylistUniqueID =
 //            Common::NameGenerator::create(Common::FileSystemAdditions::getFullQualifiedDirectory(Common::FileType::PlaylistM3u),".m3u");
@@ -95,6 +115,10 @@ std::optional<boost::uuids::uuid> SimpleDatabase::getTemporalPlaylistByName(cons
     return std::optional<boost::uuids::uuid>(playlistUID);
 
 }
+
+std::optional<std::string> SimpleDatabase::passwordFind(const std::string &name) {
+    logger(Level::debug) << "SimpleDatabase::passwordFind\n";
+    return m_credentials.passwordFind(name); }
 
 
 bool SimpleDatabase::addToPlaylistName(const std::string &playlistName, std::string &&uniqueID) {
@@ -268,6 +292,10 @@ std::optional<std::string> SimpleDatabase::getFileFromUUID(boost::uuids::uuid &u
     }
     logger(Level::warning) << "requested uuid <" << uuid << "> not found\n";
     return std::nullopt;
+}
+
+std::optional<std::string> SimpleDatabase::getM3UPlaylistFromUUID(boost::uuids::uuid &uuid) {
+    return m_playlistContainer.createvirtual_m3u(uuid);
 }
 
 void SimpleDatabase::addSingleSongToAlbumPlaylist(const boost::uuids::uuid &songId) {

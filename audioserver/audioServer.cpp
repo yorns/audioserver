@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
     boost::asio::io_context ioc;
 
     logger(Level::info) << "connection client <audioserver> to broker\n";
-    std::shared_ptr<snc::Client> sncClient; // = std::make_shared<snc::Client>("audioserver", ioc, "127.0.0.1", 12001);
+    std::shared_ptr<snc::Client> sncClient = std::make_shared<snc::Client>("audioserver", ioc, "127.0.0.1", 12001);
 
     /* generate a wifi manager */
     WifiManager wifiManager;
