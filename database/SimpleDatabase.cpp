@@ -275,15 +275,11 @@ std::optional<std::string> SimpleDatabase::getFileFromUUID(boost::uuids::uuid &u
         // test if this is a local file
         logger(Level::warning) << "requested uuid <" << uuid << "> found url: "<<id3Info[0].urlAudioFile <<"\n";
         auto filename = id3Info[0].urlAudioFile;
-        const std::string filePrefix("file://");
-        const std::string httpPrefix("http://");
-        const std::string httpsPrefix("https://");
-        if (filename.substr(0,filePrefix.length()) == filePrefix) {
-            //               filename = filename.substr(filePrefix.length());
+        if (filename.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
             return std::optional<std::string>(filename);
         }
-        if (filename.substr(0,httpPrefix.length()) == httpPrefix || filename.substr(0,httpsPrefix.length()) == httpsPrefix) {
-            //               filename = filename.substr(filePrefix.length());
+        if (filename.substr(0,ServerConstant::httpprefix.length()) == ServerConstant::httpprefix ||
+                filename.substr(0,ServerConstant::httpsprefix.length()) == ServerConstant::httpsprefix) {
             return std::optional<std::string>(filename);
         }
 

@@ -31,6 +31,10 @@ namespace ServerConstant {
     static constexpr auto imagePath{sv("img")};
     static constexpr auto audioPath{sv("audio")};
     static constexpr auto playlistPath{sv("pl")};
+    static constexpr auto fileprefix{sv("file://")};
+    static constexpr auto httpprefix{sv("http://")};
+    static constexpr auto httpsprefix{sv("https://")};
+    static constexpr auto indexfile{sv("index.html")};
 
     namespace id3 {
         static const std::string covr {"covr"};
@@ -101,7 +105,7 @@ namespace ServerConstant {
             static const std::string songId {"SongID"};
             static const std::string playlistId {"PlaylistID"};
             static const std::string curPlaylistId {"CurPlaylistID"};
-            static const std::string song {"SongID"};
+            //static const std::string song {"Song"};
             static const std::string playlist {"Playlist"};
             static const std::string position {"Position"};
             static const std::string loop {"Loop"};

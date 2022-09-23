@@ -308,11 +308,11 @@ function onPlayerMessage(msg, isBrowserCall) {
     }
     else {
         if (localDisplayData.hasSongChanged(msg)) {
-            console.log("song changed");
+            console.log("song changed: " + msg.title);
             unemphTableEntry(localDisplayData.songID);
             if (playing) {
                 emphTableEntry(msg.songID);
-console.log("cover set to "+msg.cover);
+                console.log("cover set to "+msg.cover);
             }
          }
          else {
@@ -354,15 +354,15 @@ function runWebsocket() {
             //console.log(event.data);
             try {
                 var msg = JSON.parse(event.data);
+		// console.log("message: " + event.data);
                 if (msg.hasOwnProperty('SongBroadcastMessage')) {
                     if (useExternalPlayer) {
                         // converter is needed from json message
-		        //console.log("message: " + msg.SongBroadcastMessage);
+		        //console.log("message: " + JSON.stringify(msg.SongBroadcastMessage));
                         let playerMessage = {};
 			 playerMessage.songID = msg.SongBroadcastMessage.SongID;
                          playerMessage.playlistID = msg.SongBroadcastMessage.PlaylistID;
                          playerMessage.curPlaylistID = msg.SongBroadcastMessage.CurPlaylistID;
-                        //playerMessage.song = msg.SongBroadcastMessage.Song;
                          playerMessage.playlist = msg.SongBroadcastMessage.Playlist;
 
                          playerMessage.position = msg.SongBroadcastMessage.Position;
@@ -717,7 +717,7 @@ function unemphTableEntry(songID) {
     }
 }
 
-function emphTableEntry(songID) {   //(oldUid, newUid) {
+function emphTableEntry(songID) {   
     if (songID && songID != "00000000-0000-0000-0000-000000000000") {
             console.log("emphisis add to <", songID, ">");
             $("#act_playlist #"+songID).attr("style", "background-color:gray");

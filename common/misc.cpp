@@ -67,6 +67,7 @@ void Common::audioserver_updateUI(SessionHandler &sessionHandler,
 
         songID = playerWrapper.getSongID();
         auto songData = databaseWrapper.getDatabase()->searchAudioItems(songID, Database::SearchItem::uid , Database::SearchAction::uniqueId);
+        logger(LoggerFramework::Level::info) << "update songID with <"<<boost::lexical_cast<std::string>(songID)<<">\n";
 
         if (!playerWrapper.getTitle().empty()) {
             title = playerWrapper.getTitle();
@@ -114,20 +115,20 @@ void Common::audioserver_updateUI(SessionHandler &sessionHandler,
 
     nlohmann::json songBroadcast;
     nlohmann::json songInfo;
+
     try {
         songInfo[ServerConstant::JsonField::Websocket::songId] = boost::lexical_cast<std::string>(songID);
         songInfo[ServerConstant::JsonField::Websocket::playlistId] = boost::lexical_cast<std::string>(playlistID);
         songInfo[ServerConstant::JsonField::Websocket::curPlaylistId] = boost::lexical_cast<std::string>(currPlaylistID);
-        songInfo[ServerConstant::JsonField::Websocket::song] = title;
         songInfo[ServerConstant::JsonField::Websocket::playlist] = album;
     } catch (std::exception& ) {
         logger(Level::warning) << "cannot convert ID to string - sending empty information\n";
         songInfo[ServerConstant::JsonField::Websocket::songId] = boost::lexical_cast<std::string>(emptyUID);
         songInfo[ServerConstant::JsonField::Websocket::playlistId] = boost::lexical_cast<std::string>(emptyUID);
         songInfo[ServerConstant::JsonField::Websocket::curPlaylistId] = boost::lexical_cast<std::string>(emptyUID);
-        songInfo[ServerConstant::JsonField::Websocket::song] = "";
         songInfo[ServerConstant::JsonField::Websocket::playlist] = "";
     }
+
     songInfo[ServerConstant::JsonField::Websocket::position] = playerWrapper.getSongPercentage();
     songInfo[ServerConstant::JsonField::Websocket::loop] = playerWrapper.getLoop();
     songInfo[ServerConstant::JsonField::Websocket::shuffle] = playerWrapper.getShuffle();

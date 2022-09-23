@@ -170,6 +170,18 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
               continue;
             }
 
+            std::string urlAudioFile {id3Elem.urlAudioFile};
+            if (id3Elem.urlAudioFile.length() > ServerConstant::fileprefix.length() &&
+                    id3Elem.urlAudioFile.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
+                std::string extension = std::string(ServerConstant::mp3Extension);
+                if (auto dotPos = id3Elem.urlAudioFile.find_last_of('.')) {
+                    if (dotPos != std::string::npos) {
+                      extension = id3Elem.urlAudioFile.substr(dotPos);
+                    }
+                }
+                urlAudioFile = std::string(ServerConstant::audioPath) + "/" + boost::uuids::to_string(id3Elem.uid) + extension;
+            }
+
             nlohmann::json jsonElem;
 
             jsonElem[ServerConstant::JsonField::uid] = boost::uuids::to_string(id3Elem.uid);
@@ -182,7 +194,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             jsonElem[ServerConstant::JsonField::extension] = id3Elem.coverFileExt;
             jsonElem[ServerConstant::JsonField::albumCreation] = id3Elem.albumCreation;
             jsonElem[ServerConstant::JsonField::disk] = id3Elem.cd_no;
-            jsonElem[ServerConstant::JsonField::url] = id3Elem.urlAudioFile;
+            jsonElem[ServerConstant::JsonField::url] = urlAudioFile;
             jsonElem[ServerConstant::JsonField::coverUrl] = id3Elem.urlCoverFile;
 
             data.push_back(jsonElem);
@@ -217,6 +229,18 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
 
             nlohmann::json jsonElem;
 
+            std::string urlAudioFile {id3Elem.urlAudioFile};
+            if (id3Elem.urlAudioFile.length() > ServerConstant::fileprefix.length() &&
+                    id3Elem.urlAudioFile.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
+                std::string extension = std::string(ServerConstant::mp3Extension);
+                if (auto dotPos = id3Elem.urlAudioFile.find_last_of('.')) {
+                    if (dotPos != std::string::npos) {
+                      extension = id3Elem.urlAudioFile.substr(dotPos);
+                    }
+                }
+                urlAudioFile = std::string(ServerConstant::audioPath) + "/" + boost::uuids::to_string(id3Elem.uid) + extension;
+            }
+
             jsonElem[ServerConstant::JsonField::uid] = boost::uuids::to_string(id3Elem.uid);
             jsonElem[ServerConstant::JsonField::infoSrc] = id3Elem.informationSource;
             jsonElem[ServerConstant::JsonField::title] = id3Elem.title_name;
@@ -227,7 +251,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             jsonElem[ServerConstant::JsonField::extension] = id3Elem.coverFileExt;
             jsonElem[ServerConstant::JsonField::albumCreation] = id3Elem.albumCreation;
             jsonElem[ServerConstant::JsonField::disk] = id3Elem.cd_no;
-            jsonElem[ServerConstant::JsonField::url] = id3Elem.urlAudioFile;
+            jsonElem[ServerConstant::JsonField::url] = urlAudioFile;
             jsonElem[ServerConstant::JsonField::coverUrl] = id3Elem.urlCoverFile;
 
             data.push_back(jsonElem);
@@ -468,7 +492,7 @@ std::vector<Id3Info> Id3Repository::search(const boost::uuids::uuid &what, Searc
             std::for_each(std::begin(m_simpleDatabase), std::end(m_simpleDatabase),
                           [&what, &findData](const Id3Info &info) {
                 if (info.uid == what) {
-                    //logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
+                    logger(Level::debug) << "found uniqueId search: " << info.toString() <<"\n";
                     findData.push_back(info);
                 }
             });
@@ -563,10 +587,16 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
     else {
         auto whatList = Common::extractWhatList(what);
 
-        if(item == SearchItem::overall &&
-                ( what.find_first_of(" & ") != std::string::npos ||
-                  what.find_first_of(" | ") != std::string::npos )
-                ) {
+        bool is_upn{false};
+        std::for_each (std::begin(whatList), std::end(whatList), [&is_upn](const std::string& index){
+            if (index == "&" || index == "|")
+                is_upn = true;
+        });
+
+        if(item == SearchItem::overall && action == SearchAction::alike && is_upn) {
+//                ( what.find_first_of(" & ") != std::string::npos ||
+//                  what.find_first_of(" | ") != std::string::npos )
+//                ) {
             findData = upn(whatList, item);
         }
         else {
@@ -586,12 +616,13 @@ std::vector<Id3Info> Id3Repository::search(const std::string &what, SearchItem i
                     }
                 }
                 else {
+//                    logger(Level::info) << "exact search\n";
                     if (((item == SearchItem::title || item == SearchItem::overall) &&
-                         (info.title_name == what)) ||
+                         (info.getNormalizedTitle() == Common::str_tolower(what))) ||
                             ((item == SearchItem::album || item == SearchItem::overall) &&
-                             (info.album_name == what)) ||
+                             (info.getNormalizedAlbum() == Common::str_tolower(what))) ||
                             ((item == SearchItem::performer || item == SearchItem::overall) &&
-                             (info.performer_name == what))) {
+                             (info.getNormalizedPerformer() == Common::str_tolower(what)))) {
                         findData.push_back(info);
                     }
                 }

@@ -289,19 +289,20 @@ void Session::on_read_header(std::shared_ptr<http::request_parser<http::empty_bo
 void Session::handle_regular_file_request(std::string target, http::verb method, uint32_t version, bool keep_alive, std::optional<http_range> rangeData) {
 
     std::string path;
-    if (target.substr(0,7) == "file://") {
-        path = target.substr(7);
+    if (target.substr(0, ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
+        path = target.substr(ServerConstant::fileprefix.length());
     }
     else {
         // http/https should be filtered on client side .. code should not be placed here
-        if (!(target.substr(0,7) == "http://") && !(target.substr(0,8) == "https://")) {
+        if (!(target.substr(0,ServerConstant::httpprefix.length()) == ServerConstant::httpprefix) &&
+                !(target.substr(0,ServerConstant::httpsprefix.length()) == ServerConstant::httpsprefix)) {
             path = m_filePath + '/' + target;
         } else {
             path = target;
         }
     }
     if(target.back() == '/')
-        path.append("index.html");
+        path.append(ServerConstant::indexfile);
 
     // Attempt to open the file
     boost::beast::error_code ec;

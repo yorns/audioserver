@@ -9,15 +9,19 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
 
     nlohmann::json json;
     if (list) {
+        if (list->empty()){
+            return R"([])";
+        }
         for(auto item : list.value()) {
             nlohmann::json jentry;
             std::string urlAudioFile {item.urlAudioFile};
-            if (item.urlAudioFile.length() > 7 && item.urlAudioFile.substr(0,7) == "file://") {
-                std::string extension = ".mp3";
+            if (item.urlAudioFile.length() > ServerConstant::fileprefix.length() &&
+                    item.urlAudioFile.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
+                std::string extension = std::string(ServerConstant::mp3Extension); // default use mp3
                 if (auto dotPos = item.urlAudioFile.find_last_of('.')) {
                     extension = item.urlAudioFile.substr(dotPos);
                 }
-                std::string(ServerConstant::audioPath) + "/" + boost::uuids::to_string(item.uid) + extension;
+                urlAudioFile = std::string(ServerConstant::audioPath) + "/" + boost::uuids::to_string(item.uid) + extension;
             }
             jentry[ServerConstant::JsonField::uid] = boost::uuids::to_string(item.uid);
             jentry[ServerConstant::JsonField::performer] = item.performer_name;
@@ -25,9 +29,12 @@ std::string DatabaseAccess::convertToJson(const std::optional<std::vector<Id3Inf
             jentry[ServerConstant::JsonField::title] = item.title_name;
             jentry[ServerConstant::JsonField::imageUrl] = item.urlCoverFile;
             jentry[ServerConstant::JsonField::trackNo] = item.track_no;
-            jentry[ServerConstant::JsonField::audioUrl] = urlAudioFile; //item.urlAudioFile;
+            jentry[ServerConstant::JsonField::audioUrl] = urlAudioFile;
             json.push_back(jentry);
         }
+    }
+    else {
+        return R"([])";
     }
     //logger(Level::info) << json.dump(2)<<"\n";
     return json.dump(2);
@@ -38,6 +45,9 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
     nlohmann::json json;
 
     try {
+        if (list.empty()) {
+            return R"([])";
+        }
         for(auto item : list) {
             nlohmann::json jentry;
             jentry[ServerConstant::JsonField::uid] = boost::uuids::to_string(item.getUniqueID());
@@ -54,6 +64,7 @@ std::string DatabaseAccess::convertToJson(const std::vector<Database::Playlist>&
 
     } catch (const nlohmann::json::exception& ex) {
         logger(Level::error) << "conversion to json failed: " << ex.what();
+        return R"([])";
     }
 
     // logger(Level::info) << "json data:\n" << json.dump(2)<<"\n";
