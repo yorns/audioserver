@@ -1,6 +1,6 @@
 #include "wifi.h"
 
-void WifiManager::removeEntry(const std::__cxx11::string &ssid) {
+void WifiManager::removeEntry(const std::string &ssid) {
     auto it = std::find_if(std::begin(networkList), std::end(networkList), [&ssid](const NetworkEntry& entry){
         return ssid == entry.Ssid;
     });
@@ -9,7 +9,7 @@ void WifiManager::removeEntry(const std::__cxx11::string &ssid) {
     }
 }
 
-void WifiManager::receiveWifiConfig(const std::__cxx11::string &) {
+void WifiManager::receiveWifiConfig(const std::string &) {
     // Todo gather all wifi APs (not strictly necessarry, but for more evaluation
 }
 
