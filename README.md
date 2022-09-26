@@ -27,6 +27,7 @@ have fun!
 
 # find tutorials here:
 
+https://github.com/yorns/audioserver/wiki/User-Start
 https://github.com/yorns/audioserver/wiki/Tutorials
 
 # audioSever build and installation
