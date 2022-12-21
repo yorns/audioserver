@@ -27,7 +27,7 @@ void SimpleDatabase::loadDatabase() {
     logger(Level::info) << "Read audio id3 data from available files \n";
     m_id3Repository.read();
 
-    logger(Level::info) << "Read M3U playlists - unfinished \n";
+    logger(Level::info) << "Read M3U playlists - unfinished/empty method\n";
     m_playlistContainer.readPlaylistsM3U();
 
     logger(Level::info) << "Read json playlists\n";
@@ -273,8 +273,8 @@ std::optional<std::string> SimpleDatabase::getFileFromUUID(boost::uuids::uuid &u
     auto id3Info = m_id3Repository.search(uuid, SearchItem::uid, SearchAction::uniqueId);
     if (id3Info.size() == 1) {
         // test if this is a local file
-        logger(Level::warning) << "requested uuid <" << uuid << "> found url: "<<id3Info[0].urlAudioFile <<"\n";
-        auto filename = id3Info[0].urlAudioFile;
+        logger(Level::warning) << "requested uuid <" << uuid << "> found url: "<<id3Info[0].informationSource <<"\n";
+        auto filename = id3Info[0].informationSource;
         if (filename.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
             return std::optional<std::string>(filename);
         }

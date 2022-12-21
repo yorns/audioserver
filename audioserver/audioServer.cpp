@@ -98,6 +98,7 @@ int main(int argc, char* argv[])
     WifiAccess     wifiWrapper(wifiManager);
     PlaylistAccess playlistWrapper(databaseWrapper, playerWrapper);
 
+    // load database, cached information and generate album lists
     databaseWrapper.loadDatabase();
 
     /* create a new full qualified name (with uuid) */

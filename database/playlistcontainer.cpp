@@ -214,7 +214,6 @@ void PlaylistContainer::addTags(const std::vector<Tag>& tagList) {
     }
 }
 
-
 std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uuids::uuid &playlistUuid)  {
 
     if (getPlaylistByUID(playlistUuid)) {
@@ -225,7 +224,7 @@ std::optional<std::string> PlaylistContainer::createvirtual_m3u(const boost::uui
         if (list.getPlaylist().size() > 0) {
             for (const auto& elem : list.getPlaylist()) {
                 std::stringstream id;
-                id << "/audio/" << elem << ".mp3";
+                id << ServerConstant::audioPath << "/" << elem << ".mp3";
                 audioList.push_back(id.str());
             }
             //logger(Level::debug) << "created list: " << audioList.dump(2) << "\n";

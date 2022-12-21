@@ -171,6 +171,8 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
             }
 
             std::string urlAudioFile {id3Elem.urlAudioFile};
+
+            // make a special handling, if the file starts with file:// (fileprefix)
             if (id3Elem.urlAudioFile.length() > ServerConstant::fileprefix.length() &&
                     id3Elem.urlAudioFile.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
                 std::string extension = std::string(ServerConstant::mp3Extension);
@@ -229,7 +231,7 @@ std::optional<nlohmann::json> Id3Repository::id3ToJson(const std::vector<Id3Info
 
             nlohmann::json jsonElem;
 
-            std::string urlAudioFile {id3Elem.urlAudioFile};
+            std::string urlAudioFile {id3Elem.informationSource};
             if (id3Elem.urlAudioFile.length() > ServerConstant::fileprefix.length() &&
                     id3Elem.urlAudioFile.substr(0,ServerConstant::fileprefix.length()) == ServerConstant::fileprefix) {
                 std::string extension = std::string(ServerConstant::mp3Extension);
